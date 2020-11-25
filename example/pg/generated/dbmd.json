@@ -1,0 +1,885 @@
+{
+  "dbmsName": "PostgreSQL",
+  "dbmsVersion": "13.0",
+  "caseSensitivity": "INSENSITIVE_STORED_LOWER",
+  "relationMetadatas": [
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "authority"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 200,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "url",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 500,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "description",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "weight",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "analyst"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "short_name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 50,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "compound"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "display_name",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 50,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "nctr_isis_id",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 100,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "smiles",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "canonical_smiles",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "cas",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 50,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "mol_formula",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "mol_weight",
+          "databaseType": "numeric",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": null,
+          "precisionRadix": 10,
+          "fractionalDigits": null
+        },
+        {
+          "name": "entered",
+          "databaseType": "timestamptz",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "entered_by",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "advisory_type"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 50,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "authority_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 500,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "compound_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "mesh_id",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 7,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "drugbank_id",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 7,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "cid",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "therapeutic_indications",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 4000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "registered",
+          "databaseType": "timestamptz",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "registered_by",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "market_entry_date",
+          "databaseType": "date",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "drug_reference"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "drug_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "reference_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 2,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "priority",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "reference"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "publication",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "advisory"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "drug_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "advisory_type_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "text",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "functional_category"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 500,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "description",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 2000,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "parent_functional_category_id",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "drug_functional_category"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "drug_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "functional_category_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 2,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "authority_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 3,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "seq",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "brand"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "drug_id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "brand_name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": 2,
+          "length": 200,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "language_code",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 10,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "manufacturer_id",
+          "databaseType": "int4",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        }
+      ]
+    },
+    {
+      "relationId": {
+        "schema": "drugs",
+        "name": "manufacturer"
+      },
+      "relationType": "Table",
+      "fields": [
+        {
+          "name": "id",
+          "databaseType": "int4",
+          "nullable": false,
+          "primaryKeyPartNumber": 1,
+          "length": null,
+          "precision": 32,
+          "precisionRadix": 2,
+          "fractionalDigits": 0
+        },
+        {
+          "name": "name",
+          "databaseType": "varchar",
+          "nullable": false,
+          "primaryKeyPartNumber": null,
+          "length": 200,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        }
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "constraintName": "advisory_advisory_type_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "advisory"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "advisory_type"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "advisory_type_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "advisory_drug_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "advisory"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "drug_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "advisory_type_authority_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "advisory_type"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "authority"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "authority_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "brand_drug_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "brand"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "drug_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "brand_manufacturer_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "brand"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "manufacturer"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "manufacturer_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "compound_analyst_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "compound"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "analyst"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "entered_by",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_analyst_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "analyst"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "registered_by",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_compound_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "compound"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "compound_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drugfuncat_authority_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug_functional_category"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "authority"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "authority_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_category_drug_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug_functional_category"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "drug_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_funcat_funcat_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug_functional_category"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "functional_category"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "functional_category_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_reference_drug_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug_reference"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "drug_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "drug_reference_reference_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "drug_reference"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "reference"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "reference_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    },
+    {
+      "constraintName": "funcat_funcat_fk",
+      "foreignKeyRelationId": {
+        "schema": "drugs",
+        "name": "functional_category"
+      },
+      "primaryKeyRelationId": {
+        "schema": "drugs",
+        "name": "functional_category"
+      },
+      "foreignKeyComponents": [
+        {
+          "foreignKeyFieldName": "parent_functional_category_id",
+          "primaryKeyFieldName": "id"
+        }
+      ]
+    }
+  ]
+}
