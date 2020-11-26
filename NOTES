@@ -1,9 +1,6 @@
 
-
 Make a query to generate dbmd json for Postgres and Oracle.
   Provide js script at least for Postgres to make this easy launch as npm script from package.json.
-
-Rename to something list sqljson-ts?
 
 Create and register an npm package.
   Can query-specs.ts be made available for importing when dagen is npm dev dependency?
