@@ -1,6 +1,8 @@
+Setup VSCode
+  Vim Setup
+    
 
-Make a query to generate dbmd json for Postgres and Oracle.
-  Provide js script at least for Postgres to make this easy launch as npm script from package.json.
+Add integration tests.
 
 Create and register an npm package.
   Can query-specs.ts be made available for importing when dagen is npm dev dependency?
@@ -11,14 +13,33 @@ npx ts-node src/database-metadata/generation/pg-fetch-json.ts `
    example/pg/generated/dbmd.json `
    example/pg/db/connection.env
 
-# generate queries
+# generate queries for Postgres
 npx ts-node src/query-generator-main.ts `
   $PWD/example/pg/generated/dbmd.json `
   $PWD/example/pg/query-specs.ts `
   example/pg/generated `
   example/pg/generated
 
-# generate relation metadata
+# generate relation metadata for Postgres
 npx ts-node src/relation-metadata-generator-main.ts `
   $PWD/example/pg/generated/dbmd.json `
   example/pg/generated
+
+
+# generate database metadata for an Oracle database
+npx ts-node src/database-metadata/generation/ora-fetch-json.ts `
+   src/database-metadata/generation/ora-dbmd.sql `
+   example/ora/generated/dbmd.json `
+   /Apps/dev/envs/ora-alis-dev.env
+
+# generate queries for Oracle
+npx ts-node src/query-generator-main.ts `
+  $PWD/example/ora/generated/dbmd.json `
+  $PWD/example/ora/query-specs.ts `
+  example/ora/generated `
+  example/ora/generated
+
+# generate relation metadata for Postgres
+npx ts-node src/relation-metadata-generator-main.ts `
+  $PWD/example/ora/generated/dbmd.json `
+  example/ora/generated

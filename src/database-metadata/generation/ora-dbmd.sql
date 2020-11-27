@@ -78,5 +78,5 @@ select
     'relationMetadatas' value (select tableMds from tableMetadatas),
     'foreignKeys' value (select fks from foreignKeys)
     returning clob
-  )
-from dual;
+  ) dbmd
+from dual

@@ -105,16 +105,16 @@ function relationMetadataSource(relMd: RelMetadata): string
 
    for ( const f of relMd.fields )
    {
-      parts.push(`   ${lit(f.name)}: {`);
-      parts.push(`"type": ${lit(f.databaseType)}, `);
-      parts.push(`"null": ${f.nullable}, `);
+      parts.push(`   ${lit(f.name)}: { `);
+      parts.push(`type: ${lit(f.databaseType)}, `);
+      parts.push(`nullable: ${f.nullable}, `);
       const pkPartNum = f.primaryKeyPartNumber;
-      parts.push(`"pkPart": ${pkPartNum != null ? pkPartNum.toString() : "null"}, `);
-      parts.push(`"len": ${f.length}, `);
-      parts.push(`"prec": ${f.precision}, `);
-      parts.push(`"precRadix": ${f.precisionRadix}, `);
-      parts.push(`"scale": ${f.fractionalDigits}`);
-      parts.push("},\n");
+      parts.push(`pkPart: ${pkPartNum != null ? pkPartNum.toString() : "null"}, `);
+      parts.push(`len: ${f.length}, `);
+      parts.push(`prec: ${f.precision}, `);
+      parts.push(`precRadix: ${f.precisionRadix}, `);
+      parts.push(`scale: ${f.fractionalDigits}`);
+      parts.push(" },\n");
    }
 
    parts.push("},\n");

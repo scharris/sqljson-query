@@ -4,40 +4,41 @@ import * as dotenv from 'dotenv';
 import * as oracledb from 'oracledb';
 import {BindParameters, ExecuteOptions} from 'oracledb';
 
-async function init(sqlFile: string, outputFile: string): Promise<void>
+async function init
+   (
+      connectInfo: ConnectInfo,
+      sqlFile: string,
+      outputFile: string
+   )
+   : Promise<void>
 {
-   const conn = await oracledb.getConnection();
+   const conn = await oracledb.getConnection(connectInfo);
 
    try
    {
       const sql = await fs.readFile(path.join(sqlFile), 'utf-8');
 
       const params: BindParameters = [];
-      const options: ExecuteOptions = {};
-      const res = await conn.execute(sql, params, options);
+      // LOB objects are returned for lob columns by default, here we just want a string.
+      const options: ExecuteOptions = {
+         fetchInfo: { "DBMD": { type: oracledb.STRING } }
+      };
+      const resJson = requireSingleRowColumnStringResult(
+         await conn.execute(sql, params, options)
+      );
 
-      if ( !res.rows )
-         throw new Error('No rows in metadata result set, one row was expected.');
+      const dbmd = JSON.parse(resJson);
+      const formattedJson = JSON.stringify(dbmd, null, 2);
 
-      const resRow = res.rows[0];
-
-      console.log('dbmd res: ', resRow);
-
-      if ( !Array.isArray(resRow) )
-         throw new Error('Expected array result.');
-
-      if ( resRow.length !== 1 )
-         throw new Error(`Expected exactly one column in result, got ${resRow.length} instead.`);
-
-      const jsonRes = JSON.stringify(resRow[0], null, 2);
-
-      await fs.writeFile(outputFile, jsonRes, "utf-8");
+      await fs.writeFile(outputFile, formattedJson, "utf-8");
    }
    finally
    {
       await conn.close();
    }
 }
+
+interface ConnectInfo { user: string; password: string; connectString: string; }
 
 if ( process.argv.length < 4 || process.argv.length > 5 )
 {
@@ -52,4 +53,33 @@ const envFile = process.argv[4] || null;
 if ( envFile )
    dotenv.config({ path: envFile });
 
-init(sqlFile, outputFile);
+const connectInfo: ConnectInfo = {
+  user: process.env.DB_USER || '',
+  password: process.env.DB_PASSWORD || '',
+  connectString : `${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_SERVICE}`
+};
+
+try
+{
+  init(connectInfo, sqlFile, outputFile);
+}
+catch(e)
+{
+   console.error('Database metadata generation failed due to error.');
+   console.error(e);
+   process.exit(1);
+}
+
+function requireSingleRowColumnStringResult(res: oracledb.Result<unknown>): string
+{
+   if (!Array.isArray(res.rows))
+      throw new Error('Expected array result.');
+   if (res.rows.length !== 1 ||
+      !Array.isArray(res.rows[0]) || res.rows[0].length !== 1)
+      throw new Error(`Expected exactly one row and 1 column in results: ${res}.`);
+   const resVal = res.rows[0][0];
+   if ( typeof resVal !== 'string' )
+      throw new Error(`Expected string result value, got: ${typeof resVal}.`);
+   return resVal;
+}
+
