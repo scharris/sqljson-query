@@ -2,13 +2,13 @@ import {QueryGroupSpec, QuerySpec, RecordCondition} from '../../src/query-specs'
 // TODO: This import should eventually be from the dev dependency installed via npm.
 
 function drugQuery
-   (
-      name: string,
-      drugCond: RecordCondition | undefined
-   )
-   : QuerySpec
+  (
+    name: string,
+    drugCond: RecordCondition | undefined
+  )
+  : QuerySpec
 {
-   return {
+ return {
       queryName: name,
       resultRepresentations: ["JSON_OBJECT_ROWS"],
       generateResultTypes: true,

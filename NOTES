@@ -1,11 +1,12 @@
-Setup VSCode
-  Vim Setup
-    
-
 Add integration tests.
+Rename Field to columnMetadata?
 
 Create and register an npm package.
   Can query-specs.ts be made available for importing when dagen is npm dev dependency?
+
+
+Sketch design for ui query builder.
+
 
 # generate database metadata for a Postgres database
 npx ts-node src/database-metadata/generation/pg-fetch-json.ts `
