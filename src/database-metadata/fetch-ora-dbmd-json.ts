@@ -1,3 +1,50 @@
+import * as oracledb from 'oracledb';
+
+async function fetchDatabaseMetadataJson(): Promise<string>
+{
+  const connectInfo: ConnectInfo = {
+    user: process.env.DB_USER || '',
+    password: process.env.DB_PASSWORD || '',
+    connectString : `${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_SERVICE}`
+  };
+  
+  const conn = await oracledb.getConnection(connectInfo);
+
+  try
+  {
+    const resJson = requireSingleRowColumnStringResult(
+      await conn.execute(dbmdSql, [], {fetchInfo: {"DBMD": {type: oracledb.STRING}}})
+    );
+
+    const dbmd = JSON.parse(resJson);
+
+    return JSON.stringify(dbmd, null, 2);
+  }
+  finally
+  {
+    await conn.close();
+  }
+}
+
+interface ConnectInfo {
+  user: string;
+  password: string;
+  connectString: string;
+}
+
+function requireSingleRowColumnStringResult(res: oracledb.Result<unknown>): string
+{
+  if (!Array.isArray(res.rows))
+    throw new Error('Expected array result.');
+  if (res.rows.length !== 1 || !Array.isArray(res.rows[0]) || res.rows[0].length !== 1)
+    throw new Error(`Expected exactly one row and 1 column in results: ${res}.`);
+  const resVal = res.rows[0][0];
+  if ( typeof resVal !== 'string' )
+    throw new Error(`Expected string result value, got: ${typeof resVal}.`);
+  return resVal;
+}
+
+const dbmdSql = `
 with
 fieldMetadatas as (
   select
@@ -80,3 +127,6 @@ select
     returning clob
   ) dbmd
 from dual
+`;
+
+export default fetchDatabaseMetadataJson;

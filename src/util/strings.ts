@@ -20,6 +20,17 @@ export function lowerCaseInitials(name: string, sep: string): string
   return parts.join("");
 }
 
+export function escapeRegExp(s: string)
+{
+  return s.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
+export function replaceAll(inString: string, replace: string, replacement: string)
+{
+  const regex = new RegExp(escapeRegExp(replace), 'g');
+  return inString.replace(regex, replacement);
+}
+
 export function camelCase(name: string, upperFirst: boolean): string
 {
   const parts: string[] = [];

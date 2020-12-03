@@ -1,46 +1,38 @@
-Add integration tests.
-Rename Field to columnMetadata?
-
-Create and register an npm package.
-  Can query-specs.ts be made available for importing when dagen is npm dev dependency?
-
-
-Sketch design for ui query builder.
 
 
 # generate database metadata for a Postgres database
-npx ts-node src/database-metadata/generation/pg-fetch-json.ts `
-   src/database-metadata/generation/pg-dbmd.sql `
-   example/pg/generated/dbmd.json `
-   example/pg/db/connection.env
+npx ts-node src/generate-database-metadata.ts `
+   --db-type Postgres `
+   --connection-env-file example/pg/db/connection.env `
+   example/pg/generated/dbmd.json
 
 # generate queries for Postgres
-npx ts-node src/query-generator-main.ts `
-  $PWD/example/pg/generated/dbmd.json `
-  $PWD/example/pg/query-specs.ts `
-  example/pg/generated `
-  example/pg/generated
+npx ts-node src/qenerate-queries.ts `
+  --dbmd-file $PWD/example/pg/generated/dbmd.json `
+  --query-specs-file $PWD/example/pg/query-specs.ts `
+  --types-output-dir example/pg/generated `
+  --sql-output-dir example/pg/generated
 
 # generate relation metadata for Postgres
-npx ts-node src/relation-metadata-generator-main.ts `
-  $PWD/example/pg/generated/dbmd.json `
-  example/pg/generated
+npx ts-node src/generate-relation-metadatas.ts `
+  --dbmd-file $PWD/example/pg/generated/dbmd.json `
+  --output-dir example/pg/generated
 
 
 # generate database metadata for an Oracle database
-npx ts-node src/database-metadata/generation/ora-fetch-json.ts `
-   src/database-metadata/generation/ora-dbmd.sql `
-   example/ora/generated/dbmd.json `
-   /Apps/dev/envs/ora-alis-dev.env
+npx ts-node src/generate-database-metadata.ts `
+   --db-type Oracle `
+   --connection-env-file /Apps/dev/envs/ora-alis-dev.env `
+   example/ora/generated/dbmd.json
 
 # generate queries for Oracle
 npx ts-node src/query-generator-main.ts `
-  $PWD/example/ora/generated/dbmd.json `
-  $PWD/example/ora/query-specs.ts `
-  example/ora/generated `
-  example/ora/generated
+  --dbmd-file $PWD/example/ora/generated/dbmd.json `
+  --query-specs-file $PWD/example/ora/query-specs.ts `
+  --types-output-dir example/ora/generated `
+  --sql-output-dir example/ora/generated
 
-# generate relation metadata for Postgres
+# generate relation metadata for Oracle
 npx ts-node src/relation-metadata-generator-main.ts `
-  $PWD/example/ora/generated/dbmd.json `
-  example/ora/generated
+  --dbmd-file $PWD/example/ora/generated/dbmd.json `
+  --output-dir example/ora/generated

@@ -1,43 +1,41 @@
+import * as minimist from 'minimist';
 
-export interface SplitArgs
+export function parseAppArgs
+  (
+    args: string[],
+    requiredNamedArgs: string[],
+    optionalNamedArgs: string[],
+    minPositionalArgs: number,
+    maxPositionalArgs: number | null = null
+  )
+  : minimist.ParsedArgs | 'help' | string
 {
-  named: { [key: string]: string | null};
-  positional: string[];
-}
+  if ( args.length === 1 && args[0] === '--help' )
+    return 'help';
 
-export function splitArgs(args: string[]): SplitArgs
-{
-  const named: { [key: string]: string | null } = {};
-  const positional: string[] = [];
+  let invalidParam = null;
+  const parsedArgs = minimist(args, {
+    string: [...requiredNamedArgs, ...optionalNamedArgs],
+    unknown: (p) => {
+      if ( p.startsWith('--') ) { invalidParam = p; return false; }
+      return true;
+    }
+  });
 
-  for ( const arg of args )
+  if ( invalidParam )
+    return `Parameter "${invalidParam}" is not valid.`;
+
+  if ( parsedArgs._.length < minPositionalArgs )
+    return `Expected at least ${minPositionalArgs} positional arguments, got ${parsedArgs._.length}`;
+
+  if ( maxPositionalArgs != null && parsedArgs._.length > maxPositionalArgs )
+    return `Expected at most ${maxPositionalArgs} positional arguments, got ${parsedArgs._.length}`;
+
+  for ( const param of requiredNamedArgs )
   {
-    const {name, value} = parseArg(arg);
-    if ( name )
-      named[name] = value;
-    else
-      positional.push(value || '');
+    if ( !parsedArgs.hasOwnProperty(param) )
+      return `Missing required parameter "${param}".`;
   }
 
-  return { named, positional }
-}
-
-function parseArg(arg: string): ArgInfo
-{
-  if ( !arg.startsWith("-") )
-    return { name: null, value: arg };   // positional arg
-
-  // Named param args should match this regex whether or not a value is included.
-  const paramMatch = arg.match(/-([^:=]+)([:=](.*))?/)
-
-  if ( !paramMatch )
-    throw new Error(`Bad named parameter format: '${arg}'`);
-
-  return { name: paramMatch[1], value: paramMatch[3] || null };
-}
-
-interface ArgInfo
-{
-  name: string | null;
-  value: string | null;
+  return parsedArgs;
 }

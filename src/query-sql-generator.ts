@@ -2,7 +2,7 @@ import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} f
 import {SqlDialect, getSqlDialect} from './sql-dialects';
 import {normalizeName, quoteIfNeeded} from './util/database-names';
 import {makeMap, mapSet} from './util/collections';
-import {indentLines, lowerCaseInitials, makeNameNotInSet} from './util/strings';
+import {indentLines, lowerCaseInitials, makeNameNotInSet, replaceAll} from './util/strings';
 import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
 import {
@@ -52,11 +52,11 @@ export class QuerySqlGenerator
     const propNameFn = querySpec.outputFieldNameDefault ? propertyNameDefaultFunction(querySpec.outputFieldNameDefault)
       : this.defaultPropertyNameFn;
 
-     const resReprs = querySpec.resultRepresentations || QuerySqlGenerator.DEFAULT_RESULT_REPRS;
+    const resReprs = querySpec.resultRepresentations || QuerySqlGenerator.DEFAULT_RESULT_REPRS;
 
-     return makeMap(resReprs, resRepr => resRepr, resRepr =>
-       this.queryResultReprSql(querySpec, resRepr, propNameFn)
-     );
+    return makeMap(resReprs, resRepr => resRepr, resRepr =>
+      this.queryResultReprSql(querySpec, resRepr, propNameFn)
+    );
   }
 
   /// Make SQL for the given query spec and result representation.
@@ -704,7 +704,7 @@ function tableFieldExpressionSql
     if ( !tableFieldExpr.expression )
       throw new SpecError(specLoc, "'field' or 'expression' must be provided");
     const tableAliasVarInExpr = tableFieldExpr.withTableAliasAs || DEFAULT_TABLE_ALIAS_VAR;
-    return (<any>tableFieldExpr.expression).replaceAll(tableAliasVarInExpr, tableAlias);
+    return replaceAll(tableFieldExpr.expression, tableAliasVarInExpr, tableAlias);
   }
 }
 
@@ -719,7 +719,7 @@ function recordConditionSql
   if ( cond )
   {
     const tableAliasVar = valueOr(cond.withTableAliasAs, DEFAULT_TABLE_ALIAS_VAR);
-    return `(${(<any>cond.sql).replaceAll(tableAliasVar, tableAlias)})`;
+    return `(${replaceAll(cond.sql, tableAliasVar, tableAlias)})`;
   }
   else
     return null;

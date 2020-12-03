@@ -1,44 +1,28 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import {splitArgs} from './util/args';
 import {DatabaseMetadata, RelMetadata} from './database-metadata/database-metadata';
 import {makeArrayValuesMap} from './util/collections';
 import {valueOr} from './util/nullability';
 import {indentLines} from './util/strings';
+import { parseAppArgs } from './util/args';
+import { dirEntExists } from './util/files';
 
-function printUsage(to: 'stderr' | 'stdout')
+export async function main
+  (
+    dbmdFile: string,
+    srcOutputDir: string
+  )
 {
-  const out = to === 'stderr' ? console.error : console.log;
-  out("Expected arguments: [options] <db-metadata-file> <src-output-dir>");
-  out("Options:");
-  out(`   --${opts.help} - Show this message.`);
-}
-
-export async function main(appArgs: string[])
-{
-  const args = splitArgs(appArgs);
-
-  let validOpts = new Set(Object.values(opts));
-  const invalidOpt = Object.keys(args.named).find(optName => !validOpts.has(optName));
-  if ( invalidOpt )
-    throw new Error(`Option name '${invalidOpt}' is not valid.`);
-
-  if ( args.named["--help"] ) { printUsage('stdout'); return; }
-
-  if ( args.positional.length != 2 ) { printUsage('stderr'); throw new Error("Expected 2 non-option arguments."); }
-
-  const dbmdFile = args.positional[0];
-  if ( !(await fs.stat(dbmdFile)).isFile() )
+  if ( !await dirEntExists(dbmdFile) || !(await fs.stat(dbmdFile)).isFile() )
     throw new Error('Database metadata file not found.');
 
-  const sourceOutputDir = args.positional[1];
-  if ( !(await fs.stat(sourceOutputDir)).isDirectory() )
+  if ( !await dirEntExists(srcOutputDir) || !(await fs.stat(srcOutputDir)).isDirectory() )
     throw new Error('Source output directory not found.');
 
   try
   {
-    await writeRelationsMetadataModule(dbmdFile, sourceOutputDir);
+    await writeRelationsMetadataModule(dbmdFile, srcOutputDir);
   }
   catch( e )
   {
@@ -127,8 +111,35 @@ function lit(s: string)
   return "\"" + s.replace(/"/g, '\\"') + "\"";
 }
 
-const opts = {
-  help: "help"
-};
+function printUsage(to: 'stderr' | 'stdout')
+{
+  const out = to === 'stderr' ? console.error : console.log;
+  out("Expected arguments: --dbmd-file <file> --output-dir <dir>");
+}
 
-main(process.argv.slice(2));
+////////////
+// Start
+////////////
+
+const argsParseResult = parseAppArgs(process.argv.slice(2), ['dbmd-file', 'output-dir'], [], 0);
+
+if ( typeof argsParseResult === 'string' )
+{
+  if ( argsParseResult === 'help' )
+  {
+    console.log('Help requested:');
+    printUsage('stdout');
+    process.exit(0);
+  }
+  else // error
+  {
+    console.error(`Error: ${argsParseResult}`);
+    process.exit(1);
+  }
+}
+
+main(argsParseResult['dbmd-file'], argsParseResult['output-dir'])
+.catch(err => {
+  console.error(err);
+  process.exit(1);
+});

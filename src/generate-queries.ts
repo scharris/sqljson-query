@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import {splitArgs} from './util/args';
+import {parseAppArgs} from './util/args';
 import {valueOr} from './util/nullability';
 import {DatabaseMetadata} from './database-metadata/database-metadata';
 import {QueryGroupSpec, QuerySpec, ResultRepr, TableJsonSpec} from './query-specs';
@@ -10,55 +10,37 @@ import {QuerySqlGenerator} from './query-sql-generator';
 import {ResultTypesGenerator} from './result-types-generator';
 import {TSModulesWriter} from './ts-modules-writer';
 import {propertyNameDefaultFunction} from './util/property-names';
+import {dirEntExists} from './util/files';
 
-function printUsage(to: 'stderr' | 'stdout')
+export async function main
+  (
+    dbmdFile: string,
+    querySpecsFile: string,
+    typesOutputDir: string,
+    sqlOutputDir: string,
+    srcGenOpts: SourceGenerationOptions
+  )
+  : Promise<void>
 {
-  const out = to === 'stderr' ? console.error : console.log;
-  out("Expected arguments: [options] <db-metadata-file> <queries-spec-file> <result-types-output-dir> <sql-output-dir>");
-  out("Options:");
-  out(`   --${opts.sqlResourcePathPrefix}=<path> - A prefix to the SQL file name ` +
-    "written into source code.");
-  out(`   --${opts.typesHeaderFile}=<file> - Contents of this file will be ` +
-    "included at the top of each generated module source file (e.g. for additional imports).");
-  out(`   --${opts.help} - Show this message.`);
-}
-
-export async function main(appArgs: string[])
-{
-  const args = splitArgs(appArgs);
-
-  let validOpts = new Set(Object.values(opts));
-  const invalidOpt = Object.keys(args.named).find(optName => !validOpts.has(optName));
-  if (invalidOpt)
-    throw new Error(`Option name '${invalidOpt}' is not valid.`);
-
-  if (args.named["--help"]) { printUsage('stdout'); return; }
-  if (args.positional.length != 4) { printUsage('stderr'); throw new Error("Expected 4 non-option arguments."); }
-
-  const dbmdFile = args.positional[0];
-  if (!(await fs.stat(dbmdFile)).isFile())
+  if ( !await dirEntExists(dbmdFile) || !(await fs.stat(dbmdFile)).isFile() )
     throw new Error('Database metadata file not found.');
 
-  const queriesSpecFile = args.positional[1];
-  if (!(await fs.stat(queriesSpecFile)).isFile())
-    throw new Error('Queries specification file not found.');
+  if ( !await dirEntExists(querySpecsFile) || !(await fs.stat(querySpecsFile)).isFile() )
+    throw new Error('Query specifications file not found.');
 
-  const sourceOutputDir = args.positional[2];
-  if (!(await fs.stat(sourceOutputDir)).isDirectory())
+  if ( !await dirEntExists(typesOutputDir) || !(await fs.stat(typesOutputDir)).isDirectory() )
     throw new Error('Source output directory not found.');
 
-  const queriesOutputDir = args.positional[3];
-  if (!(await fs.stat(queriesOutputDir)).isDirectory())
+  if ( !await dirEntExists(sqlOutputDir) || !(await fs.stat(sqlOutputDir)).isDirectory() )
     throw new Error('Queries output directory not found.');
-
-  const srcGenOpts = {
-    sqlResourcePathPrefix: args.named[opts.sqlResourcePathPrefix] || '',
-    typesHeaderFile: args.named[opts.typesHeaderFile] || null
-  };
 
   try
   {
-    await generateQueries({dbmdFile, queriesSpecFile}, {sourceOutputDir, queriesOutputDir}, srcGenOpts);
+    await generateQueries(
+      {dbmdFile, queriesSpecFile: querySpecsFile},
+      {sourceOutputDir: typesOutputDir, queriesOutputDir: sqlOutputDir},
+      srcGenOpts
+    );
   }
   catch (e)
   {
@@ -192,12 +174,6 @@ function getParamNames(tableJsonSpec: TableJsonSpec): string[]
   return paramNames;
 }
 
-const opts = {
-  sqlResourcePathPrefix: "sql-resource-path-prefix",
-  typesHeaderFile: "types-header-file",
-  help: "help"
-};
-
 interface SourceGenerationOptions
 {
   sqlResourcePathPrefix: string;
@@ -216,4 +192,52 @@ interface OutputPaths
   queriesOutputDir: string
 }
 
-main(process.argv.slice(2));
+function printUsage(to: 'stderr' | 'stdout')
+{
+  const out = to === 'stderr' ? console.error : console.log;
+  out(`Expected arguments: [options] ${reqdNamedParams.map(p => "--" + p).join(" ")}`);
+  out("Options:");
+  out(`   --sql-resource-path-prefix <path> - A prefix to the SQL file name written into source code.`);
+  out(`   --types-header-file <file> - Contents of this file will be ` +
+    "included at the top of each generated module source file (e.g. for additional imports).");
+  out(`   --help - Show this message.`);
+}
+
+////////////
+// Start
+////////////
+
+const reqdNamedParams = ['dbmd-file', 'query-specs-file', 'types-output-dir', 'sql-output-dir'];
+const optlNamedParams = ['sql-resource-path-prefix', 'types-header-file'];
+
+const argsParseResult = parseAppArgs(process.argv.slice(2), reqdNamedParams, optlNamedParams, 0);
+
+if ( typeof argsParseResult === 'string' )
+{
+  if ( argsParseResult === 'help' )
+  {
+    console.log('Help requested:');
+    printUsage('stdout');
+    process.exit(0);
+  }
+  else // error
+  {
+    console.error(`Error: ${argsParseResult}`);
+    process.exit(1);
+  }
+}
+
+main(
+  argsParseResult['dbmd-file'],
+  argsParseResult['query-specs-file'],
+  argsParseResult['types-output-dir'],
+  argsParseResult['sql-output-dir'],
+  { 
+    sqlResourcePathPrefix: argsParseResult['sql-resource-path-prefix'] || '',
+    typesHeaderFile: argsParseResult['types-header-file'] || null
+  }
+)
+.catch(err => {
+  console.error(err);
+  process.exit(1);
+});

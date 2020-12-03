@@ -1,3 +1,30 @@
+import {Client} from 'pg';
+
+async function fetchDatabaseMetadataJson(): Promise<string>
+{
+  const client = new Client()
+
+  try
+  {
+    await client.connect()
+
+    const res = await client.query(dbmdSql);
+
+    const resRow = res.rows[0];
+
+    const keys = Object.keys(resRow);
+    if (keys.length !== 1)
+      throw new Error(`Expected exactly one column in result, got ${keys.length} instead.`);
+
+    return JSON.stringify(res.rows[0][keys[0]], null, 2);
+  }
+  finally 
+  {
+    await client.end();
+  }
+}
+
+const dbmdSql = `
 with
 ignoreSchemasQuery as (
   select unnest(array['pg_catalog', 'information_schema']) schema_name
@@ -99,3 +126,6 @@ select json_build_object(
   'relationMetadatas', (select * from relationMetadatasQuery),
   'foreignKeys', (select * from foreignKeysQuery)
 )
+`;
+
+export default fetchDatabaseMetadataJson;
