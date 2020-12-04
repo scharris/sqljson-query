@@ -1,6 +1,6 @@
 import * as oracledb from 'oracledb';
 
-async function fetchDatabaseMetadataJson(): Promise<string>
+async function queryDatabaseMetadataJson(): Promise<string>
 {
   const connectInfo: ConnectInfo = {
     user: process.env.DB_USER || '',
@@ -129,4 +129,4 @@ select
 from dual
 `;
 
-export default fetchDatabaseMetadataJson;
+export default queryDatabaseMetadataJson;

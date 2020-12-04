@@ -1,8 +1,31 @@
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
+import * as cbfs from 'fs';
 
-export function dirEntExists(path: string): Promise<boolean>
+function dirEntExists(path: string): Promise<boolean>
 {
   return new Promise((resolve, reject) => {
-    fs.access(path, fs.constants.F_OK, error => {resolve(!error);});
+    cbfs.access(path, cbfs.constants.F_OK, error => {resolve(!error);});
   });
+}
+
+export async function fileExists(path: string): Promise<boolean>
+{
+  return (await dirEntExists(path)) && (await fs.stat(path)).isFile();
+}
+
+export async function dirExists(path: string): Promise<boolean>
+{
+  return (await dirEntExists(path)) && (await fs.stat(path)).isDirectory();
+}
+
+export async function requireFileExists(path: string, errMsg: string): Promise<void>
+{
+  if ( !await fileExists(path) )
+    throw new Error(errMsg);
+}
+
+export async function requireDirExists(path: string, errMsg: string): Promise<void>
+{
+  if ( !await dirExists(path) )
+    throw new Error(errMsg);
 }

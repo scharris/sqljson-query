@@ -1,6 +1,6 @@
 import {Client} from 'pg';
 
-async function fetchDatabaseMetadataJson(): Promise<string>
+async function queryDatabaseMetadataJson(): Promise<string>
 {
   const client = new Client()
 
@@ -128,4 +128,4 @@ select json_build_object(
 )
 `;
 
-export default fetchDatabaseMetadataJson;
+export default queryDatabaseMetadataJson;

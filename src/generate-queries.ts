@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-
 import {parseAppArgs} from './util/args';
 import {valueOr} from './util/nullability';
 import {DatabaseMetadata} from './database-metadata/database-metadata';
@@ -10,37 +9,54 @@ import {QuerySqlGenerator} from './query-sql-generator';
 import {ResultTypesGenerator} from './result-types-generator';
 import {TSModulesWriter} from './ts-modules-writer';
 import {propertyNameDefaultFunction} from './util/property-names';
-import {dirEntExists} from './util/files';
+import {requireDirExists, requireFileExists} from './util/files';
 
-export async function main
+export async function generate
   (
     dbmdFile: string,
     querySpecsFile: string,
     typesOutputDir: string,
     sqlOutputDir: string,
-    srcGenOpts: SourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : Promise<void>
 {
-  if ( !await dirEntExists(dbmdFile) || !(await fs.stat(dbmdFile)).isFile() )
-    throw new Error('Database metadata file not found.');
-
-  if ( !await dirEntExists(querySpecsFile) || !(await fs.stat(querySpecsFile)).isFile() )
-    throw new Error('Query specifications file not found.');
-
-  if ( !await dirEntExists(typesOutputDir) || !(await fs.stat(typesOutputDir)).isDirectory() )
-    throw new Error('Source output directory not found.');
-
-  if ( !await dirEntExists(sqlOutputDir) || !(await fs.stat(sqlOutputDir)).isDirectory() )
-    throw new Error('Queries output directory not found.');
+  await requireFileExists(dbmdFile, 'Database metadata file not found.');
+  await requireFileExists(querySpecsFile, 'Query specifications file not found.');
+  await requireDirExists(typesOutputDir, 'Source output directory not found.');
+  await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
 
   try
   {
-    await generateQueries(
-      {dbmdFile, queriesSpecFile: querySpecsFile},
-      {sourceOutputDir: typesOutputDir, queriesOutputDir: sqlOutputDir},
-      srcGenOpts
-    );
+    const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
+    const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
+    const queryGroupSpec = await readQueriesSpecFile(querySpecsFile);
+  
+    const srcWriter = new TSModulesWriter(typesOutputDir, opts.sqlResourcePathPrefix, opts.typesHeaderFile);
+  
+    const defaultSchema = queryGroupSpec.defaultSchema || null;
+    const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
+    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.outputFieldNameDefault);
+  
+    const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
+  
+    const resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, propNameFn);
+
+    for ( const querySpec of queryGroupSpec.querySpecs )
+    {
+      const resReprSqls = sqlGen.generateSqls(querySpec);
+
+      const sqlPaths = await writeResultReprSqls(querySpec.queryName, resReprSqls, sqlOutputDir);
+    
+      if ( valueOr(querySpec.generateResultTypes, true) )
+      {
+        const resultTypes = resultTypesGen.generateResultTypes(querySpec.tableJson);
+        const paramNames = getQuerySpecParamNames(querySpec);
+        const header = querySpec.typesFileHeader || null;
+    
+        await srcWriter.writeModule(querySpec.queryName, resultTypes, paramNames, sqlPaths, header);
+      }
+    }
   }
   catch (e)
   {
@@ -60,46 +76,6 @@ export async function main
       console.error("Error occurred in query generator: ", e);
 
     process.exit(1);
-  }
-}
-
-async function generateQueries
-  (
-    inputPaths: InputPaths,
-    outputPaths: OutputPaths,
-    opts: SourceGenerationOptions
-  )
-{
-  const dbmdStoredPropsJson = await fs.readFile(inputPaths.dbmdFile, 'utf8');
-  const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
-  const queryGroupSpec = await readQueriesSpecFile(inputPaths.queriesSpecFile);
-
-  const srcWriter = new TSModulesWriter(outputPaths.sourceOutputDir, opts.sqlResourcePathPrefix, opts.typesHeaderFile);
-
-  const defaultSchema = queryGroupSpec.defaultSchema || null;
-  const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
-  const propNameFn = propertyNameDefaultFunction(queryGroupSpec.outputFieldNameDefault);
-
-  const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
-
-  const resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, propNameFn);
-
-  for (const querySpec of queryGroupSpec.querySpecs)
-  {
-    // Generate SQL for each of the query's specified result representations.
-    const resReprSqls = sqlGen.generateSqls(querySpec);
-
-    // Write query SQLs.
-    const sqlPaths = await writeResultReprSqls(querySpec.queryName, resReprSqls, outputPaths.queriesOutputDir);
-
-    if (valueOr(querySpec.generateResultTypes, true))
-    {
-      const resultTypes = resultTypesGen.generateResultTypes(querySpec.tableJson);
-      const paramNames = getQuerySpecParamNames(querySpec);
-      const header = querySpec.typesFileHeader || null;
-
-      await srcWriter.writeModule(querySpec.queryName, resultTypes, paramNames, sqlPaths, header);
-    }
   }
 }
 
@@ -180,18 +156,6 @@ interface SourceGenerationOptions
   typesHeaderFile: string | null;
 }
 
-interface InputPaths
-{
-  dbmdFile: string,
-  queriesSpecFile: string
-}
-
-interface OutputPaths
-{
-  sourceOutputDir: string
-  queriesOutputDir: string
-}
-
 function printUsage(to: 'stderr' | 'stdout')
 {
   const out = to === 'stderr' ? console.error : console.log;
@@ -227,7 +191,7 @@ if ( typeof argsParseResult === 'string' )
   }
 }
 
-main(
+generate(
   argsParseResult['dbmd-file'],
   argsParseResult['query-specs-file'],
   argsParseResult['types-output-dir'],

@@ -1,24 +1,20 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-
 import {DatabaseMetadata, RelMetadata} from './database-metadata/database-metadata';
 import {makeArrayValuesMap} from './util/collections';
 import {valueOr} from './util/nullability';
 import {indentLines} from './util/strings';
-import { parseAppArgs } from './util/args';
-import { dirEntExists } from './util/files';
+import {parseAppArgs} from './util/args';
+import {requireDirExists, requireFileExists} from './util/files';
 
-export async function main
+export async function generate
   (
     dbmdFile: string,
     srcOutputDir: string
   )
 {
-  if ( !await dirEntExists(dbmdFile) || !(await fs.stat(dbmdFile)).isFile() )
-    throw new Error('Database metadata file not found.');
-
-  if ( !await dirEntExists(srcOutputDir) || !(await fs.stat(srcOutputDir)).isDirectory() )
-    throw new Error('Source output directory not found.');
+  await requireFileExists(dbmdFile, 'Database metadata file not found.');
+  await requireDirExists(srcOutputDir, 'Source output directory not found.');
 
   try
   {
@@ -138,7 +134,7 @@ if ( typeof argsParseResult === 'string' )
   }
 }
 
-main(argsParseResult['dbmd-file'], argsParseResult['output-dir'])
+generate(argsParseResult['dbmd-file'], argsParseResult['output-dir'])
 .catch(err => {
   console.error(err);
   process.exit(1);
