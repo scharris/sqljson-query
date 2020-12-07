@@ -139,7 +139,7 @@ export const queryGroupSpec: QueryGroupSpec = {
    outputFieldNameDefault: "CAMELCASE",
    querySpecs: [
       drugQuery("drugs query", { sql: "$$.name ilike $1" }),
-      drugQuery("drug for id query", { sql: "$$.cid = $1" }),
+      drugQuery("drug for id query", { sql: "$$.id = $1" }),
    ]
 };
 

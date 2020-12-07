@@ -233,7 +233,7 @@ from (
   from
     drug d
   where (
-    (d.cid = $1)
+    (d.id = $1)
   )
 ) q
 order by q.name

@@ -1,14 +1,16 @@
 {
    "name": "example",
    "version": "1.0.0",
-   "description": "Example usage of sqljson-query.",
+   "description": "Example usage of sqljson-query to generate SQL.",
+   "repository": {},
    "scripts": {
       "gen-dbmd": "dbmd-gen-pg --conn-env db/connection.env query-gen/dbmd.json",
       "gen-queries": "npm run compile-qgen && npm run qgen",
-      "compile-qgen": "cd query-gen && npm install && npx tsc",
-      "qgen": "node query-gen/run.js --dbmd query-gen/dbmd.json --types-header query-gen/types-header --ts-output-dir generated/ts --sql-output-dir generated/sql",
+      "compile-qgen": "cd query-gen && npm install && npm link sqljson-query && tsc",
+      "qgen": "node query-gen/run.js --dbmd query-gen/dbmd.json --types-header query-gen/types-header --ts-output-dir src/generated/lib --sql-output-dir src/generated/sql",
       "prebuild": "npm run gen-queries",
-      "build": "echo would build here"
+      "build": "tsc && copyfiles --flat src/generated/sql/*.sql dist/generated/sql",
+      "start": "node dist/app.js dist/generated/sql db/connection.env"
    },
    "keywords": [],
    "author": "",
@@ -22,6 +24,7 @@
       "@types/node": "^14.11.5",
       "@types/pg": "^7.14.5",
       "@types/pg-pool": "^2.0.2",
+      "copyfiles": "^2.4.1",
       "typescript": "^4.0.3"
    }
 }

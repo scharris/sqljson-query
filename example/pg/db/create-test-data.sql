@@ -40,11 +40,13 @@ insert into compound(id, display_name, nctr_isis_id, cas, entered_by, entered)
   from generate_series(1,5) n
 ;
 
-insert into drug(id, name, compound_id, therapeutic_indications, mesh_id, cid, registered_by, registered, market_entry_date)
+insert into drug(id, name, compound_id, category_code, descr, therapeutic_indications, mesh_id, cid, registered_by, registered, market_entry_date)
   select
     n,
     'Test Drug ' || n,
     n,
+    case when mod(n, 2) = 0 then 'A' else 'B' end category_code,
+    'This is drug number ' || n || '.',
     'Indication ' || n,
     'MESH' || n,
     n * 99,
@@ -114,4 +116,3 @@ insert into advisory(id, drug_id, advisory_type_id, text)
  select 123*n, n, 3, 'Heard this might be bad -anon' || n
  from generate_series(1,5) n
 ;
-
