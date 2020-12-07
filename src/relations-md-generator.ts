@@ -1,33 +1,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import {DatabaseMetadata, RelMetadata} from './database-metadata/database-metadata';
 import {makeArrayValuesMap} from './util/collections';
 import {valueOr} from './util/nullability';
 import {indentLines} from './util/strings';
-import {parseAppArgs} from './util/args';
-import {requireDirExists, requireFileExists} from './util/files';
+import {DatabaseMetadata, RelMetadata} from './database-metadata';
 
-export async function generate
-  (
-    dbmdFile: string,
-    srcOutputDir: string
-  )
-{
-  await requireFileExists(dbmdFile, 'Database metadata file not found.');
-  await requireDirExists(srcOutputDir, 'Source output directory not found.');
-
-  try
-  {
-    await writeRelationsMetadataModule(dbmdFile, srcOutputDir);
-  }
-  catch( e )
-  {
-    console.error("Error occurred in relation metadata generator: ", e);
-    process.exit(1);
-  }
-}
-
-async function writeRelationsMetadataModule
+export async function writeRelationsMetadataModule
   (
     dbmdFile: string,
     sourceOutputDir: string
@@ -106,36 +84,3 @@ function lit(s: string)
 {
   return "\"" + s.replace(/"/g, '\\"') + "\"";
 }
-
-function printUsage(to: 'stderr' | 'stdout')
-{
-  const out = to === 'stderr' ? console.error : console.log;
-  out("Expected arguments: --dbmd-file <file> --output-dir <dir>");
-}
-
-////////////
-// Start
-////////////
-
-const argsParseResult = parseAppArgs(process.argv.slice(2), ['dbmd-file', 'output-dir'], [], 0);
-
-if ( typeof argsParseResult === 'string' )
-{
-  if ( argsParseResult === 'help' )
-  {
-    console.log('Help requested:');
-    printUsage('stdout');
-    process.exit(0);
-  }
-  else // error
-  {
-    console.error(`Error: ${argsParseResult}`);
-    process.exit(1);
-  }
-}
-
-generate(argsParseResult['dbmd-file'], argsParseResult['output-dir'])
-.catch(err => {
-  console.error(err);
-  process.exit(1);
-});

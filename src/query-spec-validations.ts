@@ -1,6 +1,6 @@
-import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata/database-metadata';
-import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 import {normalizeName} from './util/database-names';
+import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata';
+import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 
 export function identifyTable
   (

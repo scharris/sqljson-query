@@ -12,15 +12,15 @@ import {
   fieldsCount
 } from './result-types';
 import {QueryReprSqlPath} from './query-repr-sql-path';
+import { SourceGenerationOptions } from '.';
 
 export class TSModulesWriter
 {
   constructor
-  (
-    private readonly sourceOutputDir: string,
-    private readonly sqlResourceNamePrefix: string,
-    private readonly filesHeader: string | null,
-  )
+    (
+      private readonly sourceOutputDir: string,
+      private opts: SourceGenerationOptions
+    )
   {}
 
   async writeModule
@@ -33,7 +33,7 @@ export class TSModulesWriter
     )
     : Promise<void>
   {
-    const commonHeader = this.getCommonFileHeader();
+    const commonHeader = await this.getCommonFileHeader();
 
     const moduleSrc =
       commonHeader +
@@ -47,13 +47,14 @@ export class TSModulesWriter
      await fs.writeFile(this.getOutputFilePath(queryName), moduleSrc);
   }
 
-  getCommonFileHeader(): string
+  async getCommonFileHeader(): Promise<string>
   {
     return (
       "// ---------------------------------------------------------------------------\n" +
       "// [ THIS SOURCE CODE WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
       "// ---------------------------------------------------------------------------\n" +
-      ( this.filesHeader != null ? this.filesHeader + "\n" : "")
+      (this.opts.typesHeaderFile != null ?
+        (await fs.readFile(this.opts.typesHeaderFile, 'utf8')) + "\n" : "")
     );
   }
 
@@ -70,7 +71,7 @@ export class TSModulesWriter
     for ( const repr of Array.from(sqlPathsByRepr.keys()).sort() )
     {
       const memberName = "sqlResource" + (sqlPathsByRepr.size == 1 ? "" : upperCamelCase(repr));
-      const resourceName = this.sqlResourceNamePrefix + path.basename(sqlPathsByRepr.get(repr) || '');
+      const resourceName = this.opts.sqlResourcePathPrefix + path.basename(sqlPathsByRepr.get(repr) || '');
       lines.push("export const " + memberName + " = \"" + resourceName + "\";");
     }
 
@@ -105,21 +106,115 @@ export class TSModulesWriter
     lines.push("{");
 
     resType.simpleTableFieldProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${getSimpleTableFieldPropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getSimpleTableFieldPropertyTSType(f, resType)};`)
     );
     resType.tableExpressionProperty.forEach(f =>
-      lines.push(`   ${f.name}: ${getTableExpressionPropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getTableExpressionPropertyTSType(f)};`)
     );
     resType.parentReferenceProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${getParentReferencePropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getParentReferencePropertyTSType(f)};`)
     );
     resType.childCollectionProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${getChildCollectionPropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getChildCollectionPropertyTSType(f)};`)
     );
 
     lines.push("}")
 
     return lines.join("\n");
+  }
+
+  private getSimpleTableFieldPropertyTSType
+    (
+      fp: SimpleTableFieldProperty,
+      resType: ResultType
+    )
+    : string
+  {
+    if ( fp.specifiedSourceCodeFieldType != null )
+      return fp.specifiedSourceCodeFieldType;
+    
+    const customizedType = this.opts.customPropertyTypeFn && this.opts.customPropertyTypeFn(fp, resType);
+    if ( customizedType )
+      return customizedType;
+
+    const notNull = !(fp.nullable != null ? fp.nullable : true);
+
+    const lcDbFieldType = fp.databaseType.toLowerCase();
+
+    switch (lcDbFieldType)
+    {
+      case 'number':
+      case 'numeric':
+      case 'int':
+      case 'int4':
+      case 'int8':
+      case 'smallint':
+      case 'bigint':
+      case 'decimal':
+      case 'float':
+      case 'real':
+      case 'double':
+        return notNull ? "number" : "number | null";
+      case 'varchar':
+      case 'varchar2':
+      case 'text':
+      case 'longvarchar':
+      case 'char':
+      case 'clob':
+      case 'date':
+      case 'time':
+      case 'timestamp':
+      case 'timestamp with time zone':
+      case 'timestamptz':
+        return notNull ? "string" : "string | null";
+      case 'bit':
+      case 'boolean':
+        return notNull ? "boolean" : "boolean | null";
+      case 'json':
+      case 'jsonb':
+        return notNull ? "any" : "any | null";
+      default:
+        if (lcDbFieldType.startsWith("timestamp"))
+          return notNull ? "string" : "string | null";
+        throw new Error(`unsupported type for database field ${fp.name} of type ${fp.databaseType}`);
+    }
+  }
+
+  private getSoleFieldDeclaredType(resType: ResultType): string
+  {
+    if (fieldsCount(resType) !== 1)
+      throw new Error(`Expected single field when unwrapping ${resType.typeName}.`);
+
+    if (resType.simpleTableFieldProperties.length === 1)
+      return this.getSimpleTableFieldPropertyTSType(resType.simpleTableFieldProperties[0], resType);
+    else if (resType.tableExpressionProperty.length === 1)
+      return this.getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
+    else if (resType.childCollectionProperties.length === 1)
+      return this.getChildCollectionPropertyTSType(resType.childCollectionProperties[0]);
+    else if (resType.parentReferenceProperties.length === 1)
+      return this.getParentReferencePropertyTSType(resType.parentReferenceProperties[0]);
+    else
+      throw new Error(`Unhandled field category when unwrapping ${resType.typeName}.`);
+  }
+
+  private getChildCollectionPropertyTSType(f: ChildCollectionProperty): string
+  {
+    const collElType = !f.resultType.unwrapped ? f.resultType.typeName : this.getSoleFieldDeclaredType(f.resultType);
+    const bareCollType = `${collElType}[]`;
+    return !f.nullable ? bareCollType : `${bareCollType} | null`;
+  }
+  
+  private getTableExpressionPropertyTSType(tep: TableExpressionProperty): string
+  {
+    if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
+      throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
+
+    return tep.specifiedSourceCodeFieldType;
+  }
+
+  private getParentReferencePropertyTSType(f: ParentReferenceProperty): string
+  {
+    return f.resultType.typeName + (f.nullable ? " | null" : "");
   }
 
   getOutputFilePath(queryName: string): string
@@ -155,87 +250,6 @@ function getReprToSqlPathMapForQuery
   }
 
   return res;
-}
-
-function getSimpleTableFieldPropertyTSType(f: SimpleTableFieldProperty): string
-{
-  if ( f.specifiedSourceCodeFieldType != null )
-    return f.specifiedSourceCodeFieldType;
-
-  const notNull = !(f.nullable != null ? f.nullable : true);
-
-  // TODO: Need to review Oracle and Postgres types and add additional ones here.
-  switch ( f.databaseType.toLowerCase() )
-  {
-    case 'number':
-    case 'numeric':
-    case 'int':
-    case 'int4':
-    case 'int8':
-    case 'smallint':
-    case 'bigint':
-    case 'decimal':
-    case 'float':
-    case 'real':
-    case 'double':
-      return notNull ? "number" : "number | null";
-    case 'varchar':
-    case 'text':
-    case 'longvarchar':
-    case 'char':
-    case 'clob':
-    case 'date':
-    case 'time':
-    case 'timestamp':
-    case 'timestamp with time zone':
-    case 'timestamptz':
-      return notNull ? "string" : "string | null";
-    case 'bit':
-    case 'boolean':
-      return notNull ? "boolean" : "boolean | null";
-    case 'json':
-    case 'jsonb':
-      return notNull ? "any" : "any | null";
-    default:
-      throw new Error(`unsupported type for database field ${f} of type ${f.databaseType}`);
-  }
-}
-
-function getTableExpressionPropertyTSType(tep: TableExpressionProperty): string
-{
-  if ( !tep.specifiedSourceCodeFieldType ) // This should have been caught in validation.
-    throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
-
-  return tep.specifiedSourceCodeFieldType;
-}
-
-function getParentReferencePropertyTSType(f: ParentReferenceProperty): string
-{
-  return f.resultType.typeName + (f.nullable ?  " | null" : "");
-}
-
-function getChildCollectionPropertyTSType(f: ChildCollectionProperty): string
-{
-  const collElType = !f.resultType.unwrapped ? f.resultType.typeName : getSoleFieldDeclaredType(f.resultType);
-  const bareCollType = `${collElType}[]`;
-  return !f.nullable ? bareCollType : `${bareCollType} | null`;
-}
-
-function getSoleFieldDeclaredType(resType: ResultType): string
-{
-  if ( fieldsCount(resType) !== 1 )
-    throw new Error(`Expected single field when unwrapping ${resType.typeName}.`);
-
-  if ( resType.simpleTableFieldProperties.length === 1 )
-    return getSimpleTableFieldPropertyTSType(resType.simpleTableFieldProperties[0]);
-  else if ( resType.tableExpressionProperty.length === 1 )
-    return getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
-  else if ( resType.childCollectionProperties.length === 1 )
-    return getChildCollectionPropertyTSType(resType.childCollectionProperties[0]);
-  else if ( resType.parentReferenceProperties.length === 1 )
-    return getParentReferencePropertyTSType(resType.parentReferenceProperties[0]);
-  else
-    throw new Error(`Unhandled field category when unwrapping ${resType.typeName}.`);
 }
 
 function paramDefinitions(paramNames: string[]): string

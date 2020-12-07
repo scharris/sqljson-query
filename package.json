@@ -1,27 +1,28 @@
 {
-   "name": "sqljson-query",
-   "version": "0.5.0",
-   "description": "Build SQL/JSON nested-data queries and matching Typescript types.",
-   "repository": {
-      "type": "git",
-      "url": "https://github.com/scharris/sqljson-query.git"
-   },
-   "scripts": {},
-   "keywords": [],
-   "author": "Stephen C. Harris",
-   "license": "MIT",
-   "dependencies": {
-      "minimist": "^1.2.5"
-   },
-   "devDependencies": {
-      "@types/minimist": "^1.2.1",
-      "@types/oracledb": "^5.0.0",
-      "@types/pg": "^7.14.7",
-      "dotenv": "^8.2.0",
-      "fs": "^0.0.1-security",
-      "oracledb": "^5.0.0",
-      "path": "^0.12.7",
-      "pg": "^8.5.1",
-      "typescript": "^4.0.3"
-   }
+  "name": "sqljson-query",
+  "version": "0.5.0",
+  "description": "Command line tool to generate SQL/JSON queries for nested data and matching Typescript types.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scharris/sqljson-query.git"
+  },
+  "bin": {
+    "sqljson-query-gen": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "Stephen C. Harris",
+  "license": "MIT",
+  "dependencies": {
+    "minimist": "^1.2.5"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.1",
+    "@types/node": "^14.14.10",
+    "dotenv": "^8.2.0",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "typescript": "^4.0.3"
+  }
 }

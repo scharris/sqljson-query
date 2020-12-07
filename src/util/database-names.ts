@@ -1,4 +1,4 @@
-import {CaseSensitivity} from '../database-metadata/database-metadata';
+import {CaseSensitivity} from '../database-metadata';
 
 const lowercaseNameRegex = /^[a-z_]+$/;
 const uppercaseNameRegex = /^[A-Z_]+$/;

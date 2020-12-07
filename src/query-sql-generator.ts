@@ -1,10 +1,10 @@
-import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata/database-metadata';
-import {SqlDialect, getSqlDialect} from './sql-dialects';
 import {normalizeName, quoteIfNeeded} from './util/database-names';
 import {makeMap, mapSet} from './util/collections';
-import {indentLines, lowerCaseInitials, makeNameNotInSet, replaceAll} from './util/strings';
 import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
+import {indentLines, lowerCaseInitials, makeNameNotInSet, replaceAll} from './util/strings';
+import {SqlDialect, getSqlDialect} from './sql-dialects';
+import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata';
 import {
   QuerySpec,
   TableJsonSpec,

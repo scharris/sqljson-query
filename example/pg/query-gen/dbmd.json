@@ -345,6 +345,26 @@
           "precision": null,
           "precisionRadix": null,
           "fractionalDigits": null
+        },
+        {
+          "name": "descr",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 500,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
+        },
+        {
+          "name": "category_code",
+          "databaseType": "varchar",
+          "nullable": true,
+          "primaryKeyPartNumber": null,
+          "length": 1,
+          "precision": null,
+          "precisionRadix": null,
+          "fractionalDigits": null
         }
       ]
     },

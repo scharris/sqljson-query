@@ -1,5 +1,5 @@
-import {computeIfAbsent, setsEqual} from '../util/collections';
-import {normalizeName} from '../util/database-names';
+import {computeIfAbsent, setsEqual} from './util/collections';
+import {normalizeName} from './util/database-names';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties

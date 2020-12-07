@@ -47,6 +47,8 @@ export const drugs = { // schema 'drugs'
       "registered": { type: "timestamptz", nullable: true, pkPart: null, len: null, prec: null, precRadix: null, scale: null },
       "registered_by": { type: "int4", nullable: false, pkPart: null, len: null, prec: 32, precRadix: 2, scale: 0 },
       "market_entry_date": { type: "date", nullable: true, pkPart: null, len: null, prec: null, precRadix: null, scale: null },
+      "descr": { type: "varchar", nullable: true, pkPart: null, len: 500, prec: null, precRadix: null, scale: null },
+      "category_code": { type: "varchar", nullable: true, pkPart: null, len: 1, prec: null, precRadix: null, scale: null },
    },
    
    "drug_reference": { // relation 'drug_reference'

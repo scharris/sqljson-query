@@ -2,29 +2,29 @@
 -- JSON_OBJECT_ROWS results representation for drug for id query
 select
   -- row object builder for table 'drug'
-  jsonb_build_object(
-    'id', q.id,
-    'genericName', q."genericName",
-    'meshId', q."meshId",
-    'cid', q.cid,
-    'registered', q.registered,
-    'marketEntryDate', q."marketEntryDate",
-    'therapeuticIndications', q."therapeuticIndications",
-    'cidPlus1000', q."cidPlus1000",
-    'registeredByAnalyst', q."registeredByAnalyst",
-    'compound', q.compound,
-    'brands', q.brands,
-    'advisories', q.advisories,
-    'functionalCategories', q."functionalCategories"
+  json_object(
+    'id' value q."id",
+    'genericName' value q."genericName",
+    'meshId' value q."meshId",
+    'cid' value q."cid",
+    'registered' value q."registered",
+    'marketEntryDate' value q."marketEntryDate",
+    'therapeuticIndications' value q."therapeuticIndications",
+    'cidPlus1000' value q."cidPlus1000",
+    'registeredByAnalyst' value q."registeredByAnalyst",
+    'compound' value q."compound",
+    'brands' value q."brands",
+    'advisories' value q."advisories",
+    'functionalCategories' value q."functionalCategories" returning clob
   ) json
 from (
   -- base query for table 'drug'
   select
-    d.id as id,
+    d.id "id",
     d.name "genericName",
     d.mesh_id "meshId",
-    d.cid as cid,
-    d.registered as registered,
+    d.cid "cid",
+    d.registered "registered",
     d.market_entry_date "marketEntryDate",
     d.therapeutic_indications "therapeuticIndications",
     d.cid + 1000 "cidPlus1000",
@@ -32,19 +32,19 @@ from (
     (
       select
         -- row object builder for table 'analyst'
-        jsonb_build_object(
-          'id', q.id,
-          'shortName', q."shortName"
+        json_object(
+          'id' value q."id",
+          'shortName' value q."shortName" returning clob
         ) json
       from (
         -- base query for table 'analyst'
         select
-          a.id as id,
+          a.id "id",
           a.short_name "shortName"
         from
-          analyst a
+          ANALYST a
         where (
-          d.registered_by = a.id
+          d.REGISTERED_BY = a.ID
         )
       ) q
     ) "registeredByAnalyst",
@@ -52,89 +52,89 @@ from (
     (
       select
         -- row object builder for table 'compound'
-        jsonb_build_object(
-          'displayName', q."displayName",
-          'nctrIsisId', q."nctrIsisId",
-          'cas', q.cas,
-          'entered', q.entered,
-          'enteredByAnalyst', q."enteredByAnalyst"
+        json_object(
+          'displayName' value q."displayName",
+          'nctrIsisId' value q."nctrIsisId",
+          'cas' value q."cas",
+          'entered' value q."entered",
+          'enteredByAnalyst' value q."enteredByAnalyst" returning clob
         ) json
       from (
         -- base query for table 'compound'
         select
           c.display_name "displayName",
           c.nctr_isis_id "nctrIsisId",
-          c.cas as cas,
-          c.entered as entered,
+          c.cas "cas",
+          c.entered "entered",
           -- parent table 'analyst' referenced as 'enteredByAnalyst'
           (
             select
               -- row object builder for table 'analyst'
-              jsonb_build_object(
-                'id', q.id,
-                'shortName', q."shortName"
+              json_object(
+                'id' value q."id",
+                'shortName' value q."shortName" returning clob
               ) json
             from (
               -- base query for table 'analyst'
               select
-                a.id as id,
+                a.id "id",
                 a.short_name "shortName"
               from
-                analyst a
+                ANALYST a
               where (
-                c.entered_by = a.id
+                c.ENTERED_BY = a.ID
               )
             ) q
           ) "enteredByAnalyst"
         from
-          compound c
+          COMPOUND c
         where (
-          d.compound_id = c.id
+          d.COMPOUND_ID = c.ID
         )
       ) q
-    ) as compound,
+    ) "compound",
     -- records from child table 'brand' as collection 'brands'
     (
       select
         -- aggregated row objects builder for table 'brand'
-        coalesce(jsonb_agg(jsonb_build_object(
-          'brandName', q."brandName",
-          'manufacturer', q.manufacturer
-        )),'[]'::jsonb) json
+        treat(coalesce(json_arrayagg(json_object(
+          'brandName' value q."brandName",
+          'manufacturer' value q."manufacturer" returning clob
+        ) returning clob), to_clob('[]')) as json) json
       from (
         -- base query for table 'brand'
         select
           b.brand_name "brandName",
           -- field(s) inlined from parent table 'manufacturer'
-          q.manufacturer as manufacturer
+          q."manufacturer" "manufacturer"
         from
-          brand b
+          BRAND b
           -- parent table 'manufacturer', joined for inlined fields
           left join (
             select
-              m.id "_id",
-              m.name as manufacturer
+              m.ID "_ID",
+              m.name "manufacturer"
             from
-              manufacturer m
+              MANUFACTURER m
             
-          ) q on b.manufacturer_id = q."_id"
+          ) q on b.MANUFACTURER_ID = q."_ID"
         where (
-          b.drug_id = d.id
+          b.DRUG_ID = d.ID
         )
       ) q
-    ) as brands,
+    ) "brands",
     -- records from child table 'advisory' as collection 'advisories'
     (
       select
         -- aggregated row objects builder for table 'advisory'
-        coalesce(jsonb_agg(jsonb_build_object(
-          'advisoryText', q."advisoryText",
-          'advisoryType', q."advisoryType",
-          'exprYieldingTwo', q."exprYieldingTwo",
-          'authorityName', q."authorityName",
-          'authorityUrl', q."authorityUrl",
-          'authorityDescription', q."authorityDescription"
-        )),'[]'::jsonb) json
+        treat(coalesce(json_arrayagg(json_object(
+          'advisoryText' value q."advisoryText",
+          'advisoryType' value q."advisoryType",
+          'exprYieldingTwo' value q."exprYieldingTwo",
+          'authorityName' value q."authorityName",
+          'authorityUrl' value q."authorityUrl",
+          'authorityDescription' value q."authorityDescription" returning clob
+        ) returning clob), to_clob('[]')) as json) json
       from (
         -- base query for table 'advisory'
         select
@@ -146,11 +146,11 @@ from (
           q."authorityUrl" "authorityUrl",
           q."authorityDescription" "authorityDescription"
         from
-          advisory a
+          ADVISORY a
           -- parent table 'advisory_type', joined for inlined fields
           left join (
             select
-              at.id "_id",
+              at.ID "_ID",
               at.name "advisoryType",
               (1 + 1) "exprYieldingTwo",
               -- field(s) inlined from parent table 'authority'
@@ -158,78 +158,78 @@ from (
               q."authorityUrl" "authorityUrl",
               q."authorityDescription" "authorityDescription"
             from
-              advisory_type at
+              ADVISORY_TYPE at
               -- parent table 'authority', joined for inlined fields
               left join (
                 select
-                  a.id "_id",
+                  a.ID "_ID",
                   a.name "authorityName",
                   a.url "authorityUrl",
                   a.description "authorityDescription"
                 from
-                  authority a
+                  AUTHORITY a
                 
-              ) q on at.authority_id = q."_id"
+              ) q on at.AUTHORITY_ID = q."_ID"
             
-          ) q on a.advisory_type_id = q."_id"
+          ) q on a.ADVISORY_TYPE_ID = q."_ID"
         where (
-          a.drug_id = d.id
+          a.DRUG_ID = d.ID
         )
       ) q
-    ) as advisories,
+    ) "advisories",
     -- records from child table 'drug_functional_category' as collection 'functionalCategories'
     (
       select
         -- aggregated row objects builder for table 'drug_functional_category'
-        coalesce(jsonb_agg(jsonb_build_object(
-          'categoryName', q."categoryName",
-          'description', q.description,
-          'authorityName', q."authorityName",
-          'authorityUrl', q."authorityUrl",
-          'authorityDescription', q."authorityDescription"
-        )),'[]'::jsonb) json
+        treat(coalesce(json_arrayagg(json_object(
+          'categoryName' value q."categoryName",
+          'description' value q."description",
+          'authorityName' value q."authorityName",
+          'authorityUrl' value q."authorityUrl",
+          'authorityDescription' value q."authorityDescription" returning clob
+        ) returning clob), to_clob('[]')) as json) json
       from (
         -- base query for table 'drug_functional_category'
         select
           -- field(s) inlined from parent table 'functional_category'
           q."categoryName" "categoryName",
-          q.description as description,
+          q."description" "description",
           -- field(s) inlined from parent table 'authority'
           q1."authorityName" "authorityName",
           q1."authorityUrl" "authorityUrl",
           q1."authorityDescription" "authorityDescription"
         from
-          drug_functional_category dfc
+          DRUG_FUNCTIONAL_CATEGORY dfc
           -- parent table 'functional_category', joined for inlined fields
           left join (
             select
-              fc.id "_id",
+              fc.ID "_ID",
               fc.name "categoryName",
-              fc.description as description
+              fc.description "description"
             from
-              functional_category fc
+              FUNCTIONAL_CATEGORY fc
             
-          ) q on dfc.functional_category_id = q."_id"
+          ) q on dfc.FUNCTIONAL_CATEGORY_ID = q."_ID"
           -- parent table 'authority', joined for inlined fields
           left join (
             select
-              a.id "_id",
+              a.ID "_ID",
               a.name "authorityName",
               a.url "authorityUrl",
               a.description "authorityDescription"
             from
-              authority a
+              AUTHORITY a
             
-          ) q1 on dfc.authority_id = q1."_id"
+          ) q1 on dfc.AUTHORITY_ID = q1."_ID"
         where (
-          dfc.drug_id = d.id
+          dfc.DRUG_ID = d.ID
         )
       ) q
     ) "functionalCategories"
   from
-    drug d
+    DRUG d
   where (
-    (d.cid = $1)
+    (d.cid = :cid)
   )
 ) q
 order by q."genericName"

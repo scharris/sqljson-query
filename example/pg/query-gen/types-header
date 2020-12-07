@@ -1,0 +1,8 @@
+
+// This section is from the "types-header" file where you can optionally define and/or import
+// custom types. Custom types for result properties can be specified either directly in the
+// query specs via "fieldTypeInGeneratedSource" in field expressions, or by specifying the
+// customPropertyTypeFn in the SourceGenerationOptions structure passed to generateQueries().
+type TimestampTZ = string;
+type PersonShortName = string;
+//

@@ -1,5 +1,5 @@
 import {indentLines, unDoubleQuote} from './util/strings';
-import {DatabaseMetadata} from './database-metadata/database-metadata';
+import {DatabaseMetadata} from './database-metadata';
 
 
 type DbmsType = 'PG' | 'ORA' | 'ISO';

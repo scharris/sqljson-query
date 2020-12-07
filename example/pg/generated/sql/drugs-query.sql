@@ -4,7 +4,9 @@ select
   -- row object builder for table 'drug'
   jsonb_build_object(
     'id', q.id,
-    'genericName', q."genericName",
+    'name', q.name,
+    'description', q.description,
+    'category', q.category,
     'meshId', q."meshId",
     'cid', q.cid,
     'registered', q.registered,
@@ -21,7 +23,9 @@ from (
   -- base query for table 'drug'
   select
     d.id as id,
-    d.name "genericName",
+    d.name as name,
+    d.descr as description,
+    d.category_code as category,
     d.mesh_id "meshId",
     d.cid as cid,
     d.registered as registered,
@@ -232,4 +236,4 @@ from (
     (d.name ilike $1)
   )
 ) q
-order by q."genericName"
+order by q.name
