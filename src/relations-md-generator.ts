@@ -14,7 +14,7 @@ export async function writeRelationsMetadataModule
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
   const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
 
-  const outputFile = path.join(sourceOutputDir, "relations.ts");
+  const outputFile = path.join(sourceOutputDir, "relations-metadata.ts");
 
   await fs.writeFile(outputFile, getCommonFileHeader() + "\n\n" + relationsModuleSource(dbmd));
 }

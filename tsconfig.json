@@ -8,6 +8,7 @@
     "module": "commonjs",
     "outDir": "dist",
     "typeRoots" : ["./node_modules/@types"],
+    "sourceMap": true,
     "declaration": true,
     "noImplicitAny": true,
     "strictNullChecks": true

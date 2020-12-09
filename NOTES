@@ -1,23 +1,10 @@
-Update example/pg to be like that in react skeleton.
-  Can leave Oracle example alone.
 
-$tmpDir = 'C:\Users\Sharris\tmp'
-npx tsc $PWD/example/pg/query-specs.ts --outDir $tmpDir
-# Writes to $tmpDir/example/pg/query-specs.js
-# or for Oracle:
-# npx tsc $PWD/example/ora/query-specs.ts --outDir $tmpDir
+TODO
+----
+Create repos for dbmd-*, sqljson-query-example-pg.
 
-# Generate queries and relation metadatas for Postgres.
-node dist `
-  --dbmd-file $PWD/example/pg/dbmd.json `
-  --query-specs-file $tmpDir/example/pg/query-specs.js `
-  --ts-output-dir example/pg/generated `
-  --sql-output-dir example/pg/generated
+Publish npm packages for dbmd-*, sqljson-query.
 
-# Generate queries and relation metadatas for Oracle.
-node dist `
-  --dbmd-file $PWD/example/ora/dbmd.json `
-  --query-specs-file $tmpDir/example/ora/query-specs.js `
-  --ts-output-dir example/ora/generated `
-  --sql-output-dir example/ora/generated
+Add tests.
 
+Setup github actions to compile the project.
