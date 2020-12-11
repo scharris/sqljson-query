@@ -47,6 +47,7 @@ generateQueries(
   opts
 )
 .catch((err: any) => {
-  console.error('Query generation failed due to error:\n', err);
+  console.error('Query generation failed.');
+  console.error(err);
   process.exit(1);
 });

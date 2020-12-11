@@ -39,46 +39,6 @@ export function mapSet<T,U>(ts: Set<T>, f: (t: T) => U): Set<U>
   return us;
 }
 
-export function arrayEquals<T>
-  (
-    a1: T[],
-    a2: T[],
-    itemEq: ((i1: T, i2: T) => boolean)
-  )
-{
-  if ( a1.length !== a2.length )
-    return false;
-
-  for ( let i=0; i<a1.length; ++i)
-  {
-    if ( !itemEq(a1[i], a2[i]) )
-      return false
-  }
-
-  return true;
-}
-
-export function ownPropsEq
-  (
-    t1: { [key: string]: any },
-    t2: { [key: string]: any }
-  )
-  : boolean
-{
-  const ownProps1 = Object.getOwnPropertyNames(t1);
-
-  if ( !setsEqual(new Set(ownProps1), new Set(Object.getOwnPropertyNames(t2))) )
-    return false;
-
-  for ( const prop of ownProps1 )
-  {
-    if ( t1[prop] !== t2[prop] )
-      return false;
-  }
-
-  return true;
-}
-
 export function makeMap<T,K,V>
   (
     ts: Iterable<T>,

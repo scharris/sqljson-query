@@ -1,0 +1,7 @@
+{
+  "testEnvironment": "node",
+  "transform": { "\\.ts$": "ts-jest" },
+  "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(ts|js)$",
+  "testPathIgnorePatterns": ["<rootDir>/lib/", "<rootDir>/node_modules/"],
+  "moduleFileExtensions": ["ts", "js", "json"]
+}

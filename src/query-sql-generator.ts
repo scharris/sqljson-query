@@ -506,7 +506,8 @@ export class QuerySqlGenerator
 
     if ( fk == null )
       throw new SpecError(specLoc, `No foreign key found from ${childRelId.name} to ${parentRelId.name} via ` +
-        (foreignKeyFields != null ? "foreign keys " + foreignKeyFields : "implicit foreign key fields") + ".");
+        (foreignKeyFields != null ? `foreign keys [${Array.from(foreignKeyFields)}]`
+         : "implicit foreign key fields") + ".");
 
     return fk;
   }

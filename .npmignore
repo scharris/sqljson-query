@@ -1,0 +1,8 @@
+node_modules
+src
+__tests__
+example
+.vscode
+.editorconfig
+jest.config.json
+Readme.md

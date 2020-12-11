@@ -2,6 +2,15 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "..\\sqljson-query-example-pg"
+        },
+        {
+            "path": "..\\dbmd-pg"
+        },
+        {
+            "path": "..\\dbmd-ora"
         }
     ]
 }

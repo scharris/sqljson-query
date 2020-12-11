@@ -125,7 +125,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
       {
         if ( soughtFk != null ) // already found an fk satisfying requirements?
           throw new Error(
-            `Child table ${fromRelId} has multiple foreign keys to parent table ${toRelId}` +
+            `Multiple foreign key constraints exist from table ${relIdString(fromRelId)} to table ${relIdString(toRelId)}` +
             (fieldNames != null ?
               ' with the same specified foreign key fields.'
               : ' and no foreign key fields were specified to disambiguate.'));
@@ -138,7 +138,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
     return soughtFk;
   }
 
-  public getForeignKeysFromTo
+  private getForeignKeysFromTo
     (
       childRelId: RelId | null,
       parentRelId: RelId | null
@@ -219,7 +219,7 @@ function makeDerivedData
   return new DerivedDatabaseMetadata(relMDsByRelId, fksByParentRelId, fksByChildRelId);
 }
 
-export function getPrimaryKeyFields
+function getPrimaryKeyFields
   (
     relMd: RelMetadata
   )
@@ -266,7 +266,7 @@ export function foreignKeyFieldNames(fk: ForeignKey): string[]
   return fkFieldNames;
 }
 
-export function makeRelId
+function makeRelId
   (
     schema: string | null,
     relName: string,
@@ -297,7 +297,6 @@ export function toRelId
   else // not qualified, qualify it if there is a default schema
     return makeRelId(defaultSchema, table, caseSensitivity);
 }
-
 
 export function relIdString(relId: RelId): string
 {

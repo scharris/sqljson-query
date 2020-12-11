@@ -1,5 +1,6 @@
+NOTES
 node_modules
-dist
+lib
 .idea
 *.iml
 .DS_Store

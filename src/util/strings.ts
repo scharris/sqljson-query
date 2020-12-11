@@ -31,7 +31,7 @@ export function replaceAll(inString: string, replace: string, replacement: strin
   return inString.replace(regex, replacement);
 }
 
-export function camelCase(name: string, upperFirst: boolean): string
+function camelCase(name: string, upperFirst: boolean): string
 {
   const parts: string[] = [];
 

@@ -1,4 +1,4 @@
-import {arrayEquals, ownPropsEq} from './util/collections';
+import * as _ from 'lodash';
 
 export interface ResultType
 {
@@ -33,10 +33,10 @@ export function resultTypesEqual
   return (
     (ignoreName || rt1.typeName === rt2.typeName) &&
     rt1.table === rt2.table &&
-    arrayEquals(rt1.simpleTableFieldProperties, rt2.simpleTableFieldProperties, ownPropsEq) &&
-    arrayEquals(rt1.tableExpressionProperty, rt2.tableExpressionProperty, ownPropsEq) &&
-    arrayEquals(rt1.parentReferenceProperties, rt2.parentReferenceProperties, ownPropsEq) &&
-    arrayEquals(rt1.childCollectionProperties, rt2.childCollectionProperties, ownPropsEq) &&
+    _.isEqual(rt1.simpleTableFieldProperties, rt2.simpleTableFieldProperties) &&
+    _.isEqual(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
+    _.isEqual(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
+    _.isEqual(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
     rt1.unwrapped === rt2.unwrapped
   );
 }

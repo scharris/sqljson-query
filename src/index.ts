@@ -3,7 +3,7 @@ import * as path from 'path';
 import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
 import {requireDirExists, requireFileExists} from './util/files';
-import {DatabaseMetadata} from './database-metadata';
+import {DatabaseMetadata, DatabaseMetadataStoredProperties} from './database-metadata';
 import {QueryGroupSpec, QuerySpec, ResultRepr, TableJsonSpec} from './query-specs';
 import {QueryReprSqlPath} from './query-repr-sql-path';
 import {QuerySqlGenerator} from './query-sql-generator';
@@ -11,6 +11,10 @@ import {ResultTypesGenerator} from './result-types-generator';
 import {TSModulesWriter} from './ts-modules-writer';
 import {writeRelationsMetadataModule} from './relations-md-generator';
 import {ResultType, SimpleTableFieldProperty} from './result-types';
+import {validateJson} from './util/json-schemas';
+
+const querySpecsSchema = require('./query-specs.schema.json');
+const dbmdJsonSchema = require('./dbmd.schema.json');
 
 export async function generateQueries
   (
@@ -28,7 +32,7 @@ export async function generateQueries
     await requireDirExists(tsOutputDir, 'Source output directory not found.');
     await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
     if ( opts.typesHeaderFile )
-      await requireFileExists(dbmdFile, 'Types header file not found.');
+      await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
     
     let queryGroupSpec;
     if ( typeof querySpecs === 'string' )
@@ -38,8 +42,7 @@ export async function generateQueries
     }
     else queryGroupSpec = querySpecs;
   
-    const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
-    const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
+    const dbmd = await readDatabaseMetadata(dbmdFile);
   
     const srcWriter = new TSModulesWriter(tsOutputDir, opts);
   
@@ -73,7 +76,6 @@ export async function generateQueries
   {
     if ( e.specLocation )
       throw new Error( 
-        "-----------------------------\n" +
         "Error in query specification.\n" +
         "-----------------------------\n" +
         "In query: " + e.specLocation.queryName + "\n" +
@@ -84,6 +86,13 @@ export async function generateQueries
     else
       throw e;
   }
+}
+
+async function readDatabaseMetadata(dbmdFile: string)
+{
+  const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
+  const dbmdStoredProps: DatabaseMetadataStoredProperties = validateJson("database metadata", dbmdStoredPropsJson, dbmdJsonSchema);
+  return new DatabaseMetadata(dbmdStoredProps);
 }
 
 async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
@@ -97,7 +106,7 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
   else if (fileExt === '.json')
   {
     const queryGroupSpecJson = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(queryGroupSpecJson);
+    return validateJson("query specs", queryGroupSpecJson, querySpecsSchema) as QueryGroupSpec;
   }
   else
     throw new Error('Unrecognized file extension for query specs file.');
@@ -168,3 +177,4 @@ export interface SourceGenerationOptions
 
 export * from './query-specs';
 export * from './result-types';
+
