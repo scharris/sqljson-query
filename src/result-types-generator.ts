@@ -1,23 +1,11 @@
-import {normalizeName} from './util/database-names';
-import {makeMap} from './util/collections';
-import {makeNameNotInSet, upperCamelCase} from './util/strings';
-import {valueOr} from './util/nullability';
+import {normalizeName, makeMap, makeNameNotInSet, upperCamelCase, valueOr} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, toRelId} from './database-metadata';
 import {
-  ResultType,
-  ChildCollectionProperty,
-  SimpleTableFieldProperty,
-  TableExpressionProperty,
-  ParentReferenceProperty,
+  ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty, ParentReferenceProperty,
   resultTypesEqual
 } from './result-types';
 import {
-  ChildCollectionSpec,
-  InlineParentSpec,
-  ParentSpec,
-  ReferencedParentSpec,
-  TableFieldExpr,
-  TableJsonSpec
+  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec, TableFieldExpr, TableJsonSpec
 } from './query-specs';
 
 export class ResultTypesGenerator
@@ -63,27 +51,29 @@ export class ResultTypesGenerator
     // Inline parents can contribute fields to any primary field category (table field,
     // expression, parent ref, child collection). Get the inline parent fields, and the result
     // types from the tables themselves and recursively from their specified related tables.
-    if ( tjs.inlineParentTables )
+    const inlineParentSpecs = getInlineParentSpecs(tjs);
+    if ( inlineParentSpecs.length > 0 )
     {
-      const inlineParentsContr = this.getInlineParentContrs(relId, tjs.inlineParentTables, typesInScope, queryName);
+      const inlineParentsContr = this.getInlineParentContrs(relId, inlineParentSpecs, typesInScope, queryName);
       typeBuilder.addFieldsFromTypeBuilder(inlineParentsContr.typeBuilder);
       resultTypes.push(...inlineParentsContr.resultTypes);
       inlineParentsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
     // Get referenced parent fields and result types, with result types from related tables.
-    if ( tjs.referencedParentTables )
+    const refdParentSpecs = getReferencedParentSpecs(tjs);
+    if ( refdParentSpecs.length > 0 )
     {
-      const refdParentsContr = this.getRefdParentContrs(relId, tjs.referencedParentTables, typesInScope, queryName);
+      const refdParentsContr = this.getReferencedParentContrs(relId, refdParentSpecs, typesInScope, queryName);
       typeBuilder.addParentReferenceProperties(refdParentsContr.parentReferenceProperties);
       resultTypes.push(...refdParentsContr.resultTypes);
       refdParentsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
     // Get the child collection fields and result types, with result types from related tables.
-    if ( tjs.childTableCollections )
+    if ( tjs.childTables )
     {
-      const childCollsContr = this.getChildCollectionContrs(tjs.childTableCollections, typesInScope, queryName);
+      const childCollsContr = this.getChildCollectionContrs(tjs.childTables, typesInScope, queryName);
       typeBuilder.addChildCollectionProperties(childCollsContr.childCollectionProperties);
       resultTypes.push(...childCollsContr.resultTypes);
       childCollsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
@@ -148,7 +138,7 @@ export class ResultTypesGenerator
   private getInlineParentContrs
     (
       relId: RelId,
-      inlineParentSpecs: InlineParentSpec[],
+      parentSpecs: ParentSpec[],
       envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
@@ -159,7 +149,7 @@ export class ResultTypesGenerator
 
     const typesInScope = new Map<string,ResultType>(envTypesInScope);
 
-    for ( const parentSpec of inlineParentSpecs )
+    for ( const parentSpec of parentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
       const parentResultTypes = this.generateResultTypesWithTypesInScope(parentSpec.tableJson, typesInScope, queryName);
@@ -180,10 +170,10 @@ export class ResultTypesGenerator
   }
 
   /// Get fields and types from the given referenced parents.
-  private getRefdParentContrs
+  private getReferencedParentContrs
     (
       relId: RelId,
-      referencedParentSpecs: ReferencedParentSpec[],
+      refdParentSpecs: ReferencedParentSpec[],
       envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
@@ -194,7 +184,7 @@ export class ResultTypesGenerator
 
     const typesInScope = new Map<string,ResultType>(envTypesInScope);
 
-    for ( const parentSpec of referencedParentSpecs )
+    for ( const parentSpec of refdParentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
       const parentResultTypes = this.generateResultTypesWithTypesInScope(parentSpec.tableJson, typesInScope, queryName);
@@ -215,7 +205,7 @@ export class ResultTypesGenerator
 
   private getChildCollectionContrs
     (
-      childCollectionSpecs: ChildCollectionSpec[],
+      childSpecs: ChildSpec[],
       envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
@@ -226,7 +216,7 @@ export class ResultTypesGenerator
 
     const typesInScope = new Map<string,ResultType>(envTypesInScope);
 
-    for ( const childCollSpec of childCollectionSpecs )
+    for ( const childCollSpec of childSpecs )
     {
       // Generate types for the child table and any related tables it includes recursively.
       const childResultTypes = this.generateResultTypesWithTypesInScope(childCollSpec.tableJson, typesInScope, queryName);

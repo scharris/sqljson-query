@@ -1,29 +1,15 @@
-import {normalizeName, quoteIfNeeded} from './util/database-names';
-import {makeMap, mapSet} from './util/collections';
-import {valueOr} from './util/nullability';
-import {propertyNameDefaultFunction} from './util/property-names';
-import {indentLines, lowerCaseInitials, makeNameNotInSet, replaceAll} from './util/strings';
+import {
+  makeMap, mapSet, normalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
+  lowerCaseInitials, makeNameNotInSet, replaceAll
+} from './util';
+import {
+  QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
+  CustomJoinCondition, ParentSpec, ReferencedParentSpec, InlineParentSpec, getInlineParentSpecs,
+  getReferencedParentSpecs,
+} from './query-specs';
+import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-spec-validations';
 import {SqlDialect, getSqlDialect} from './sql-dialects';
 import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata';
-import {
-  QuerySpec,
-  TableJsonSpec,
-  ResultRepr,
-  SpecLocation,
-  addLocPart,
-  SpecError,
-  TableFieldExpr,
-  ChildCollectionSpec,
-  CustomJoinCondition,
-  InlineParentSpec,
-  ParentSpec,
-  ReferencedParentSpec,
-} from './query-specs';
-import {
-  identifyTable,
-  validateCustomJoinCondition,
-  verifyTableFieldExpressionsValid
-} from './query-spec-validations';
 
 export class QuerySqlGenerator
 {
@@ -117,11 +103,11 @@ export class QuerySqlGenerator
     );
 
     q.addParts(
-      this.inlineParentsSqlParts(tableSpec, relId, alias, q.aliasesInScope, propNameFn, specLoc)
+      this.inlineParentsSqlParts(getInlineParentSpecs(tableSpec), relId, alias, q.aliasesInScope, propNameFn, specLoc)
     );
 
     q.addParts(
-      this.referencedParentsSqlParts(tableSpec, relId, alias, propNameFn, specLoc)
+      this.referencedParentsSqlParts(getReferencedParentSpecs(tableSpec), relId, alias, propNameFn, specLoc)
     );
 
     q.selectEntries.push(
@@ -177,7 +163,7 @@ export class QuerySqlGenerator
 
   private inlineParentsSqlParts
     (
-      tableSpec: TableJsonSpec,
+      inlineParentSpecs: InlineParentSpec[],
       relId: RelId,
       alias: string,
       aliasesInScope: Set<string>,
@@ -188,7 +174,7 @@ export class QuerySqlGenerator
   {
     const sqlParts = new SqlParts([], [], [], aliasesInScope);
 
-    for ( const [ix, parentSpec] of (tableSpec.inlineParentTables || []).entries() )
+    for ( const [ix, parentSpec] of (inlineParentSpecs || []).entries() )
     {
       const parentLoc = addLocPart(specLoc,
         `inlineParentTables entry #${ix+1}, '${parentSpec.tableJson.table}' table`
@@ -203,7 +189,7 @@ export class QuerySqlGenerator
 
   private inlineParentSqlParts
     (
-      inlineParentSpec: InlineParentSpec,
+      parentSpec: ParentSpec,
       childRelId: RelId,
       childAlias: string,
       avoidAliases: Set<string>,
@@ -214,7 +200,7 @@ export class QuerySqlGenerator
   {
     const q = new SqlParts();
 
-    const fromClauseQuery = this.baseQuery(inlineParentSpec.tableJson, null, true, null, propNameFn, specLoc);
+    const fromClauseQuery = this.baseQuery(parentSpec.tableJson, null, true, null, propNameFn, specLoc);
 
     const fromClauseQueryAlias = makeNameNotInSet("q", avoidAliases);
     q.aliasesInScope.add(fromClauseQueryAlias);
@@ -225,16 +211,16 @@ export class QuerySqlGenerator
         valueExpr: `${fromClauseQueryAlias }.${parentColumnName}`,
         name: parentColumnName,
         source: 'INLINE_PARENT',
-        comment: (i == 0 ? lineCommentInlineParentFieldsBegin(inlineParentSpec): null)
+        comment: (i == 0 ? lineCommentInlineParentFieldsBegin(parentSpec): null)
       });
     }
 
     const joinCond =
-      this.getParentPkCondition(inlineParentSpec, childRelId, childAlias, specLoc)
+      this.getParentPkCondition(parentSpec, childRelId, childAlias, specLoc)
           .asEquationConditionOn(fromClauseQueryAlias, this.dbmd, QuerySqlGenerator.HIDDEN_PK_PREFIX);
 
     q.fromEntries.push(
-      lineCommentJoinToParent(inlineParentSpec) + "\n" +
+      lineCommentJoinToParent(parentSpec) + "\n" +
       "left join (\n" +
          this.indent(fromClauseQuery.sql) + "\n" +
       ") " + fromClauseQueryAlias + " on " + joinCond
@@ -288,7 +274,7 @@ export class QuerySqlGenerator
 
   private referencedParentsSqlParts
     (
-      tableSpec: TableJsonSpec,
+      refdParentSpecs: ReferencedParentSpec[],
       relId: RelId,
       alias: string,
       propNameFn: (dbFieldName: string) => string,
@@ -298,7 +284,7 @@ export class QuerySqlGenerator
   {
     const sqlParts = new SqlParts();
 
-    for ( const [ix, parentSpec] of (tableSpec.referencedParentTables || []).entries() )
+    for ( const [ix, parentSpec] of refdParentSpecs.entries() )
     {
       const parentLoc = addLocPart(specLoc,
         `referencedParentTables entry #${ix+1}, '${parentSpec.tableJson.table}' table`
@@ -348,9 +334,9 @@ export class QuerySqlGenerator
     )
     : SelectEntry[]
   {
-    if ( !tableSpec.childTableCollections )
+    if ( !tableSpec.childTables )
       return [];
-    return tableSpec.childTableCollections.map(childCollSpec => {
+    return tableSpec.childTables.map(childCollSpec => {
       const childLoc = addLocPart(specLoc, `child collection '${childCollSpec.collectionName}'`);
       return {
         valueExpr:
@@ -368,7 +354,7 @@ export class QuerySqlGenerator
 
   private childCollectionQuery
     (
-      childSpec: ChildCollectionSpec,
+      childSpec: ChildSpec,
       parentRelId: RelId,
       parentAlias: string,
       propNameFn: (dbFieldName: string) => string,
@@ -391,7 +377,7 @@ export class QuerySqlGenerator
 
   private getChildFkCondition
     (
-      childCollectionSpec: ChildCollectionSpec,
+      childCollectionSpec: ChildSpec,
       childRelId: RelId,
       parentRelId: RelId,
       parentAlias: string,
@@ -730,9 +716,9 @@ function jsonPropertiesCount(tjs: TableJsonSpec): number
 {
   return (
     (tjs.fieldExpressions?.length || 0) +
-    (tjs.childTableCollections?.length || 0) +
-    (tjs.referencedParentTables?.length || 0) +
-    (tjs.inlineParentTables || []).reduce(
+    (tjs.childTables?.length || 0) +
+    getReferencedParentSpecs(tjs).length +
+    getInlineParentSpecs(tjs).reduce(
       (count, p) => count + jsonPropertiesCount(p.tableJson),
       0
     )
@@ -754,7 +740,7 @@ function lineCommentAggregatedRowObjects(tableSpec: TableJsonSpec): string
   return `-- aggregated row objects builder for table '${tableSpec.table}'`;
 }
 
-function lineCommentChildCollectionSelectExpression(childSpec: ChildCollectionSpec): string
+function lineCommentChildCollectionSelectExpression(childSpec: ChildSpec): string
 {
   return `-- records from child table '${childSpec.tableJson.table}' as collection ` +
          `'${childSpec.collectionName}'`;

@@ -1,3 +1,5 @@
+import * as _ from 'lodash';
+
 export interface QueryGroupSpec
 {
   defaultSchema?: string;
@@ -23,9 +25,8 @@ export interface TableJsonSpec
 {
   table: string;
   fieldExpressions?: (string | TableFieldExpr)[];
-  inlineParentTables?: InlineParentSpec[];
-  referencedParentTables?: ReferencedParentSpec[];
-  childTableCollections?: ChildCollectionSpec[];
+  parentTables?: ParentSpec[];
+  childTables?: ChildSpec[];
   recordCondition?: RecordCondition;
 }
 
@@ -40,19 +41,23 @@ export interface TableFieldExpr
 
 export interface ParentSpec
 {
+  referenceName?: string;
   customJoinCondition?: CustomJoinCondition;
   tableJson: TableJsonSpec;
   viaForeignKeyFields?: string[];
 }
-
-export interface InlineParentSpec extends ParentSpec { }
 
 export interface ReferencedParentSpec extends ParentSpec
 {
   referenceName: string;
 }
 
-export interface ChildCollectionSpec
+export interface InlineParentSpec extends ParentSpec
+{
+  referenceName: undefined;
+}
+
+export interface ChildSpec
 {
   collectionName: string;
   tableJson: TableJsonSpec;
@@ -106,3 +111,20 @@ export class SpecError extends Error
 export type PropertyNameDefault = "AS_IN_DB" | "CAMELCASE";
 
 export type ResultRepr = "MULTI_COLUMN_ROWS" | "JSON_OBJECT_ROWS" | "JSON_ARRAY_ROW";
+
+
+export function getInlineParentSpecs(tableSpec: TableJsonSpec): InlineParentSpec[]
+{
+  return _.flatMap(
+    tableSpec.parentTables || [],
+    ts => ts.referenceName === undefined ? [ts as InlineParentSpec] : []
+  );
+}
+
+export function getReferencedParentSpecs(tableSpec: TableJsonSpec): ReferencedParentSpec[]
+{
+  return _.flatMap(
+    tableSpec.parentTables || [],
+    ts => ts.referenceName != null ? [ts as ReferencedParentSpec] : []
+  );
+}
