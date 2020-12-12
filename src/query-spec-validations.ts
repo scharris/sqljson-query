@@ -1,4 +1,4 @@
-import {normalizeName} from './util/database-names';
+import {caseNormalizeName} from './util/database-names';
 import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata';
 import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 
@@ -89,7 +89,7 @@ export function verifyRelMdFieldsExist
 {
   const mdFields = new Set(relMd.fields.map(f => f.name));
 
-  const missing = fieldNames.filter(fieldName => !mdFields.has(normalizeName(fieldName, dbmd.caseSensitivity)));
+  const missing = fieldNames.filter(fieldName => !mdFields.has(caseNormalizeName(fieldName, dbmd.caseSensitivity)));
 
   if ( missing.length !== 0 )
     throw new SpecError(specLoc,

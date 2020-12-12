@@ -22,7 +22,7 @@ export function quoteIfNeeded
   return `"${id}"`;
 }
 
-export function normalizeName
+export function caseNormalizeName
   (
     id: string,
     caseSensitivity: CaseSensitivity

@@ -1,4 +1,4 @@
-import {normalizeName, makeMap, makeNameNotInSet, upperCamelCase, valueOr} from './util';
+import {caseNormalizeName, makeMap, makeNameNotInSet, upperCamelCase, valueOr} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, toRelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty, ParentReferenceProperty,
@@ -124,7 +124,7 @@ export class ResultTypesGenerator
 
       if ( fieldName != null )
       {
-        const dbField = dbFieldsByName.get(normalizeName(fieldName, this.dbmd.caseSensitivity));
+        const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if ( dbField == null )
           throw new Error(`no metadata found for field ${relId}.${fieldName}`);
         fields.push(this.makeSimpleTableField(tfe, dbField));

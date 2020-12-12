@@ -1,5 +1,5 @@
 import {
-  makeMap, mapSet, normalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
+  makeMap, mapSet, caseNormalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
   lowerCaseInitials, makeNameNotInSet, replaceAll
 } from './util';
 import {
@@ -509,7 +509,7 @@ export class QuerySqlGenerator
 
   private dbNormd(name: string): string
   {
-    return normalizeName(name, this.dbmd.caseSensitivity);
+    return caseNormalizeName(name, this.dbmd.caseSensitivity);
   }
 
   private indent(s: string): string

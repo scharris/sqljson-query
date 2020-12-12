@@ -1,5 +1,5 @@
 import {computeIfAbsent, setsEqual} from './util/collections';
-import {normalizeName} from './util/database-names';
+import {caseNormalizeName} from './util/database-names';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties
@@ -114,7 +114,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
     : ForeignKey | null
   {
     const normdFkFieldNames = fieldNames != null ?
-      new Set(Array.from(fieldNames).map(n => normalizeName(n, this.caseSensitivity)))
+      new Set(Array.from(fieldNames).map(n => caseNormalizeName(n, this.caseSensitivity)))
       : null;
 
     let soughtFk: ForeignKey | null = null;
@@ -275,8 +275,8 @@ function makeRelId
   : RelId
 {
   return {
-    schema: schema != null ? normalizeName(schema, caseSensitivity) : null,
-    name: normalizeName(relName, caseSensitivity)
+    schema: schema != null ? caseNormalizeName(schema, caseSensitivity) : null,
+    name: caseNormalizeName(relName, caseSensitivity)
   };
 }
 
