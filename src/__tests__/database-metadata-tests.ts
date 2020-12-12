@@ -83,18 +83,22 @@ test('get foreign key field names from foreign key', () => {
   expect(foreignKeyFieldNames(fk!)).toEqual(['entered_by']);
 });
 
-test('make rel id in stored-lower db', () => {
+test('make rel ids with default schema applied', () => {
   expect(toRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))
     .toEqual({schema: 'drugs', name: 'authority'});
   expect(toRelId('AUTHORITY', null, 'INSENSITIVE_STORED_LOWER'))
     .toEqual({schema: null, name: 'authority'});
-});
-
-test('make rel id in stored-upper db', () => {
   expect(toRelId('authority', 'drugs', 'INSENSITIVE_STORED_UPPER'))
     .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
   expect(toRelId('authority', null, 'INSENSITIVE_STORED_UPPER'))
     .toEqual({schema: null, name: 'AUTHORITY'});
+});
+
+test('make rel id by parsing qualified name', () => {
+  expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
+    expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: 'drugs', name: 'authority'});
 });
 
 test('rel id string', () => {

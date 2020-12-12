@@ -293,7 +293,7 @@ export function toRelId
   const dotIx = table.indexOf('.');
 
   if ( dotIx != -1 ) // already qualified, split it
-    return makeRelId(table.substring(dotIx+1), table.substring(0, dotIx), caseSensitivity);
+    return makeRelId(table.substring(0, dotIx), table.substring(dotIx+1), caseSensitivity);
   else // not qualified, qualify it if there is a default schema
     return makeRelId(defaultSchema, table, caseSensitivity);
 }

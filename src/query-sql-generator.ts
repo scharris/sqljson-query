@@ -40,7 +40,7 @@ export class QuerySqlGenerator
 
     const resReprs = querySpec.resultRepresentations || QuerySqlGenerator.DEFAULT_RESULT_REPRS;
 
-    return makeMap(resReprs, resRepr => resRepr, resRepr =>
+    return makeMap(resReprs, rrep => rrep, resRepr =>
       this.queryResultReprSql(querySpec, resRepr, propNameFn)
     );
   }
