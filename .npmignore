@@ -3,6 +3,9 @@ src
 __tests__
 example
 .vscode
+.idea
 .editorconfig
+*.code-workspace
 jest.config.json
+NOTES
 Readme.md
