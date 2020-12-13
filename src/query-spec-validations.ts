@@ -14,7 +14,7 @@ export function identifyTable
   const relMd = dbmd.getRelationMetadata(toRelId(table, defaultSchema, dbmd.caseSensitivity));
 
   if ( relMd == null )
-    throw new SpecError(specLoc, `Table '${table}' not found in database metadata.`);
+    throw new SpecError(specLoc, `Table '${table}' was not found in database metadata.`);
 
   return relMd.relationId;
 }
@@ -25,7 +25,7 @@ export function verifyTableFieldExpressionsValid
     defaultSchema: string | null,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
- )
+  )
 {
   if ( !tableSpec.fieldExpressions )
     return;
@@ -42,7 +42,7 @@ export function verifyTableFieldExpressionsValid
           "exactly one of 'field' or 'expression' properties must be provided.");
       if ( fieldExpr.expression != null && fieldExpr.fieldTypeInGeneratedSource == null )
         throw new SpecError(specLoc, `fieldExpressions entry #${ix+1} is invalid: ` +
-          "fieldTypeInGeneratedSource must be specified with the 'expression' property.");
+          "field type in generated source must be specified with the 'expression' property.");
       if ( fieldExpr.field )
         simpleSelectFields.push(fieldExpr.field);
     }
@@ -52,7 +52,7 @@ export function verifyTableFieldExpressionsValid
   if ( relMd == null )
     throw new SpecError(specLoc, `Table '${tableSpec.table}' was not found in database metadata.`);
 
-  this.verifyRelMdFieldsExist(relMd, simpleSelectFields, dbmd, specLoc);
+  verifyFieldsExistInRelMd(simpleSelectFields, relMd, dbmd, specLoc);
 }
 
 export function validateCustomJoinCondition
@@ -73,16 +73,16 @@ export function validateCustomJoinCondition
     throw new SpecError({...specLoc, queryPart: "custom join condition"}, "Child table not found.");
 
   const parentMatchFields = customJoinCond.equatedFields.map(fieldPair => fieldPair.parentPrimaryKeyField);
-  this.verifyRelMdFieldsExist(parentMd, parentMatchFields, dbmd, specLoc);
+  verifyFieldsExistInRelMd(parentMatchFields, parentMd, dbmd, specLoc);
 
   const childMatchFields = customJoinCond.equatedFields.map(fieldPair => fieldPair.childField);
-  this.verifyRelMdFieldsExist(childMd, childMatchFields, dbmd, specLoc);
+  verifyFieldsExistInRelMd(childMatchFields, childMd, dbmd, specLoc);
 }
 
-export function verifyRelMdFieldsExist
+function verifyFieldsExistInRelMd
   (
-    relMd: RelMetadata,
     fieldNames: string[],
+    relMd: RelMetadata,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
   )
