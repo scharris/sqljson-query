@@ -104,7 +104,7 @@ export class SpecError extends Error
 {
   constructor(public specLocation: SpecLocation, public problem: string)
   {
-    super(`SpecError in query '${specLocation.queryName}' at '${specLocation.queryPart}': ${problem}`);
+    super(`SpecError in query '${specLocation.queryName}' at ${specLocation.queryPart || 'top level'}: ${problem}`);
   }
 }
 
