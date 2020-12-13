@@ -245,6 +245,9 @@ export class QuerySqlGenerator
       if ( parentSpec.viaForeignKeyFields != null )
         throw new SpecError(specLoc, "Parent with customJoinCondition cannot specify foreignKeyFields.");
 
+      const parentRelId = identifyTable(parentSpec.tableJson.table, this.defaultSchema, this.dbmd, specLoc);
+      validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, "custom join condition"));
+
       return this.customJoinParentPkCondition(customJoinCond, childAlias);
     }
     else
