@@ -16,7 +16,7 @@ test('unqualified tables are rejected when no default schema specified', () => {
       fieldExpressions: ["id"],
     }
   };
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table 'drug' not found/i);
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table 'drug'.* not found/i);
 });
 
 test('fully qualified table which exists in dbmd is accepted', () => {
@@ -30,6 +30,32 @@ test('fully qualified table which exists in dbmd is accepted', () => {
     }
   };
   expect(sqlGen.generateSqls(querySpec).size).toBeGreaterThan(0);
+});
+
+test('non-existent table specified fully-qualifed causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drugs.table_which_dne",
+      fieldExpressions: [ "id" ],
+    }
+  };
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/);
+});
+
+test('non-existent table specified with default schema causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "table_which_dne",
+      fieldExpressions: [ "id" ],
+    }
+  };
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/);
 });
 
 test('SQL is generated for each specified result representation', () => {
@@ -46,140 +72,335 @@ test('SQL is generated for each specified result representation', () => {
   expect(new Set(res.keys())).toEqual(new Set(["JSON_OBJECT_ROWS", "JSON_ARRAY_ROW", "MULTI_COLUMN_ROWS"]));
 });
 
+test('a table field which does not exist in datase metadata causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "field_which_dne" ],
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/field_which_dne/i);
+});
 
+test('expressions fields must specify json property', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ { expression: "2 + 2", fieldTypeInGeneratedSource: "number" } ],
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/property name is required/i);
+});
 
+test('expressions fields must specify field type in generated source', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ { expression: "2 + 2", jsonProperty: "twiceTwo" } ],
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/field type in generated source must be specified/i);
+});
 
+test('a table field/expresion specifying both field and expression values causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [
+        { field: "id", expression: "2 + 2", jsonProperty: "twiceTwo", fieldTypeInGeneratedSource: "number" }
+      ],
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/exactly one of 'field' or 'expression'/i);
+});
 
+test('a table field/expresion specifying neither field nor expression value causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [
+        { jsonProperty: "twiceTwo", fieldTypeInGeneratedSource: "number" }
+      ],
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/exactly one of 'field' or 'expression'/i);
+});
 
-const querySpec: QuerySpec = {
-  queryName: "drugs query",
-  resultRepresentations: ["JSON_OBJECT_ROWS"],
-  generateResultTypes: true,
-  tableJson: {
-    table: "drug",
-    fieldExpressions: [
-      "id",
-      "name",
-      { field: "descr", jsonProperty: "description" },
-      { field: "category_code", jsonProperty: "category" },
-      "mesh_id",
-      "cid",
-      "registered",
-      "market_entry_date",
-      "therapeutic_indications",
-      { expression: "$$.cid + 1000", jsonProperty: "cidPlus1000", fieldTypeInGeneratedSource: "number | null" },
-    ],
-    childTables: [
-      {
-        collectionName: "brands",
-        tableJson: {
-          table: "brand",
-          fieldExpressions: ["brand_name"],
-          parentTables: [
-            {
-              tableJson: {
-                table: "manufacturer",
-                fieldExpressions: [{ field: "name", jsonProperty: "manufacturer" }]
-              }
-            }
-          ]
+test('a non-existent child table causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "references",
+          tableJson: {
+            table: "table_which_dne",
+            fieldExpressions: [ "id" ],
+          }
         }
-      },
-      {
-        collectionName: "advisories",
-        tableJson: {
-          table: "advisory",
-          fieldExpressions: [{ field: "text", jsonProperty: "advisoryText" }],
-          parentTables: [
-            {
-              tableJson: {
-                table: "advisory_type",
-                fieldExpressions: [
-                  { field: "name", jsonProperty: "advisoryType" },
-                  { expression: "(1 + 1)", jsonProperty: "exprYieldingTwo", fieldTypeInGeneratedSource: "number" },
-                ],
-                parentTables: [
-                  {
-                    tableJson: {
-                      table: "authority",
-                      fieldExpressions: [
-                        { field: "name", jsonProperty: "authorityName" },
-                        { field: "url", jsonProperty: "authorityUrl" },
-                        { field: "description", jsonProperty: "authorityDescription" },
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/i);
+});
+
+test('a non-existent parent table causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "table_which_dne",
+            fieldExpressions: [ "id" ],
+          }
         }
-      },
-      {
-        collectionName: "functionalCategories",
-        tableJson: {
-          table: "drug_functional_category",
-          parentTables: [
-            {
-              tableJson: {
-                table: "functional_category",
-                fieldExpressions: [
-                  { field: "name", jsonProperty: "categoryName" },
-                  "description",
-                ]
-              }
-            },
-            {
-              tableJson: {
-                table: "authority",
-                fieldExpressions: [
-                  { field: "name", jsonProperty: "authorityName" },
-                  { field: "url", jsonProperty: "authorityUrl" },
-                  { field: "description", jsonProperty: "authorityDescription" },
-                ]
-              }
-            }
-          ]
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/i);
+});
+
+test('a missing foreign key for a child collection causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "references",
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          }
         }
-      }
-    ],
-    parentTables: [
-      {
-        referenceName: "registeredByAnalyst",
-        tableJson: {
-          table: "analyst",
-          fieldExpressions: ["id", "short_name"]
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/no foreign key found/i);
+});
+
+test('a missing foreign key to parent table causes error', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          }
         }
-      },
-      {
-        referenceName: "compound",
-        viaForeignKeyFields: [
-          "compound_id"
-        ],
-        tableJson: {
-          table: "compound",
-          fieldExpressions: ["display_name", "nctr_isis_id", "cas", "entered"],
-          parentTables: [
-            {
-              referenceName: "enteredByAnalyst",
-              tableJson: {
-                table: "analyst",
-                fieldExpressions: ["id", "short_name"]
-              },
-              viaForeignKeyFields: ["entered_by"]
-            },
-            {
-              referenceName: "approvedByAnalyst",
-              tableJson: {
-                table: "analyst",
-                fieldExpressions: ["id", "short_name"]
-              },
-              viaForeignKeyFields: ["approved_by"]
-            }
-          ]
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/no foreign key found/i);
+});
+
+test('foreign key fields must be provided when multiple fk constraints exist for a child collection', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "analyst",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "compounds", // compounds has multiple fks to analyst (for entered_by and approved_by)
+          tableJson: {
+            table: "compound",
+            fieldExpressions: [ "id" ],
+          }
         }
-      }
-    ],
-  },
-  orderBy: "$$.name"
-};
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/multiple foreign key constraints exist/i);
+});
+
+test('providing foreign key fields avoids error when multiple fk constraints exist for child collection', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "analyst",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "compounds", // compounds has multiple fks to analyst (for entered_by and approved_by)
+          tableJson: {
+            table: "compound",
+            fieldExpressions: [ "id" ],
+          },
+          foreignKeyFields: ['entered_by'] // disambiguates
+        }
+      ]
+    }
+  }
+  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+});
+
+test('a custom join condition for a child table may be used when no suitable foreign key exists', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "references",
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          },
+          customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "id"}]}
+        }
+      ]
+    }
+  }
+  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+});
+
+test('a custom join condition for a child table can only utilize fields which exist in datase metadata', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      childTables: [
+        {
+          collectionName: "references",
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          },
+          customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "field_which_dne"}]}
+        }
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec).size).toThrowError(/field_which_dne/i);
+});
+
+test('foreign key fields must be provided when multiple fk constraints exist to a parent table', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "compound",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "analyst",
+            fieldExpressions: [ "id" ],
+          }
+        }
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/multiple foreign key constraints exist/i);
+});
+
+test('providing fk fields avoids error when multiple fk constraints exist with a parent table', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "compound",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "analyst",
+            fieldExpressions: [ "id" ],
+          },
+          viaForeignKeyFields: ['entered_by'] // disambiguates
+        }
+      ]
+    }
+  }
+  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+});
+
+test('a custom join condition for a parent table may be used when no suitable foreign key exists', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          },
+          customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "id"}]}
+        }
+      ]
+    }
+  }
+  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+});
+
+test('a custom join condition for a parent table can only utilize fields which exist in datase metadata', () => {
+  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const querySpec: QuerySpec = {
+    queryName: "test query",
+    resultRepresentations: ["JSON_OBJECT_ROWS"],
+    tableJson: {
+      table: "drug",
+      fieldExpressions: [ "id" ],
+      parentTables: [
+        {
+          tableJson: {
+            table: "reference",
+            fieldExpressions: [ "id" ],
+          },
+          customJoinCondition: {equatedFields: [{childField: "field_which_dne", parentPrimaryKeyField: "id"}]}
+        }
+      ]
+    }
+  }
+  expect(() => sqlGen.generateSqls(querySpec).size).toThrowError(/field_which_dne/i);
+});
