@@ -1,11 +1,12 @@
 import {caseNormalizeName, makeMap, makeNameNotInSet, upperCamelCase, valueOr} from './util';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, toRelId} from './database-metadata';
+import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty, ParentReferenceProperty,
   resultTypesEqual
 } from './result-types';
 import {
-  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec, TableFieldExpr, TableJsonSpec
+  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec, TableFieldExpr,
+  TableJsonSpec
 } from './query-specs';
 
 export class ResultTypesGenerator
@@ -79,10 +80,9 @@ export class ResultTypesGenerator
       childCollsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
-    // The top table's type must be added at leading position in the returned list.
-    // If the type is essentially identical to one already in scope, ignoring only any name
-    // extension added to make the name unique, then add the previously generated instance
-    // instead.
+    // The top table's type must be added at leading position in the returned list, followed
+    // by any other supporting types that were generated. Any type which is identical to one
+    // already in scope 
     const baseTypeName = upperCamelCase(tjs.table); // Base type name is the desired name, without any trailing digits.
     const bnResType = typeBuilder.build(baseTypeName, tjs.table); // Result type with desired ("base") name which may not be the final name.
     if ( !typesInScope.has(baseTypeName) ) // No previously generated type of same base name.
@@ -94,7 +94,8 @@ export class ResultTypesGenerator
       // scope (prior to this type building) is searched because the additions made here
       // to typesInScope are proper parts of the type and so not identical to the whole type.
       const existingIdenticalType: ResultType | null = findTypeIgnoringNameExtensions(bnResType, envTypesInScope);
-      if ( existingIdenticalType != null ) // Identical previously generated type found, use it as top type.
+      if ( existingIdenticalType != null ) // Identical previously generated type found, TODO: do what?
+        // TODO: Return empty list here instead (?)
         resultTypes.splice(0, 0, existingIdenticalType);
       else // This type does not match any previously generated, but needs a new name.
       {
@@ -126,8 +127,8 @@ export class ResultTypesGenerator
       {
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if ( dbField == null )
-          throw new Error(`no metadata found for field ${relId}.${fieldName}`);
-        fields.push(this.makeSimpleTableField(tfe, dbField));
+          throw new Error(`No metadata found for field ${relIdString(relId)}.${fieldName}.`);
+        fields.push(this.makeSimpleTableFieldProperty(tfe, dbField));
       }
     }
 
@@ -156,10 +157,9 @@ export class ResultTypesGenerator
       const parentType = parentResultTypes[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const forceNullable =
-        parentSpec.tableJson.recordCondition != null || !this.someFkFieldKnownNotNullable(parentSpec, relId);
+      const nullable = parentSpec.tableJson.recordCondition != null || !this.someFkFieldNullableFalse(parentSpec, relId);
 
-      typeBuilder.addFieldsFromResultType(parentType, forceNullable);
+      typeBuilder.addFieldsFromResultType(parentType, nullable);
 
       const actuallyGeneratedParentTypes = parentResultTypes.slice(1);
       resultTypes.push(...actuallyGeneratedParentTypes);
@@ -191,8 +191,7 @@ export class ResultTypesGenerator
       const resultType = parentResultTypes[0]; // parent object type
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable =
-        parentSpec.tableJson.recordCondition != null || !this.someFkFieldKnownNotNullable(parentSpec, relId);
+      const nullable = !!parentSpec.tableJson.recordCondition || !this.someFkFieldNullableFalse(parentSpec, relId);
 
       parentReferenceProperties.push({ name: parentSpec.referenceName, resultType, nullable });
 
@@ -225,7 +224,6 @@ export class ResultTypesGenerator
       if ( childCollSpec.unwrap )
         childResultTypes[0] = { ...childResultTypes[0], unwrapped: true };
 
-      // childCollectionProperties.add(new ChildCollectionProperty(childCollSpec.getCollectionName(), childType, false));
       childCollectionProperties.push({
         name: childCollSpec.collectionName, resultType: childResultTypes[0], nullable: false
       });
@@ -237,10 +235,16 @@ export class ResultTypesGenerator
     return { childCollectionProperties, resultTypes };
   }
 
-  private makeSimpleTableField(tfe: string | TableFieldExpr, dbField: Field): SimpleTableFieldProperty
+  private makeSimpleTableFieldProperty
+    (
+      tfe: string | TableFieldExpr,
+      dbField: Field
+    )
+    : SimpleTableFieldProperty
   {
     return {
       name: this.getOutputFieldName(tfe, dbField),
+      databaseFieldName: dbField.name,
       databaseType: dbField.databaseType,
       length: valueOr(dbField.length, null),
       precision: valueOr(dbField.precision, null),
@@ -250,33 +254,43 @@ export class ResultTypesGenerator
     };
   }
 
-  private getOutputFieldName(tfe: string | TableFieldExpr, dbField: Field): string
+  private getOutputFieldName
+    (
+      tfe: string | TableFieldExpr,
+      dbField: Field
+    )
+    : string
   {
     const specdJsonProp = typeof tfe === 'object' ? tfe.jsonProperty || null : null;
     return specdJsonProp || this.defaultPropertyNameFn(dbField.name);
   }
 
-  private getTableFieldsByName(relId: RelId): Map<string,Field>
+  private getTableFieldsByName (relId: RelId): Map<string,Field>
   {
     const relMd = this.dbmd.getRelationMetadata(relId);
-    if ( relMd == null ) throw new Error(`Metadata for table ${relId} not found.`);
+    if ( relMd == null ) throw new Error(`Metadata for table ${relIdString(relId)} not found.`);
 
     return makeMap(relMd.fields, f => f.name, f => f);
   }
 
-  private someFkFieldKnownNotNullable(parentSpec: ParentSpec, childRelId: RelId): boolean
+  private someFkFieldNullableFalse
+    (
+      parentSpec: ParentSpec,
+      childRelId: RelId
+    )
+    : boolean
   {
     const parentRelId = toRelId(parentSpec.tableJson.table, this.defaultSchema, this.dbmd.caseSensitivity);
     const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
-    if ( !fk ) throw new Error(`Foreign key from ${childRelId} to parent ${parentRelId} not found.`);
+    if ( !fk ) throw new Error(`Foreign key from ${relIdString(childRelId)} to parent ${relIdString(parentRelId)} not found.`);
 
     const childFieldsByName = this.getTableFieldsByName(childRelId);
 
     for ( const fkFieldName of foreignKeyFieldNames(fk) )
     {
       const fkField = childFieldsByName.get(fkFieldName);
-      if ( !fkField ) throw new Error(`Field not found for fk field ${fkFieldName} of table ${childRelId}.`);
+      if ( !fkField ) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdString(childRelId)}.`);
       if ( fkField.nullable != null && !fkField.nullable ) return true;
     }
 
@@ -313,7 +327,7 @@ class ResultTypeBuilder
       private readonly parentReferenceProperties: ParentReferenceProperty[] = [],
       private readonly childCollectionProperties: ChildCollectionProperty[] = []
     )
-  { }
+  {}
 
   addSimpleTableFieldProperties(fs: SimpleTableFieldProperty[])
   {
@@ -335,7 +349,11 @@ class ResultTypeBuilder
     fs.forEach(f => this.childCollectionProperties.push(f));
   }
 
-  addFieldsFromResultType(resultType: ResultType, forceNullable: boolean)
+  addFieldsFromResultType
+    (
+      resultType: ResultType,
+      forceNullable: boolean
+    )
   {
     if ( forceNullable )
     {
@@ -364,7 +382,12 @@ class ResultTypeBuilder
     this.addChildCollectionProperties(resultTypeBuilder.childCollectionProperties);
   }
 
-  build(typeName: string, table: string): ResultType
+  build
+    (
+      typeName: string,
+      table: string
+    )
+    : ResultType
   {
     return {
       queryName: this.queryName,
@@ -396,7 +419,7 @@ function getTableExpressionProperties
     {
       const jsonProperty = tfe.jsonProperty;
       if ( jsonProperty == null )
-        throw new Error(`Expression field ${relId}.${tfe.expression} requires a json property.`)
+        throw new Error(`Expression field ${relIdString(relId)}.${tfe.expression} requires a json property.`)
 
       fields.push({
         name: jsonProperty,
@@ -415,11 +438,11 @@ function getSpecifiedSourceCodeFieldType(tfe: string | TableFieldExpr): string |
 }
 
 function findTypeIgnoringNameExtensions
- (
-   typeToFind: ResultType,
-   inMap: Map<string,ResultType>
- )
- : ResultType | null
+  (
+    typeToFind: ResultType,
+    inMap: Map<string, ResultType>
+  )
+  : ResultType | null
 {
   const baseName = typeToFind.typeName;
 
@@ -437,7 +460,7 @@ function findTypeIgnoringNameExtensions
 
 /// Return nullable variant of a database field, for any of the above field types
 /// having a "nullable" property.
-export function toNullableField<T>(f: T & { nullable: boolean }): T
+function toNullableField<T>(f: T & { nullable: boolean }): T
 {
   return (f.nullable != null && f.nullable) ? f : {...f, nullable: true};
 }

@@ -4,7 +4,7 @@ export interface ResultType
 {
   readonly queryName: string;
   readonly table: string;
-  readonly typeName: string; // always unqualified by module/package
+  readonly typeName: string;
   readonly simpleTableFieldProperties: SimpleTableFieldProperty[];
   readonly tableExpressionProperty: TableExpressionProperty[];
   readonly parentReferenceProperties: ParentReferenceProperty[];
@@ -43,7 +43,8 @@ export function resultTypesEqual
 
 export interface SimpleTableFieldProperty
 {
-  readonly name: string;
+  readonly name: string; // json property name
+  readonly databaseFieldName: string;
   readonly databaseType: string;
   readonly length: number | null;
   readonly precision: number | null;

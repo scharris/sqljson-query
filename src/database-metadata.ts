@@ -100,7 +100,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
     const relMd = this.getRelationMetadata(relId);
 
     if ( relMd == null )
-       throw new Error(`Relation metadata not found for relation id '${relId}'.`);
+       throw new Error(`Relation metadata not found for relation id '${relIdString(relId)}'.`);
 
     return getPrimaryKeyFields(relMd).map(f => alias != null ? `${alias}.${f.name}` : f.name);
   }
