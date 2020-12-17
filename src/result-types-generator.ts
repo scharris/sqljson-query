@@ -1,12 +1,13 @@
-import {caseNormalizeName, makeMap, makeNameNotInSet, upperCamelCase, valueOr} from './util';
+import {caseNormalizeName, makeMap, valueOr} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
-  ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty, ParentReferenceProperty,
-  resultTypesEqual
+  ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
+  ParentReferenceProperty,
+  propertiesCount
 } from './result-types';
 import {
-  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec, TableFieldExpr,
-  TableJsonSpec
+  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
+  TableFieldExpr, TableJsonSpec
 } from './query-specs';
 
 export class ResultTypesGenerator
@@ -19,26 +20,16 @@ export class ResultTypesGenerator
   )
   {}
 
+  /// Generates result type structures for the top table and all parent and child tables
+  /// which are included transitively in the passed table json specification. No attempt
+  /// is made to remove duplicate result type structures.
   public generateResultTypes
     (
-      tableJsonSpec: TableJsonSpec,
-      queryName: string
-    )
-    : ResultType[]
-  {
-    return this.generateResultTypesWithTypesInScope(tableJsonSpec, new Map(), queryName);
-  }
-
-  private generateResultTypesWithTypesInScope
-    (
       tjs: TableJsonSpec,
-      envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
     : ResultType[]
   {
-    const typesInScope = new Map<string,ResultType>(envTypesInScope);
-
     const typeBuilder = new ResultTypeBuilder(queryName);
     const resultTypes: ResultType[] = [];
 
@@ -55,54 +46,31 @@ export class ResultTypesGenerator
     const inlineParentSpecs = getInlineParentSpecs(tjs);
     if ( inlineParentSpecs.length > 0 )
     {
-      const inlineParentsContr = this.getInlineParentContrs(relId, inlineParentSpecs, typesInScope, queryName);
+      const inlineParentsContr = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
       typeBuilder.addFieldsFromTypeBuilder(inlineParentsContr.typeBuilder);
       resultTypes.push(...inlineParentsContr.resultTypes);
-      inlineParentsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
     // Get referenced parent fields and result types, with result types from related tables.
     const refdParentSpecs = getReferencedParentSpecs(tjs);
     if ( refdParentSpecs.length > 0 )
     {
-      const refdParentsContr = this.getReferencedParentContrs(relId, refdParentSpecs, typesInScope, queryName);
+      const refdParentsContr = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
       typeBuilder.addParentReferenceProperties(refdParentsContr.parentReferenceProperties);
       resultTypes.push(...refdParentsContr.resultTypes);
-      refdParentsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
     // Get the child collection fields and result types, with result types from related tables.
     if ( tjs.childTables )
     {
-      const childCollsContr = this.getChildCollectionContrs(tjs.childTables, typesInScope, queryName);
+      const childCollsContr = this.getChildCollectionContrs(tjs.childTables, queryName);
       typeBuilder.addChildCollectionProperties(childCollsContr.childCollectionProperties);
       resultTypes.push(...childCollsContr.resultTypes);
-      childCollsContr.resultTypes.forEach((t: ResultType) => typesInScope.set(t.typeName, t));
     }
 
     // The top table's type must be added at leading position in the returned list, followed
-    // by any other supporting types that were generated. Any type which is identical to one
-    // already in scope 
-    const baseTypeName = upperCamelCase(tjs.table); // Base type name is the desired name, without any trailing digits.
-    const bnResType = typeBuilder.build(baseTypeName, tjs.table); // Result type with desired ("base") name which may not be the final name.
-    if ( !typesInScope.has(baseTypeName) ) // No previously generated type of same base name.
-      resultTypes.splice(0, 0, bnResType);
-    else
-    {
-      // Search the previous scope (prior to this type-building) for a type which is identical
-      // except for any additions to the name to make it unique. Note: Only the original
-      // scope (prior to this type building) is searched because the additions made here
-      // to typesInScope are proper parts of the type and so not identical to the whole type.
-      const existingIdenticalType: ResultType | null = findTypeIgnoringNameExtensions(bnResType, envTypesInScope);
-      if ( existingIdenticalType != null ) // Identical previously generated type found, TODO: do what?
-        // TODO: Return empty list here instead (?)
-        resultTypes.splice(0, 0, existingIdenticalType);
-      else // This type does not match any previously generated, but needs a new name.
-      {
-        const uniqueName = makeNameNotInSet(baseTypeName, new Set(typesInScope.keys()), "_");
-        resultTypes.splice(0, 0, { ...bnResType, typeName: uniqueName });
-      }
-    }
+    // by any other supporting types that were generated.
+    resultTypes.splice(0, 0, typeBuilder.build(tjs.table));
 
     return resultTypes;
   }
@@ -140,7 +108,6 @@ export class ResultTypesGenerator
     (
       relId: RelId,
       parentSpecs: ParentSpec[],
-      envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
     : InlineParentContrs
@@ -148,22 +115,17 @@ export class ResultTypesGenerator
     const typeBuilder = new ResultTypeBuilder(queryName);
     const resultTypes: ResultType[] = [];
 
-    const typesInScope = new Map<string,ResultType>(envTypesInScope);
-
     for ( const parentSpec of parentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypesWithTypesInScope(parentSpec.tableJson, typesInScope, queryName);
+      const parentResultTypes = this.generateResultTypes(parentSpec.tableJson, queryName);
       const parentType = parentResultTypes[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
       const nullable = parentSpec.tableJson.recordCondition != null || !this.someFkFieldNullableFalse(parentSpec, relId);
 
       typeBuilder.addFieldsFromResultType(parentType, nullable);
-
-      const actuallyGeneratedParentTypes = parentResultTypes.slice(1);
-      resultTypes.push(...actuallyGeneratedParentTypes);
-      actuallyGeneratedParentTypes.forEach((t) => typesInScope.set(t.typeName, t));
+      resultTypes.push(...parentResultTypes.slice(1));
     }
 
     return { typeBuilder, resultTypes };
@@ -174,7 +136,6 @@ export class ResultTypesGenerator
     (
       relId: RelId,
       refdParentSpecs: ReferencedParentSpec[],
-      envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
     : RefdParentContrs
@@ -182,21 +143,17 @@ export class ResultTypesGenerator
     const parentReferenceProperties: ParentReferenceProperty[] = [];
     const resultTypes: ResultType[] = [];
 
-    const typesInScope = new Map<string,ResultType>(envTypesInScope);
-
     for ( const parentSpec of refdParentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypesWithTypesInScope(parentSpec.tableJson, typesInScope, queryName);
+      const parentResultTypes = this.generateResultTypes(parentSpec.tableJson, queryName);
       const resultType = parentResultTypes[0]; // parent object type
 
       // If the parent record might be absent, then all inline fields must be nullable.
       const nullable = !!parentSpec.tableJson.recordCondition || !this.someFkFieldNullableFalse(parentSpec, relId);
 
-      parentReferenceProperties.push({ name: parentSpec.referenceName, resultType, nullable });
-
+      parentReferenceProperties.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
       resultTypes.push(...parentResultTypes);
-      parentResultTypes.forEach((t) => typesInScope.set(t.typeName, t));
     }
 
     return { parentReferenceProperties, resultTypes };
@@ -205,7 +162,6 @@ export class ResultTypesGenerator
   private getChildCollectionContrs
     (
       childSpecs: ChildSpec[],
-      envTypesInScope: Map<string,ResultType>,
       queryName: string
     )
     : ChildCollectionContrs
@@ -213,23 +169,23 @@ export class ResultTypesGenerator
     const childCollectionProperties: ChildCollectionProperty[]  = [];
     const resultTypes: ResultType[] = [];
 
-    const typesInScope = new Map<string,ResultType>(envTypesInScope);
-
     for ( const childCollSpec of childSpecs )
     {
       // Generate types for the child table and any related tables it includes recursively.
-      const childResultTypes = this.generateResultTypesWithTypesInScope(childCollSpec.tableJson, typesInScope, queryName);
+      const childResultTypes = this.generateResultTypes(childCollSpec.tableJson, queryName);
 
-      // Mark the top-level child type as unwrapped if specified.
+      // Mark the child collection element type as unwrapped if specified.
       if ( childCollSpec.unwrap )
+      {
         childResultTypes[0] = { ...childResultTypes[0], unwrapped: true };
+        if (  propertiesCount(childResultTypes[0]) !== 1 )
+          throw new Error("Unwrapped child collection elements must have exactly one property.");
+      }
 
       childCollectionProperties.push({
-        name: childCollSpec.collectionName, resultType: childResultTypes[0], nullable: false
+        name: childCollSpec.collectionName, elResultType: childResultTypes[0], nullable: false
       });
-
       resultTypes.push(...childResultTypes);
-      childResultTypes.forEach((t) => typesInScope.set(t.typeName, t));
     }
 
     return { childCollectionProperties, resultTypes };
@@ -384,7 +340,6 @@ class ResultTypeBuilder
 
   build
     (
-      typeName: string,
       table: string
     )
     : ResultType
@@ -392,7 +347,6 @@ class ResultTypeBuilder
     return {
       queryName: this.queryName,
       table,
-      typeName,
       simpleTableFieldProperties: this.simpleTableFieldProperties,
       tableExpressionProperty: this.tableExpressionProperties,
       parentReferenceProperties: this.parentReferenceProperties,
@@ -435,27 +389,6 @@ function getTableExpressionProperties
 function getSpecifiedSourceCodeFieldType(tfe: string | TableFieldExpr): string | null
 {
   return typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null;
-}
-
-function findTypeIgnoringNameExtensions
-  (
-    typeToFind: ResultType,
-    inMap: Map<string, ResultType>
-  )
-  : ResultType | null
-{
-  const baseName = typeToFind.typeName;
-
-  for ( const [key, val] of inMap.entries() )
-  {
-    const baseNamesMatch = key.startsWith(baseName) &&
-      ( key === baseName || key.charAt(baseName.length) === '_' ); // underscore used as suffix separator for making unique names
-
-    if ( baseNamesMatch && resultTypesEqual(typeToFind, val, true) )
-      return val;
-  }
-
-  return null;
 }
 
 /// Return nullable variant of a database field, for any of the above field types

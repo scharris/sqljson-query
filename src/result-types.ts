@@ -4,7 +4,6 @@ export interface ResultType
 {
   readonly queryName: string;
   readonly table: string;
-  readonly typeName: string;
   readonly simpleTableFieldProperties: SimpleTableFieldProperty[];
   readonly tableExpressionProperty: TableExpressionProperty[];
   readonly parentReferenceProperties: ParentReferenceProperty[];
@@ -12,7 +11,7 @@ export interface ResultType
   readonly unwrapped: boolean;
 }
 
-export function fieldsCount(gt: ResultType): number
+export function propertiesCount(gt: ResultType): number
 {
   return (
     gt.simpleTableFieldProperties.length +
@@ -25,13 +24,11 @@ export function fieldsCount(gt: ResultType): number
 export function resultTypesEqual
   (
     rt1: ResultType,
-    rt2: ResultType,
-    ignoreName: boolean = false
+    rt2: ResultType
   )
   : boolean
 {
   return (
-    (ignoreName || rt1.typeName === rt2.typeName) &&
     rt1.table === rt2.table &&
     _.isEqual(rt1.simpleTableFieldProperties, rt2.simpleTableFieldProperties) &&
     _.isEqual(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
@@ -63,13 +60,13 @@ export interface TableExpressionProperty
 export interface ParentReferenceProperty
 {
   readonly name: string;
-  readonly resultType: ResultType
+  readonly refResultType: ResultType
   readonly nullable: boolean | null;
 }
 
 export interface ChildCollectionProperty
 {
   readonly name: string;
-  readonly resultType: ResultType; // Just the collection element type without the collection type itself.
+  readonly elResultType: ResultType; // Just the collection element type without the collection type itself.
   readonly nullable: boolean | null; // Nullable when the field is inlined from a parent with a record condition.
 }

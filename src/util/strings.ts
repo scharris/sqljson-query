@@ -105,3 +105,15 @@ export function unDoubleQuote(s: string): string
     return s.substring(1, s.length-1);
   return s;
 }
+
+export function hashString(s: string): number
+{
+  let hash = 0;
+  for (let i = 0; i < s.length; ++i)
+  {
+    const chr   = s.charCodeAt(i);
+    hash  = (hash * 31) + chr;
+    hash |= 0;
+  }
+  return hash;
+}

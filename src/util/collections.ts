@@ -1,3 +1,5 @@
+import * as _ from 'lodash';
+
 export function computeIfAbsent<K,V>
   (
     m: Map<K,V>,
@@ -74,8 +76,43 @@ export function makeArrayValuesMap<T,K,V>
     const key = keyFn(t);
     const vals = computeIfAbsent(m, key, (_k) => []);
     vals.push(valFn(t));
-    m.set(key, vals);
   }
 
   return m;
+}
+
+export function partitionByEquality<T>
+  (
+    ts: T[],
+    hashFn: (t: T) => number, 
+    eqFn: (t1: T, t2: T) => boolean
+  )
+  : T[][]
+{
+  const res: T[][] = [];
+
+  for (const rtHashGroup of Object.values(_.groupBy(ts, hashFn)))
+  {
+    const equalityGroups: T[][] = [];
+
+    for (const rt of rtHashGroup)
+    {
+      let added = false;
+      for (const eqGrp of equalityGroups)
+      {
+        if ( eqFn(rt, eqGrp[0]) )
+        {
+          eqGrp.push(rt);
+          added = true;
+          break;
+        }
+      }
+      if ( !added )
+        equalityGroups.push([rt]);
+    }
+
+    res.push(...equalityGroups);
+  }
+
+  return res;
 }

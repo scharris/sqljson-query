@@ -1,18 +1,13 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-
-import {upperCamelCase} from './util/strings';
+import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet} from './util';
 import {ResultRepr} from './query-specs';
 import {
-  ResultType,
-  ChildCollectionProperty,
-  SimpleTableFieldProperty,
-  TableExpressionProperty,
-  ParentReferenceProperty,
-  fieldsCount
+  ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
+  ParentReferenceProperty, propertiesCount, resultTypesEqual
 } from './result-types';
 import {QueryReprSqlPath} from './query-repr-sql-path';
-import { SourceGenerationOptions } from '.';
+import {SourceGenerationOptions} from '.';
 
 export class TSModulesWriter
 {
@@ -83,26 +78,34 @@ export class TSModulesWriter
     if ( resultTypes.length === 0 )
        return "";
 
+    const resultTypeNames: Map<ResultType,string> = makeResultTypeNames(resultTypes);
+
     const parts: string[] = [];
     const writtenTypeNames = new Set();
 
     for ( const resultType of resultTypes )
     {
-      if ( !writtenTypeNames.has(resultType.typeName) && !resultType.unwrapped )
+      const resultTypeName = resultTypeNames.get(resultType);
+      if ( resultTypeName != null && !writtenTypeNames.has(resultTypeName) )
       {
-        parts.push(this.getTypeDeclaration(resultType) + "\n");
-        writtenTypeNames.add(resultType.typeName);
+        parts.push(this.getTypeDeclaration(resultType, resultTypeName, resultTypeNames) + "\n");
+        writtenTypeNames.add(resultTypeName);
       }
     }
 
     return parts.join("\n");
   }
 
-  private getTypeDeclaration(resType: ResultType): string
+  private getTypeDeclaration
+    (
+      resType: ResultType,
+      resTypeName: string,
+      resTypeNames: Map<ResultType,string>
+    ): string
   {
     const lines: string[] = [];
 
-    lines.push(`export interface ${resType.typeName}`);
+    lines.push(`export interface ${resTypeName}`);
     lines.push("{");
 
     resType.simpleTableFieldProperties.forEach(f =>
@@ -112,10 +115,10 @@ export class TSModulesWriter
       lines.push(`   ${f.name}: ${this.getTableExpressionPropertyTSType(f)};`)
     );
     resType.parentReferenceProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${this.getParentReferencePropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getParentReferencePropertyTSType(f, resTypeNames)};`)
     );
     resType.childCollectionProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${this.getChildCollectionPropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${this.getChildCollectionPropertyTSType(f, resTypeNames)};`)
     );
 
     lines.push("}")
@@ -126,14 +129,14 @@ export class TSModulesWriter
   private getSimpleTableFieldPropertyTSType
     (
       fp: SimpleTableFieldProperty,
-      resType: ResultType
+      inResType: ResultType
     )
     : string
   {
     if ( fp.specifiedSourceCodeFieldType != null )
       return fp.specifiedSourceCodeFieldType;
     
-    const customizedType = this.opts.customPropertyTypeFn && this.opts.customPropertyTypeFn(fp, resType);
+    const customizedType = this.opts.customPropertyTypeFn && this.opts.customPropertyTypeFn(fp, inResType);
     if ( customizedType )
       return customizedType;
 
@@ -180,30 +183,6 @@ export class TSModulesWriter
     }
   }
 
-  private getSoleFieldDeclaredType(resType: ResultType): string
-  {
-    if (fieldsCount(resType) !== 1)
-      throw new Error(`Expected single field when unwrapping ${resType.typeName}.`);
-
-    if (resType.simpleTableFieldProperties.length === 1)
-      return this.getSimpleTableFieldPropertyTSType(resType.simpleTableFieldProperties[0], resType);
-    else if (resType.tableExpressionProperty.length === 1)
-      return this.getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
-    else if (resType.childCollectionProperties.length === 1)
-      return this.getChildCollectionPropertyTSType(resType.childCollectionProperties[0]);
-    else if (resType.parentReferenceProperties.length === 1)
-      return this.getParentReferencePropertyTSType(resType.parentReferenceProperties[0]);
-    else
-      throw new Error(`Unhandled field category when unwrapping ${resType.typeName}.`);
-  }
-
-  private getChildCollectionPropertyTSType(f: ChildCollectionProperty): string
-  {
-    const collElType = !f.resultType.unwrapped ? f.resultType.typeName : this.getSoleFieldDeclaredType(f.resultType);
-    const bareCollType = `${collElType}[]`;
-    return !f.nullable ? bareCollType : `${bareCollType} | null`;
-  }
-  
   private getTableExpressionPropertyTSType(tep: TableExpressionProperty): string
   {
     if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
@@ -212,9 +191,49 @@ export class TSModulesWriter
     return tep.specifiedSourceCodeFieldType;
   }
 
-  private getParentReferencePropertyTSType(f: ParentReferenceProperty): string
+  private getParentReferencePropertyTSType
+    (
+      f: ParentReferenceProperty,
+      resTypeNames: Map<ResultType,string>
+    )
+    : string
   {
-    return f.resultType.typeName + (f.nullable ? " | null" : "");
+    return resTypeNames.get(f.refResultType)! + (f.nullable ? " | null" : "");
+  }
+
+  private getChildCollectionPropertyTSType
+    (
+      p: ChildCollectionProperty,
+      resTypeNames: Map<ResultType,string>
+    )
+    : string
+  {
+    const collElType = p.elResultType.unwrapped ? this.getSolePropertyDeclaredType(p.elResultType, resTypeNames)
+      : resTypeNames.get(p.elResultType);
+    const bareCollType = `${collElType}[]`;
+    return !p.nullable ? bareCollType : `${bareCollType} | null`;
+  }
+
+  private getSolePropertyDeclaredType
+    (
+      resType: ResultType,
+      resTypeNames: Map<ResultType,string>
+    )
+    : string
+  {
+    if (propertiesCount(resType) !== 1)
+      throw new Error(`Expected single field when unwrapping result type ${JSON.stringify(resType)}.`);
+
+    if (resType.simpleTableFieldProperties.length === 1)
+      return this.getSimpleTableFieldPropertyTSType(resType.simpleTableFieldProperties[0], resType);
+    else if (resType.tableExpressionProperty.length === 1)
+      return this.getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
+    else if (resType.childCollectionProperties.length === 1)
+      return this.getChildCollectionPropertyTSType(resType.childCollectionProperties[0], resTypeNames);
+    else if (resType.parentReferenceProperties.length === 1)
+      return this.getParentReferencePropertyTSType(resType.parentReferenceProperties[0], resTypeNames);
+    else
+      throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
   }
 
   getOutputFilePath(queryName: string): string
@@ -250,6 +269,30 @@ function getReprToSqlPathMapForQuery
   }
 
   return res;
+}
+
+function makeResultTypeNames(resTypes: ResultType[]): Map<ResultType,string>
+{
+  const m = new Map<ResultType,string>();
+
+  const rtHash = (rt: ResultType) => hashString(rt.table) +
+    3 * rt.simpleTableFieldProperties.length +
+    17 * rt.parentReferenceProperties.length +
+    27 * rt.childCollectionProperties.length;
+
+  const typeNames = new Set<string>();
+
+  for (const eqGroup of partitionByEquality(resTypes, rtHash, resultTypesEqual) )
+  {
+    const typeName = makeNameNotInSet(upperCamelCase(resTypes[0].table), typeNames, '_');
+
+    for (const resType of eqGroup)
+      m.set(resType, typeName);
+
+    typeNames.add(typeName);
+  }
+
+  return m;
 }
 
 function paramDefinitions(paramNames: string[]): string
