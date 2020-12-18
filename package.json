@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",

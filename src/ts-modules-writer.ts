@@ -284,11 +284,11 @@ function makeResultTypeNames(resTypes: ResultType[]): Map<ResultType,string>
 
   const typeNames = new Set<string>();
 
-  for (const eqGroup of partitionByEquality(resTypes, rtHash, resultTypesEqual) )
+  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypesEqual) )
   {
-    const typeName = makeNameNotInSet(upperCamelCase(resTypes[0].table), typeNames, '_');
+    const typeName = makeNameNotInSet(upperCamelCase(eqGrp[0].table), typeNames, '_');
 
-    for (const resType of eqGroup)
+    for (const resType of eqGrp)
       m.set(resType, typeName);
 
     typeNames.add(typeName);
