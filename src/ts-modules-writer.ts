@@ -86,7 +86,9 @@ export class TSModulesWriter
     for ( const resultType of resultTypes )
     {
       const resultTypeName = resultTypeNames.get(resultType);
-      if ( resultTypeName != null && !writtenTypeNames.has(resultTypeName) )
+      if ( resultTypeName == null )
+        throw new Error(`Error: result type name not found for ${JSON.stringify(resultType)}.`);
+      if ( !writtenTypeNames.has(resultTypeName) )
       {
         parts.push(this.getTypeDeclaration(resultType, resultTypeName, resultTypeNames) + "\n");
         writtenTypeNames.add(resultTypeName);

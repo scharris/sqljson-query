@@ -173,19 +173,23 @@ export class ResultTypesGenerator
     {
       // Generate types for the child table and any related tables it includes recursively.
       const childResultTypes = this.generateResultTypes(childCollSpec.tableJson, queryName);
+      const elType = childResultTypes[0];
 
       // Mark the child collection element type as unwrapped if specified.
       if ( childCollSpec.unwrap )
       {
-        childResultTypes[0] = { ...childResultTypes[0], unwrapped: true };
-        if (  propertiesCount(childResultTypes[0]) !== 1 )
+        if ( propertiesCount(elType) !== 1 )
           throw new Error("Unwrapped child collection elements must have exactly one property.");
+        resultTypes.push(...childResultTypes.slice(1)); // unwrapped types are not added to result types list
       }
+      else
+        resultTypes.push(...childResultTypes);
 
       childCollectionProperties.push({
-        name: childCollSpec.collectionName, elResultType: childResultTypes[0], nullable: false
+        name: childCollSpec.collectionName,
+        elResultType: childCollSpec.unwrap ? {...elType, unwrapped: true} : elType,
+        nullable: false
       });
-      resultTypes.push(...childResultTypes);
     }
 
     return { childCollectionProperties, resultTypes };
