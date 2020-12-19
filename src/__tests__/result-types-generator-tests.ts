@@ -10,7 +10,8 @@ const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
 
 test('the table referenced in a table json spec must exist in database metadata', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'table_dne',
       fieldExpressions: [
         {
@@ -25,7 +26,8 @@ test('the table referenced in a table json spec must exist in database metadata'
 });
 
 test('fields referenced in spec must exist in database metadata', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: [
         {
@@ -40,7 +42,8 @@ test('fields referenced in spec must exist in database metadata', () => {
 });
 
 test('a single result type is generated for a table spec with no parent/child specs', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: ['name']
     };
@@ -50,7 +53,8 @@ test('a single result type is generated for a table spec with no parent/child sp
 });
 
 test('simple table field property names should be as specified by jsonProperty where provided', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: [
         {
@@ -63,7 +67,7 @@ test('simple table field property names should be as specified by jsonProperty w
         }
       ]
     };
-  
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   expect(resTypes[0].simpleTableFieldProperties.map(p => p.name)).toEqual(
@@ -72,11 +76,12 @@ test('simple table field property names should be as specified by jsonProperty w
 });
 
 test('simple table field property names should default according to the provided naming function', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: ['name', 'compound_id']
     };
-  
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   expect(resTypes[0].simpleTableFieldProperties.map(p => p.name)).toEqual(
@@ -85,7 +90,8 @@ test('simple table field property names should default according to the provided
 });
 
 test('types for non-unwrapped child tables are included in results', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'analyst',
       fieldExpressions: [ 'id' ],
       childTables: [
@@ -124,7 +130,8 @@ test('types for non-unwrapped child tables are included in results', () => {
 });
 
 test('types for referenced parent tables are generated but not for inlined parents', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'compound',
       fieldExpressions: [ 'id' ],
       parentTables: [
@@ -156,7 +163,8 @@ test('types for referenced parent tables are generated but not for inlined paren
 });
 
 test('simple table field properties obtained directly from inlined parent tables should be included in results', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: ['id', 'name'],
       parentTables: [
@@ -170,7 +178,7 @@ test('simple table field properties obtained directly from inlined parent tables
           }
         }
       ]
-    }
+    };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
@@ -181,7 +189,8 @@ test('simple table field properties obtained directly from inlined parent tables
 });
 
 test('simple field properties from an inlined parent and its own inlined parent should be included in results', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: ['id', 'name'],
       parentTables: [
@@ -223,7 +232,8 @@ test('simple field properties from an inlined parent and its own inlined parent 
 });
 
 test('a referenced parent property from an inlined parent should be included in results', () => {
-  const tableJsonSpec: TableJsonSpec = {
+  const tableJsonSpec: TableJsonSpec =
+    {
       table: 'drug',
       fieldExpressions: ['id', 'name'],
       parentTables: [
@@ -249,7 +259,7 @@ test('a referenced parent property from an inlined parent should be included in 
         }
       ]
     };
-  
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(2);
   const drugType = resTypes[0];
@@ -263,28 +273,29 @@ test('a referenced parent property from an inlined parent should be included in 
 });
 
 test('non-unwrapped child collection properties should be included in results', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'analyst',
-    fieldExpressions: [ 'id' ],
-    childTables: [
-      {
-        collectionName: 'compoundsEntered',
-        tableJson: {
-          table: 'compound',
-          fieldExpressions: ['id', 'cas'],
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'analyst',
+      fieldExpressions: [ 'id' ],
+      childTables: [
+        {
+          collectionName: 'compoundsEntered',
+          tableJson: {
+            table: 'compound',
+            fieldExpressions: ['id', 'cas'],
+          },
+          foreignKeyFields: ['entered_by']
         },
-        foreignKeyFields: ['entered_by']
-      },
-      {
-        collectionName: 'drugNames',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          fieldExpressions: ['name'],
-        },
-      }
-    ]
-  };
+        {
+          collectionName: 'drugNames',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            fieldExpressions: ['name'],
+          },
+        }
+      ]
+    };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(2);
@@ -301,24 +312,25 @@ test('non-unwrapped child collection properties should be included in results', 
 });
 
 test('unwrapped child collection of simple table field property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'analyst',
-    childTables: [
-      {
-        collectionName: 'idsOfCompoundsEntered',
-        unwrap: true,
-        tableJson: {
-          table: 'compound',
-          fieldExpressions: [ 'id' ],
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'analyst',
+      childTables: [
+        {
+          collectionName: 'idsOfCompoundsEntered',
+          unwrap: true,
+          tableJson: {
+            table: 'compound',
+            fieldExpressions: [ 'id' ],
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
-  
+
   const analystType = resTypes[0];
   expect(analystType.childCollectionProperties.length).toBe(1);
   const childCollProp = analystType.childCollectionProperties[0];
@@ -330,26 +342,27 @@ test('unwrapped child collection of simple table field property is represented p
 });
 
 test('unwrapped child collection of field expression property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'analyst',
-    childTables: [
-      {
-        collectionName: 'lowercaseNamesOfCompoundsEntered',
-        unwrap: true,
-        tableJson: {
-          table: 'compound',
-          fieldExpressions: [
-            { expression: 'lowercase(name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
-          ]
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'analyst',
+      childTables: [
+        {
+          collectionName: 'lowercaseNamesOfCompoundsEntered',
+          unwrap: true,
+          tableJson: {
+            table: 'compound',
+            fieldExpressions: [
+              { expression: 'lowercase(name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
+            ]
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
-  
+
   const analystType = resTypes[0];
   expect(analystType.childCollectionProperties.length).toBe(1);
   const childCollProp = analystType.childCollectionProperties[0];
@@ -362,29 +375,30 @@ test('unwrapped child collection of field expression property is represented pro
 });
 
 test('unwrapped child collection of parent reference property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'compound',
-    childTables: [
-      {
-        collectionName: 'drugRegisteringAnalysts',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          parentTables: [
-            {
-              referenceName: 'registeredBy',
-              tableJson: {
-                table: 'analyst',
-                fieldExpressions: ['id', 'short_name']
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'compound',
+      childTables: [
+        {
+          collectionName: 'drugRegisteringAnalysts',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            parentTables: [
+              {
+                referenceName: 'registeredBy',
+                tableJson: {
+                  table: 'analyst',
+                  fieldExpressions: ['id', 'short_name']
+                }
               }
-            }
-          ]
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+            ]
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(2);
 
@@ -400,29 +414,30 @@ test('unwrapped child collection of parent reference property is represented pro
 });
 
 test('unwrapped child collection of inlined parent property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'compound',
-    childTables: [
-      {
-        collectionName: 'drugRegisteringAnalystIds',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          parentTables: [
-            {
-              // No reference name, 'analyst' parent properties are inlined with those of 'drug'.
-              tableJson: {
-                table: 'analyst',
-                fieldExpressions: ['id']
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'compound',
+      childTables: [
+        {
+          collectionName: 'drugRegisteringAnalystIds',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            parentTables: [
+              {
+                // No reference name, 'analyst' parent properties are inlined with those of 'drug'.
+                tableJson: {
+                  table: 'analyst',
+                  fieldExpressions: ['id']
+                }
               }
-            }
-          ]
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+            ]
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   const compoundType = resTypes[0];
@@ -436,30 +451,31 @@ test('unwrapped child collection of inlined parent property is represented prope
 });
 
 test('unwrapped child collection of child collection property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'compound',
-    childTables: [
-      {
-        collectionName: 'drugAdvisoryTypeIds',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          childTables: [
-            {
-              collectionName: 'advisories',
-              unwrap: false,
-              tableJson: {
-                table: 'advisory',
-                fieldExpressions: ['advisory_type_id']
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'compound',
+      childTables: [
+        {
+          collectionName: 'drugAdvisoryTypeIds',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisories',
+                unwrap: false,
+                tableJson: {
+                  table: 'advisory',
+                  fieldExpressions: ['advisory_type_id']
+                }
               }
-            }
-          ]
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+            ]
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(2);
   const compoundType = resTypes[0];
@@ -474,30 +490,31 @@ test('unwrapped child collection of child collection property is represented pro
 });
 
 test('unwrapped child collection of unwrapped child collection property is represented properly', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'compound',
-    childTables: [
-      {
-        collectionName: 'advisoryTypeIdLists',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          childTables: [
-            {
-              collectionName: 'advisoryTypeIds',
-              unwrap: true,
-              tableJson: {
-                table: 'advisory',
-                fieldExpressions: ['advisory_type_id']
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'compound',
+      childTables: [
+        {
+          collectionName: 'advisoryTypeIdLists',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisoryTypeIds',
+                unwrap: true,
+                tableJson: {
+                  table: 'advisory',
+                  fieldExpressions: ['advisory_type_id']
+                }
               }
-            }
-          ]
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+            ]
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   const compoundType = resTypes[0];
@@ -512,21 +529,22 @@ test('unwrapped child collection of unwrapped child collection property is repre
 });
 
 test('unwrapped child collection with element type containing more than one property should cause error', () => {
-  const tableJsonSpec: TableJsonSpec = {
-    table: 'compound',
-    childTables: [
-      {
-        collectionName: 'advisoryTypeIdLists',
-        unwrap: true,
-        tableJson: {
-          table: 'drug',
-          fieldExpressions: ['id', 'name']
-        },
-        foreignKeyFields: ['entered_by']
-      }
-    ]
-  };
-  
+  const tableJsonSpec: TableJsonSpec =
+    {
+      table: 'compound',
+      childTables: [
+        {
+          collectionName: 'advisoryTypeIdLists',
+          unwrap: true,
+          tableJson: {
+            table: 'drug',
+            fieldExpressions: ['id', 'name']
+          },
+          foreignKeyFields: ['entered_by']
+        }
+      ]
+    };
+
   expect(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query')).toThrowError(
     /unwrapped child .* exactly one property/i
   );
