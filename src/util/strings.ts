@@ -86,12 +86,12 @@ export function indentLines
   {
     if ( pastFirst )
       sb.push('\n');
-    
+
     if ( pastFirst || indentFirstLine )
       sb.push(indention);
-    
+
     sb.push(line);
-    
+
     if ( !pastFirst )
       pastFirst = true;
   }
