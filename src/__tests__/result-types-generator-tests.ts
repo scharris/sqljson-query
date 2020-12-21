@@ -93,13 +93,13 @@ test('types for non-unwrapped child tables are included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
-      fieldExpressions: [ 'id' ],
+      fieldExpressions: ['id'],
       childTables: [
         {
           collectionName: 'compoundsEntered',
           tableJson: {
             table: 'compound',
-            fieldExpressions: [ 'id' ],
+            fieldExpressions: ['id'],
           },
           foreignKeyFields: ['entered_by']
         },
@@ -108,7 +108,7 @@ test('types for non-unwrapped child tables are included in results', () => {
           unwrap: true,
           tableJson: {
             table: 'drug',
-            fieldExpressions: [ 'name' ],
+            fieldExpressions: ['name'],
           },
         }
       ]
@@ -133,13 +133,13 @@ test('types for referenced parent tables are generated but not for inlined paren
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
-      fieldExpressions: [ 'id' ],
+      fieldExpressions: ['id'],
       parentTables: [
         {
           referenceName: 'enteredByAnalyst', // referenced parent
           tableJson: {
             table: 'analyst',
-            fieldExpressions: [ 'id' ],
+            fieldExpressions: ['id'],
           },
           viaForeignKeyFields: ['entered_by']
         },
@@ -147,7 +147,7 @@ test('types for referenced parent tables are generated but not for inlined paren
           // referenceName not provided, this is an an inlined parent, should not generate a result type
           tableJson: {
             table: 'analyst',
-            fieldExpressions: [ 'short_name' ],
+            fieldExpressions: ['short_name'],
           },
           viaForeignKeyFields: ['approved_by']
         }
@@ -250,7 +250,7 @@ test('a referenced parent property from an inlined parent should be included in 
                 referenceName: 'enteredByAnalyst', // referenced parent
                 tableJson: {
                   table: 'analyst',
-                  fieldExpressions: [ 'id', 'short_name' ],
+                  fieldExpressions: ['id', 'short_name'],
                 },
                 viaForeignKeyFields: ['entered_by']
               },
@@ -276,7 +276,7 @@ test('non-unwrapped child collection properties should be included in results', 
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
-      fieldExpressions: [ 'id' ],
+      fieldExpressions: ['id'],
       childTables: [
         {
           collectionName: 'compoundsEntered',
@@ -321,7 +321,7 @@ test('unwrapped child collection of simple table field property is represented p
           unwrap: true,
           tableJson: {
             table: 'compound',
-            fieldExpressions: [ 'id' ],
+            fieldExpressions: ['id'],
           },
           foreignKeyFields: ['entered_by']
         }
@@ -352,7 +352,7 @@ test('unwrapped child collection of field expression property is represented pro
           tableJson: {
             table: 'compound',
             fieldExpressions: [
-              { expression: 'lowercase(name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
+              { expression: 'lowercase(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
             ]
           },
           foreignKeyFields: ['entered_by']
@@ -380,7 +380,7 @@ test('unwrapped child collection of parent reference property is represented pro
       table: 'compound',
       childTables: [
         {
-          collectionName: 'drugRegisteringAnalysts',
+          collectionName: 'drugAnalysts',
           unwrap: true,
           tableJson: {
             table: 'drug',
@@ -394,7 +394,6 @@ test('unwrapped child collection of parent reference property is represented pro
               }
             ]
           },
-          foreignKeyFields: ['entered_by']
         }
       ]
     };
@@ -405,7 +404,7 @@ test('unwrapped child collection of parent reference property is represented pro
   const compoundType = resTypes[0];
   expect(compoundType.childCollectionProperties.length).toBe(1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('drugRegisteringAnalysts');
+  expect(childCollProp.name).toBe('drugAnalysts');
   expect(childCollProp.elResultType.unwrapped).toBe(true);
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
   expect(childCollProp.elResultType.parentReferenceProperties.length).toBe(1);
@@ -432,8 +431,7 @@ test('unwrapped child collection of inlined parent property is represented prope
                 }
               }
             ]
-          },
-          foreignKeyFields: ['entered_by']
+          }
         }
       ]
     };
@@ -471,7 +469,6 @@ test('unwrapped child collection of child collection property is represented pro
               }
             ]
           },
-          foreignKeyFields: ['entered_by']
         }
       ]
     };
@@ -509,8 +506,7 @@ test('unwrapped child collection of unwrapped child collection property is repre
                 }
               }
             ]
-          },
-          foreignKeyFields: ['entered_by']
+          }
         }
       ]
     };
@@ -539,8 +535,7 @@ test('unwrapped child collection with element type containing more than one prop
           tableJson: {
             table: 'drug',
             fieldExpressions: ['id', 'name']
-          },
-          foreignKeyFields: ['entered_by']
+          }
         }
       ]
     };
