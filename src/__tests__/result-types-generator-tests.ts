@@ -454,7 +454,7 @@ test('unwrapped child collection of child collection property is represented pro
       table: 'compound',
       childTables: [
         {
-          collectionName: 'drugAdvisoryTypeIds',
+          collectionName: 'drugAdvisories',
           unwrap: true,
           tableJson: {
             table: 'drug',
@@ -464,7 +464,7 @@ test('unwrapped child collection of child collection property is represented pro
                 unwrap: false,
                 tableJson: {
                   table: 'advisory',
-                  fieldExpressions: ['advisory_type_id']
+                  fieldExpressions: ['id', 'advisory_type_id']
                 }
               }
             ]
@@ -478,12 +478,13 @@ test('unwrapped child collection of child collection property is represented pro
   const compoundType = resTypes[0];
   expect(compoundType.childCollectionProperties.length).toBe(1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('drugAdvisoryTypeIds');
+  expect(childCollProp.name).toBe('drugAdvisories');
   expect(childCollProp.elResultType.unwrapped).toBe(true);
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
   expect(childCollProp.elResultType.childCollectionProperties.length).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties.length).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[0].name).toBe('advisoryTypeId');
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties.length).toBe(2);
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[0].name).toBe('id');
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[1].name).toBe('advisoryTypeId');
 });
 
 test('unwrapped child collection of unwrapped child collection property is represented properly', () => {
