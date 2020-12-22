@@ -5,16 +5,16 @@ import {propertyNameDefaultFunction} from '../util';
 
 const dbmdStoredProps = require('./resources/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
-const ccPropNameFn = propertyNameDefaultFunction("CAMELCASE");
+const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 
 test('unqualified tables are rejected when no default schema specified', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2); // no default schema
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
+      queryName: 'test query',
       tableJson: {
-        table: "drug", // should not be found because unqualified with no default schema specified
-        fieldExpressions: ["id"],
+        table: 'drug', // should not be found because unqualified with no default schema specified
+        fieldExpressions: ['id'],
       }
     };
 
@@ -25,11 +25,11 @@ test('fully qualified table which exists in dbmd is accepted', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2); // no default schema
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drugs.drug",
-        fieldExpressions: [ "id" ],
+        table: 'drugs.drug',
+        fieldExpressions: ['id'],
       }
     };
 
@@ -40,11 +40,11 @@ test('non-existent table specified fully-qualifed causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drugs.table_which_dne",
-        fieldExpressions: [ "id" ],
+        table: 'drugs.table_which_dne',
+        fieldExpressions: ['id'],
       }
     };
 
@@ -55,11 +55,11 @@ test('non-existent table specified with default schema causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "table_which_dne",
-        fieldExpressions: [ "id" ],
+        table: 'table_which_dne',
+        fieldExpressions: ['id'],
       }
     };
 
@@ -70,42 +70,42 @@ test('SQL is generated for each specified result representation', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(['drugs']), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS", "JSON_ARRAY_ROW", "MULTI_COLUMN_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS', 'JSON_ARRAY_ROW', 'MULTI_COLUMN_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: ["id", "name"],
+        table: 'drug',
+        fieldExpressions: ['id', 'name'],
       }
     };
 
   const res = sqlGen.generateSqls(querySpec);
-  expect(new Set(res.keys())).toEqual(new Set(["JSON_OBJECT_ROWS", "JSON_ARRAY_ROW", "MULTI_COLUMN_ROWS"]));
+  expect(new Set(res.keys())).toEqual(new Set(['JSON_OBJECT_ROWS', 'JSON_ARRAY_ROW', 'MULTI_COLUMN_ROWS']));
 });
 
 test('result representation defaults to JSON_OBJECT_ROWS', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(['drugs']), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
+      queryName: 'test query',
       tableJson: {
-        table: "drug",
-        fieldExpressions: ["id", "name"],
+        table: 'drug',
+        fieldExpressions: ['id', 'name'],
       }
     };
 
   const res = sqlGen.generateSqls(querySpec);
-  expect(new Set(res.keys())).toEqual(new Set(["JSON_OBJECT_ROWS"]));
+  expect(new Set(res.keys())).toEqual(new Set(['JSON_OBJECT_ROWS']));
 });
 
 test('a table field which does not exist in datase metadata causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "field_which_dne" ],
+        table: 'drug',
+        fieldExpressions: ['field_which_dne'],
       }
     };
 
@@ -116,11 +116,11 @@ test('expression fields must specify json property', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ { expression: "2 + 2", fieldTypeInGeneratedSource: "number" } ],
+        table: 'drug',
+        fieldExpressions: [ { expression: '2 + 2', fieldTypeInGeneratedSource: 'number' } ],
       }
     };
 
@@ -131,11 +131,11 @@ test('expression fields must specify field type in generated source', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ { expression: "2 + 2", jsonProperty: "twiceTwo" } ],
+        table: 'drug',
+        fieldExpressions: [ { expression: '2 + 2', jsonProperty: 'twiceTwo' } ],
       }
     };
 
@@ -146,12 +146,12 @@ test('a table field/expresion specifying both field and expression values causes
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
+        table: 'drug',
         fieldExpressions: [
-          { field: "id", expression: "2 + 2", jsonProperty: "twiceTwo", fieldTypeInGeneratedSource: "number" }
+          { field: 'id', expression: '2 + 2', jsonProperty: 'twiceTwo', fieldTypeInGeneratedSource: 'number' }
         ],
       }
     };
@@ -163,12 +163,12 @@ test('a table field/expresion specifying neither field nor expression value caus
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
+        table: 'drug',
         fieldExpressions: [
-          { jsonProperty: "twiceTwo", fieldTypeInGeneratedSource: "number" }
+          { jsonProperty: 'twiceTwo', fieldTypeInGeneratedSource: 'number' }
         ],
       }
     };
@@ -180,17 +180,17 @@ test('a non-existent child table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "references",
+            collectionName: 'references',
             tableJson: {
-              table: "table_which_dne",
-              fieldExpressions: [ "id" ],
+              table: 'table_which_dne',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -204,16 +204,16 @@ test('a non-existent parent table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "table_which_dne",
-              fieldExpressions: [ "id" ],
+              table: 'table_which_dne',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -227,17 +227,17 @@ test('a missing foreign key for a child collection causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "references",
+            collectionName: 'references',
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -251,16 +251,16 @@ test('a missing foreign key to parent table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -274,17 +274,17 @@ test('foreign key fields must be provided when multiple fk constraints exist for
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "analyst",
-        fieldExpressions: [ "id" ],
+        table: 'analyst',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "compounds", // compounds has multiple fks to analyst (for entered_by and approved_by)
+            collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
             tableJson: {
-              table: "compound",
-              fieldExpressions: [ "id" ],
+              table: 'compound',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -298,17 +298,17 @@ test('providing foreign key fields avoids error when multiple fk constraints exi
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "analyst",
-        fieldExpressions: [ "id" ],
+        table: 'analyst',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "compounds", // compounds has multiple fks to analyst (for entered_by and approved_by)
+            collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
             tableJson: {
-              table: "compound",
-              fieldExpressions: [ "id" ],
+              table: 'compound',
+              fieldExpressions: ['id'],
             },
             foreignKeyFields: ['entered_by'] // disambiguates
           }
@@ -323,19 +323,19 @@ test('a custom join condition for a child table may be used when no suitable for
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "references",
+            collectionName: 'references',
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             },
-            customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "id"}]}
+            customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
       }
@@ -348,19 +348,19 @@ test('a custom join condition for a child table can only utilize fields which ex
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         childTables: [
           {
-            collectionName: "references",
+            collectionName: 'references',
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             },
-            customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "field_which_dne"}]}
+            customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'field_which_dne'}]}
           }
         ]
       }
@@ -373,16 +373,16 @@ test('foreign key fields must be provided when multiple fk constraints exist to 
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "compound",
-        fieldExpressions: [ "id" ],
+        table: 'compound',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "analyst",
-              fieldExpressions: [ "id" ],
+              table: 'analyst',
+              fieldExpressions: ['id'],
             }
           }
         ]
@@ -396,16 +396,16 @@ test('providing fk fields avoids error when multiple fk constraints exist with a
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "compound",
-        fieldExpressions: [ "id" ],
+        table: 'compound',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "analyst",
-              fieldExpressions: [ "id" ],
+              table: 'analyst',
+              fieldExpressions: ['id'],
             },
             viaForeignKeyFields: ['entered_by'] // disambiguates
           }
@@ -420,18 +420,18 @@ test('a custom join condition for a parent table may be used when no suitable fo
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             },
-            customJoinCondition: {equatedFields: [{childField: "id", parentPrimaryKeyField: "id"}]}
+            customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
       }
@@ -444,18 +444,18 @@ test('a custom join condition for a parent table can only utilize fields which e
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
-      queryName: "test query",
-      resultRepresentations: ["JSON_OBJECT_ROWS"],
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
       tableJson: {
-        table: "drug",
-        fieldExpressions: [ "id" ],
+        table: 'drug',
+        fieldExpressions: ['id'],
         parentTables: [
           {
             tableJson: {
-              table: "reference",
-              fieldExpressions: [ "id" ],
+              table: 'reference',
+              fieldExpressions: ['id'],
             },
-            customJoinCondition: {equatedFields: [{childField: "field_which_dne", parentPrimaryKeyField: "id"}]}
+            customJoinCondition: {equatedFields: [{childField: 'field_which_dne', parentPrimaryKeyField: 'id'}]}
           }
         ]
       }
