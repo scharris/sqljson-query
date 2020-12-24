@@ -98,7 +98,7 @@ test('record condition properly restricts results for top level table', async ()
   expect(json.name).toBe('Test Drug 1');
 });
 
-test('simple table field property names as specified by jsonProperty specification', async () => {
+test('simple table field property names specified by jsonProperty attributes', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {

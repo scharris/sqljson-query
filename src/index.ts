@@ -4,11 +4,11 @@ import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
 import {requireDirExists, requireFileExists} from './util/files';
 import {DatabaseMetadata, DatabaseMetadataStoredProperties} from './database-metadata';
-import {QueryGroupSpec, QuerySpec, ResultRepr, TableJsonSpec} from './query-specs';
+import {getQuerySpecParamNames, QueryGroupSpec, QuerySpec, ResultRepr, TableJsonSpec} from './query-specs';
 import {QueryReprSqlPath} from './query-repr-sql-path';
 import {QuerySqlGenerator} from './query-sql-generator';
 import {ResultTypesGenerator} from './result-types-generator';
-import {TSModulesWriter} from './ts-modules-writer';
+import {ResultTypesSourceGenerator} from './result-types-source-generator';
 import {writeRelationsMetadataModule} from './relations-md-generator';
 import {ResultType, SimpleTableFieldProperty} from './result-types';
 import {validateJson} from './util/json-schemas';
@@ -33,7 +33,7 @@ export async function generateQueries
     await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
     if ( opts.typesHeaderFile )
       await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
-    
+
     let queryGroupSpec;
     if ( typeof querySpecs === 'string' )
     {
@@ -41,32 +41,28 @@ export async function generateQueries
       queryGroupSpec = await readQueriesSpecFile(querySpecs);
     }
     else queryGroupSpec = querySpecs;
-  
+
     const dbmd = await readDatabaseMetadata(dbmdFile);
-  
-    const srcWriter = new TSModulesWriter(tsOutputDir, opts);
-  
+
     const defaultSchema = queryGroupSpec.defaultSchema || null;
     const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.outputFieldNameDefault);
-  
+
     const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
-  
     const resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, propNameFn);
+    const resultTypesSrcGen = new ResultTypesSourceGenerator(opts);
 
     for ( const querySpec of queryGroupSpec.querySpecs )
     {
       const resReprSqls = sqlGen.generateSqls(querySpec);
-
       const sqlPaths = await writeResultReprSqls(querySpec.queryName, resReprSqls, sqlOutputDir);
-    
+
       if ( valueOr(querySpec.generateResultTypes, true) )
       {
         const resultTypes = resultTypesGen.generateResultTypes(querySpec.tableJson, querySpec.queryName);
-        const paramNames = getQuerySpecParamNames(querySpec);
-        const header = querySpec.typesFileHeader || null;
-    
-        await srcWriter.writeModule(querySpec.queryName, resultTypes, paramNames, sqlPaths, header);
+        const resultTypesModuleSrc = await resultTypesSrcGen.getModuleSource(querySpec, resultTypes, sqlPaths);
+        const outputPath = path.join(this.sourceOutputDir, makeResultTypeModuleName(querySpec.queryName) + ".ts");
+        await fs.writeFile(outputPath, resultTypesModuleSrc);
       }
     }
 
@@ -75,7 +71,7 @@ export async function generateQueries
   catch (e)
   {
     if ( e.specLocation )
-      throw new Error( 
+      throw new Error(
         "Error in query specification.\n" +
         "-----------------------------\n" +
         "In query: " + e.specLocation.queryName + "\n" +
@@ -142,25 +138,9 @@ async function writeResultReprSqls
   return res;
 }
 
-function getQuerySpecParamNames(querySpec: QuerySpec): string[]
+function makeResultTypeModuleName(queryName: string): string
 {
-  return getParamNames(querySpec.tableJson);
-}
-
-function getParamNames(tableJsonSpec: TableJsonSpec): string[]
-{
-  const paramNames: string[] = [];
-
-  for (const childSpec of tableJsonSpec.childTables || [])
-    paramNames.push(...getParamNames(childSpec.tableJson));
-
-  for (const parentSpec of tableJsonSpec.parentTables || [])
-    paramNames.push(...getParamNames(parentSpec.tableJson));
-
-  if (tableJsonSpec?.recordCondition?.paramNames != null)
-    paramNames.push(...tableJsonSpec.recordCondition.paramNames);
-
-  return paramNames;
+  return queryName.replace(/ /g, '-').toLowerCase();
 }
 
 export type CustomPropertyTypeFn = (prop: SimpleTableFieldProperty, resultType: ResultType) => string | null;

@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet} from './util';
-import {ResultRepr} from './query-specs';
+import {getQuerySpecParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
   ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount, resultTypesEqual
@@ -9,37 +9,27 @@ import {
 import {QueryReprSqlPath} from './query-repr-sql-path';
 import {SourceGenerationOptions} from '.';
 
-export class TSModulesWriter
+export class ResultTypesSourceGenerator
 {
-  constructor
-    (
-      private readonly sourceOutputDir: string,
-      private opts: SourceGenerationOptions
-    )
-  {}
+  constructor(private opts: SourceGenerationOptions) {}
 
-  async writeModule
+  async getModuleSource
     (
-      queryName: string,
+      querySpec: QuerySpec,
       resultTypes: ResultType[],
-      paramNames: string[],
-      sqlPaths: QueryReprSqlPath[],
-      queryFileHeader: string | null
+      sqlPaths: QueryReprSqlPath[]
     )
-    : Promise<void>
+    : Promise<string>
   {
-    const commonHeader = await this.getCommonFileHeader();
-
-    const moduleSrc =
-      commonHeader +
-      (queryFileHeader || "") + "\n" +
-      this.getSqlReferenceDefinitions(queryName, sqlPaths) + "\n\n" +
+    return (
+      await this.getCommonFileHeader() +
+      (querySpec.typesFileHeader || "") + "\n" +
+      this.getSqlReferenceDefinitions(querySpec.queryName, sqlPaths) + "\n\n" +
       "// Below are types representing the result data for the generated query referenced above.\n" +
       "// The top-level result type is listed first.\n" +
-      paramDefinitions(paramNames) + "\n" +
-      this.getTypeDeclarations(resultTypes);
-
-     await fs.writeFile(this.getOutputFilePath(queryName), moduleSrc);
+      paramDefinitions(getQuerySpecParamNames(querySpec)) + "\n" +
+      this.getTypeDeclarations(resultTypes)
+    );
   }
 
   async getCommonFileHeader(): Promise<string>
@@ -137,7 +127,7 @@ export class TSModulesWriter
   {
     if ( fp.specifiedSourceCodeFieldType != null )
       return fp.specifiedSourceCodeFieldType;
-    
+
     const customizedType = this.opts.customPropertyTypeFn && this.opts.customPropertyTypeFn(fp, inResType);
     if ( customizedType )
       return customizedType;
@@ -236,17 +226,6 @@ export class TSModulesWriter
       return this.getParentReferencePropertyTSType(resType.parentReferenceProperties[0], resTypeNames);
     else
       throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
-  }
-
-  getOutputFilePath(queryName: string): string
-  {
-    const moduleName = this.makeModuleName(queryName);
-    return path.join(this.sourceOutputDir, moduleName + ".ts");
-  }
-
-  makeModuleName(queryName: string): string
-  {
-    return queryName.replace(/ /g, '-').toLowerCase();
   }
 }
 
