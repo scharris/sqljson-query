@@ -81,38 +81,63 @@ export function makeArrayValuesMap<T,K,V>
   return m;
 }
 
+/// Partition the passed array into equality groups using the passed hash and equality functions.
+/// Groups are returned in ascending order of the minimum original indexes of their member items.
 export function partitionByEquality<T>
   (
     ts: T[],
-    hashFn: (t: T) => number, 
-    eqFn: (t1: T, t2: T) => boolean
+    hash: (t: T) => number,
+    eq: (t1: T, t2: T) => boolean
   )
   : T[][]
 {
   const res: T[][] = [];
 
-  for (const rtHashGroup of Object.values(_.groupBy(ts, hashFn)))
+  // Keep track of each equality group's minimum item index from the ts array, for final sorting.
+  const origItemIxs = getItemIndexMap(ts);
+  const eqGroupToMinItemIx = new Map<T[],number>();
+
+  for (const hashGroup of Object.values(_.groupBy(ts, hash)))
   {
     const equalityGroups: T[][] = [];
 
-    for (const rt of rtHashGroup)
+    for (const t of hashGroup)
     {
+      const itemIx = origItemIxs.get(t) || 0;
+
       let added = false;
-      for (const eqGrp of equalityGroups)
+      for (const eqGroup of equalityGroups)
       {
-        if ( eqFn(rt, eqGrp[0]) )
+        if ( eq(t, eqGroup[0]) )
         {
-          eqGrp.push(rt);
+          eqGroup.push(t);
+          const grpMin = eqGroupToMinItemIx.get(eqGroup) || 0;
+          if ( itemIx < grpMin )
+            eqGroupToMinItemIx.set(eqGroup, itemIx);
           added = true;
           break;
         }
       }
+
       if ( !added )
-        equalityGroups.push([rt]);
+      {
+        const eqGroup = [t];
+        equalityGroups.push(eqGroup);
+        eqGroupToMinItemIx.set(eqGroup, itemIx);
+      }
     }
 
     res.push(...equalityGroups);
   }
 
+  res.sort((ts1, ts2) => (eqGroupToMinItemIx.get(ts1) || 0) - (eqGroupToMinItemIx.get(ts2) || 0));
   return res;
 }
+
+function getItemIndexMap<T>(ts: T[])
+{
+  const m = new Map<T, number>();
+  ts.forEach((t, ix) => m.set(t, ix));
+  return m;
+}
+

@@ -2,5 +2,7 @@
   "user": "drugs",
   "database": "drugs",
   "password": "drugs",
-  "host": "localhost"
+  "host": "localhost",
+  "max": 10,
+  "idleTimeoutMillis": 10000
 }
