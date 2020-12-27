@@ -24,9 +24,9 @@ jobs:
           POSTGRES_DB: drugs
         # Set health checks to wait until postgres has started
         options: >-
-          -v src/__tests__/db/create-schema-pg.sql:/docker-entrypoint-initdb.d/01.sql 
-          -v src/__tests__/db/create-schema-objects.sql:/docker-entrypoint-initdb.d/02.sql
-          -v src/__tests__/db/create-test-data-pg.sql:/docker-entrypoint-initdb.d/03.sql
+          -v $GITHUB_WORKSPACE/src/__tests__/db/create-schema-pg.sql:/docker-entrypoint-initdb.d/01.sql 
+          -v $GITHUB_WORKSPACE/src/__tests__/db/create-schema-objects.sql:/docker-entrypoint-initdb.d/02.sql
+          -v $GITHUB_WORKSPACE/src/__tests__/db/create-test-data-pg.sql:/docker-entrypoint-initdb.d/03.sql
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
