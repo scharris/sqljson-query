@@ -1,0 +1,51 @@
+name: Build and Test
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [ '10', '14', '15' ]
+    name: Node ${{ matrix.node }} sample
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: drugs
+          POSTGRES_USER: drugs
+          POSTGRES_PASSWORD: drugs
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout project repository
+        uses: actions/checkout@v2
+      - name: Initialize testing database
+        run: |
+          cd "$GITHUB_WORKSPACE"/src/__tests__/db
+          psql "$CONNSTR" -a -q -f create-schema.sql
+          psql "$CONNSTR" -a -q -f create-schema-objects.sql
+          psql "$CONNSTR" -a -q -f create-test-data.sql
+        env:
+          CONNSTR: "postgresql://drugs:drugs@localhost:5432/drugs"
+      - name: Setup node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install global npm dependencies
+        run: npm i -g rimraf typescript-json-schema jest
+      - name: Install project npm dependencies
+        run: npm ci
+      - name: Build project
+        run: npm run build
+      - name: Run project tests
+        run: npm test

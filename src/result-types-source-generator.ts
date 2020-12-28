@@ -1,4 +1,4 @@
-import * as fs from 'fs/promises';
+import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
 import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet} from './util';
 import {getQuerySpecParamNames, QuerySpec, ResultRepr} from './query-specs';

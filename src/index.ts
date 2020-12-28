@@ -1,4 +1,4 @@
-import * as fs from 'fs/promises';
+import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
 import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';

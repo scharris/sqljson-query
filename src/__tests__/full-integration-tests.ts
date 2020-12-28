@@ -1,6 +1,6 @@
 import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs/promises';
+import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as child_process from 'child_process';
 import * as util from 'util';
 import {Pool} from 'pg';
