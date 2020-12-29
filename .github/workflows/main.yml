@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [ '10', '14', '15' ]
-    name: Node ${{ matrix.node }} sample
+        node-version: [ '10.x', '14.x', '15.x' ]
+    name: Node ${{ matrix.node-version }}
     services:
       postgres:
         image: postgres:13
@@ -40,7 +40,7 @@ jobs:
       - name: Setup node.js
         uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{ matrix.node-version }}
       - name: Install global npm dependencies
         run: npm i -g rimraf typescript-json-schema jest
       - name: Install project npm dependencies
