@@ -49,3 +49,9 @@ jobs:
         run: npm run build
       - name: Run project tests
         run: npm test
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: drugs
+          PGUSER: drugs
+          PGPASSWORD: drugs

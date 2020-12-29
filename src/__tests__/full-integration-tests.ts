@@ -11,7 +11,6 @@ import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QuerySpec} from '../query-specs';
 
-const dbConnectInfo = require('./resources/db-connect-info.json');
 const dbmdStoredProps = require('./resources/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
@@ -20,6 +19,7 @@ const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
 const resTypesSrcGen = new ResultTypesSourceGenerator({sqlResourcePathPrefix: '', typesHeaderFile: null, customPropertyTypeFn: null});
 const exec = util.promisify(child_process.exec);
 
+const dbConnectInfo = getConnectInfo();
 const dbPool = new Pool(dbConnectInfo);
 
 afterAll(async () => {
@@ -619,4 +619,15 @@ async function compile(testSource: string): Promise<void>
   const srcFileName = 'test.ts';
   await fs.writeFile(path.join(tmpDir, srcFileName), testSource);
   await exec(`tsc --strict ${srcFileName}`, {cwd: tmpDir});
+}
+
+function getConnectInfo(): any
+{
+  return {
+    host: process.env.PGHOST || 'localhost',
+    port: +(process.env.PGPORT || 5432),
+    database: process.env.PGDATABASE || 'drugs',
+    user: process.env.PGUSER || 'drugs',
+    password: process.env.PGPASSWORD || 'drugs'
+  };
 }

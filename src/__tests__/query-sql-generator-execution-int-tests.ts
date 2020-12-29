@@ -4,10 +4,11 @@ import {QuerySpec} from '..';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 
-const dbConnectInfo = require('./resources/db-connect-info.json');
 const dbmdStoredProps = require('./resources/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
+
+const dbConnectInfo = getConnectInfo();
 
 if ( ['1','y','Y','true', 'True'].includes(process.env['SKIP_INTEGRATION_TESTS'] || '0') )
   test.only('skipping integration tests', () => {
@@ -620,4 +621,15 @@ async function execSql(sql: string, params: any[] = []): Promise<QueryResult>
   {
     pgClient.end();
   }
+}
+
+function getConnectInfo(): any
+{
+  return {
+    host: process.env.PGHOST || 'localhost',
+    port: +(process.env.PGPORT || 5432),
+    database: process.env.PGDATABASE || 'drugs',
+    user: process.env.PGUSER || 'drugs',
+    password: process.env.PGPASSWORD || 'drugs'
+  };
 }
