@@ -3,13 +3,13 @@ import * as path from 'path';
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as child_process from 'child_process';
 import * as util from 'util';
-import {Pool} from 'pg';
 import {propertyNameDefaultFunction} from '../util';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QuerySpec} from '../query-specs';
+import {getConnectionPool} from './util/db-connection';
 
 const dbmdStoredProps = require('./resources/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
@@ -19,9 +19,7 @@ const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
 const resTypesSrcGen = new ResultTypesSourceGenerator({sqlResourcePathPrefix: '', typesHeaderFile: null, customPropertyTypeFn: null});
 const exec = util.promisify(child_process.exec);
 
-const dbConnectInfo = getConnectInfo();
-const dbPool = new Pool(dbConnectInfo);
-
+const dbPool = getConnectionPool();
 afterAll(async () => {
   await dbPool.end();
 });
@@ -621,13 +619,3 @@ async function compile(testSource: string): Promise<void>
   await exec(`tsc --strict ${srcFileName}`, {cwd: tmpDir});
 }
 
-function getConnectInfo(): any
-{
-  return {
-    host: process.env.PGHOST || 'localhost',
-    port: +(process.env.PGPORT || 5432),
-    database: process.env.PGDATABASE || 'drugs',
-    user: process.env.PGUSER || 'drugs',
-    password: process.env.PGPASSWORD || 'drugs'
-  };
-}
