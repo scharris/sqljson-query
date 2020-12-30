@@ -4,7 +4,7 @@ import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
 import {requireDirExists, requireFileExists} from './util/files';
 import {DatabaseMetadata, DatabaseMetadataStoredProperties} from './database-metadata';
-import {getQuerySpecParamNames, QueryGroupSpec, QuerySpec, ResultRepr, TableJsonSpec} from './query-specs';
+import {QueryGroupSpec, ResultRepr} from './query-specs';
 import {QueryReprSqlPath} from './query-repr-sql-path';
 import {QuerySqlGenerator} from './query-sql-generator';
 import {ResultTypesGenerator} from './result-types-generator';
@@ -61,7 +61,7 @@ export async function generateQueries
       {
         const resultTypes = resultTypesGen.generateResultTypes(querySpec.tableJson, querySpec.queryName);
         const resultTypesModuleSrc = await resultTypesSrcGen.getModuleSource(querySpec, resultTypes, sqlPaths);
-        const outputPath = path.join(this.sourceOutputDir, makeResultTypeModuleName(querySpec.queryName) + ".ts");
+        const outputPath = path.join(tsOutputDir, makeResultTypeModuleName(querySpec.queryName) + ".ts");
         await fs.writeFile(outputPath, resultTypesModuleSrc);
       }
     }
@@ -154,4 +154,3 @@ export interface SourceGenerationOptions
 
 export * from './query-specs';
 export * from './result-types';
-
