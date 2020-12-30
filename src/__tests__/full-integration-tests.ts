@@ -618,4 +618,3 @@ async function compile(testSource: string): Promise<void>
   await fs.writeFile(path.join(tmpDir, srcFileName), testSource);
   await exec(`tsc --strict ${srcFileName}`, {cwd: tmpDir});
 }
-

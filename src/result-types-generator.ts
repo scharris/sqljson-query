@@ -2,8 +2,7 @@ import {caseNormalizeName, makeMap, valueOr} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty,
-  propertiesCount
+  ParentReferenceProperty, propertiesCount
 } from './result-types';
 import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
