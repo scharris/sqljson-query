@@ -13,16 +13,13 @@ import {writeRelationsMetadataModule} from './relations-md-generator';
 import {ResultType, SimpleTableFieldProperty} from './result-types';
 import {validateJson} from './util/json-schemas';
 
-const querySpecsSchema = require('./query-specs.schema.json');
-const dbmdJsonSchema = require('./dbmd.schema.json');
-
 export async function generateQueries
   (
     querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
     dbmdFile: string,
     tsOutputDir: string,
     sqlOutputDir: string,
-    opts: SourceGenerationOptions
+    opts: SourceGenerationOptions = {}
   )
   : Promise<void>
 {
@@ -86,8 +83,11 @@ export async function generateQueries
 
 async function readDatabaseMetadata(dbmdFile: string)
 {
+  // TODO: Reenable json schema validation ([1] and [2]) of the dbmd stored props here, once problem of
+  //       loading json schemas from ts-jest testing env is resolved.
+  // [1] const dbmdJsonSchema = require('./schemas/dbmd.schema.json');
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
-  const dbmdStoredProps: DatabaseMetadataStoredProperties = validateJson("database metadata", dbmdStoredPropsJson, dbmdJsonSchema);
+  const dbmdStoredProps: DatabaseMetadataStoredProperties = JSON.parse(dbmdStoredPropsJson); // [2] validateJson("database metadata", dbmdStoredPropsJson, dbmdJsonSchema);
   return new DatabaseMetadata(dbmdStoredProps);
 }
 
@@ -101,6 +101,7 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
   }
   else if (fileExt === '.json')
   {
+    const querySpecsSchema = require('./schemas/query-specs.schema.json');
     const queryGroupSpecJson = await fs.readFile(filePath, 'utf8');
     return validateJson("query specs", queryGroupSpecJson, querySpecsSchema) as QueryGroupSpec;
   }
@@ -147,9 +148,9 @@ export type CustomPropertyTypeFn = (prop: SimpleTableFieldProperty, resultType: 
 
 export interface SourceGenerationOptions
 {
-  sqlResourcePathPrefix: string;
-  typesHeaderFile: string | null;
-  customPropertyTypeFn: CustomPropertyTypeFn | null;
+  sqlResourcePathPrefix?: string;
+  typesHeaderFile?: string | null;
+  customPropertyTypeFn?: CustomPropertyTypeFn | null;
 }
 
 export * from './query-specs';

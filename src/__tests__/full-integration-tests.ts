@@ -8,8 +8,9 @@ import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
-import {QuerySpec} from '../query-specs';
+import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {getConnectionPool} from './util/db-connection';
+import {generateQueries} from '..';
 
 const dbmdStoredProps = require('./resources/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
@@ -609,7 +610,59 @@ test('unwrapped child collection of unwrapped child collection property', async 
       "const rowVals: Compound[] = " +
       JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
     );
-  });
+});
+
+test('generateQueries() produces expected output files', async () => {
+  const queryGroupSpec: QueryGroupSpec =
+  {
+    defaultSchema: 'drugs',
+    generateUnqualifiedNamesForSchemas: ['drugs'],
+    querySpecs: [
+      {
+        queryName: 'test query 1',
+        resultRepresentations: ['JSON_OBJECT_ROWS', 'JSON_ARRAY_ROW'],
+        tableJson: {
+          table: 'drug',
+          fieldExpressions: ['id', 'name']
+        }
+      },
+      {
+        queryName: 'test query 2',
+        resultRepresentations: ['JSON_OBJECT_ROWS'],
+        tableJson: {
+          table: 'drug',
+          fieldExpressions: ['id', 'name']
+        }
+      }
+    ]
+  };
+
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sjq-tests-'), 'utf8');
+  const sqlOutputDir = path.join(tmpDir, 'sql');
+  const tsOutputDir = path.join(tmpDir, 'ts');
+  const dbmdFile = path.join(tmpDir, 'dbmd.json');
+
+  await fs.mkdir(sqlOutputDir);
+  await fs.mkdir(tsOutputDir);
+  await fs.writeFile(dbmdFile, JSON.stringify(dbmdStoredProps));
+
+  await generateQueries(queryGroupSpec, dbmdFile, tsOutputDir, sqlOutputDir);
+
+  const sqlFiles = await fs.readdir(sqlOutputDir);
+  const tsFiles = await fs.readdir(tsOutputDir);
+
+  expect(new Set(sqlFiles)).toEqual(new Set([
+    'test-query-1(json array row).sql',
+    'test-query-1(json object rows).sql',
+    'test-query-2.sql'
+  ]));
+
+  expect(new Set(tsFiles)).toEqual(new Set([
+    'test-query-1.ts',
+    'test-query-2.ts',
+    'relations-metadata.ts'
+  ]));
+});
 
 async function compile(testSource: string): Promise<void>
 {

@@ -56,7 +56,7 @@ export class ResultTypesSourceGenerator
     for ( const repr of Array.from(sqlPathsByRepr.keys()).sort() )
     {
       const memberName = "sqlResource" + (sqlPathsByRepr.size == 1 ? "" : upperCamelCase(repr));
-      const resourceName = this.opts.sqlResourcePathPrefix + path.basename(sqlPathsByRepr.get(repr) || '');
+      const resourceName = (this.opts.sqlResourcePathPrefix || '') + path.basename(sqlPathsByRepr.get(repr) || '');
       lines.push("export const " + memberName + " = \"" + resourceName + "\";");
     }
 
