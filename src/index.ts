@@ -96,8 +96,8 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
   const fileExt = path.extname(filePath).toLowerCase();
   if ( fileExt === '.ts' || fileExt === '.js' ) // .ts only supported when running via ts-node or deno.
   {
-    const tsModule = await import(filePath)
-    return tsModule.default;
+    const mod = await import(filePath);
+    return mod.default;
   }
   else if (fileExt === '.json')
   {
