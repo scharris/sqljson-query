@@ -33,7 +33,7 @@ if ( typeof argsParseResult === 'string' )
   }
 }
 
-const opts: SourceGenerationOptions = { 
+const opts: SourceGenerationOptions = {
   sqlResourcePathPrefix: argsParseResult['sql-resource-path-prefix'] || '',
   typesHeaderFile: argsParseResult['types-header'] || null,
   customPropertyTypeFn: null
