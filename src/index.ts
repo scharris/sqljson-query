@@ -1,5 +1,6 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
+import * as process from 'process';
 import {valueOr} from './util/nullability';
 import {propertyNameDefaultFunction} from './util/property-names';
 import {requireDirExists, requireFileExists} from './util/files';
@@ -96,7 +97,8 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
   const fileExt = path.extname(filePath).toLowerCase();
   if ( fileExt === '.ts' || fileExt === '.js' ) // .ts only supported when running via ts-node or deno.
   {
-    const mod = await import(filePath);
+    const modulePath = filePath.startsWith('./') ? process.cwd() + filePath.substring(1) : filePath;
+    const mod = await import(modulePath);
     return mod.default;
   }
   else if (fileExt === '.json')
