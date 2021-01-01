@@ -4,7 +4,7 @@ import {DatabaseMetadata} from '../database-metadata';
 import {ResultTypesGenerator} from '../result-types-generator';
 import {propertiesCount} from '../result-types';
 
-const dbmdStoredProps = require('./resources/dbmd.json');
+const dbmdStoredProps = require('./dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);

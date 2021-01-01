@@ -1,6 +1,6 @@
 import {DatabaseMetadata, foreignKeyFieldNames, relIdString, toRelId} from '../database-metadata';
 
-const dbmdStoredProps = require('./resources/dbmd.json');
+const dbmdStoredProps = require('./dbmd.json');
 
 test('can be initialized from stored properties', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);

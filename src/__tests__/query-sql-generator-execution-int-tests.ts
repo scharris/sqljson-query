@@ -1,10 +1,10 @@
-import {getConnectionPool} from './util/db-connection';
+import {getConnectionPool} from './db/connection';
 import {propertyNameDefaultFunction} from '../util';
 import {QuerySpec} from '..';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 
-const dbmdStoredProps = require('./resources/dbmd.json');
+const dbmdStoredProps = require('./dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 

@@ -9,10 +9,10 @@ import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
-import {getConnectionPool} from './util/db-connection';
+import {getConnectionPool} from './db/connection';
 import {generateQueries} from '..';
 
-const dbmdStoredProps = require('./resources/dbmd.json');
+const dbmdStoredProps = require('./dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
