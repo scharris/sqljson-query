@@ -84,11 +84,10 @@ export async function generateQueries
 
 async function readDatabaseMetadata(dbmdFile: string)
 {
-  // TODO: Reenable json schema validation ([1] and [2]) of the dbmd stored props here, once problem of
-  //       loading json schemas from ts-jest testing env is resolved.
-  // [1] const dbmdJsonSchema = require('./schemas/dbmd.schema.json');
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
-  const dbmdStoredProps: DatabaseMetadataStoredProperties = JSON.parse(dbmdStoredPropsJson); // [2] validateJson("database metadata", dbmdStoredPropsJson, dbmdJsonSchema);
+  const dbmdStoredProps = process.env.NODE_ENV !== 'test' ?
+    validateJson("database metadata", dbmdStoredPropsJson, require('./schemas/dbmd.schema.json'))
+    : JSON.parse(dbmdStoredPropsJson);
   return new DatabaseMetadata(dbmdStoredProps);
 }
 
