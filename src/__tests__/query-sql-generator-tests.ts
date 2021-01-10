@@ -3,7 +3,7 @@ import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 import {propertyNameDefaultFunction} from '../util';
 
-const dbmdStoredProps = require('./dbmd.json');
+const dbmdStoredProps = require('./db/pg/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 

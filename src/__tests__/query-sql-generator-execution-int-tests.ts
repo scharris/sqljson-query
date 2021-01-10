@@ -1,18 +1,19 @@
-import {getConnectionPool} from './db/connection';
 import {propertyNameDefaultFunction} from '../util';
 import {QuerySpec} from '..';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
+import {DbHandle, getDbHandle} from './db/db-handle';
 
-const dbmdStoredProps = require('./dbmd.json');
-const dbmd = new DatabaseMetadata(dbmdStoredProps);
-const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
+const dbType = process.env.TEST_DB_TYPE || 'pg';
 
-const dbPool = getConnectionPool();
+const dbmdStoredProps = require(`./db/${dbType}/dbmd.json`);
+const db: DbHandle = getDbHandle(dbType);
 afterAll(async () => {
-  await dbPool.end();
+  await db.end();
 });
 
+const dbmd = new DatabaseMetadata(dbmdStoredProps);
+const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 
 if ( ['1','y','Y','true', 'True'].includes(process.env['SKIP_INTEGRATION_TESTS'] || '0') )
   test.only('skipping integration tests', () => {
@@ -32,7 +33,7 @@ test('query of single table for json object rows results', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBeGreaterThan(1);
   const firstJson = res.rows[0].json;
   // id and name are not-null fields, so typeof the values should be number and string
@@ -53,7 +54,7 @@ test('query of single table for json array row results', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const jsonArray: any[] = res.rows[0].json;
   expect(jsonArray.length).toBeGreaterThan(1);
@@ -75,7 +76,7 @@ test('query of single table for multi column rows results', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('MULTI_COLUMN_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBeGreaterThan(1);
   const firstRow = res.rows[0];
   // id and name are not-null fields, so typeof the values should be number and string
@@ -96,7 +97,7 @@ test('record condition properly restricts results for top level table', async ()
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.id).toBe(1);
@@ -125,7 +126,7 @@ test('simple table field property names specified by jsonProperty', async () => 
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.drugId).toBe(1);
@@ -146,7 +147,7 @@ test('simple table field property names default according to the provided naming
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.idX).toBe(1);
@@ -175,7 +176,7 @@ test('non-unwrapped child table collection', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(Object.keys(json.compoundsEntered[0]))).toEqual(new Set(['id', 'displayName']));
@@ -206,7 +207,7 @@ test('unwrapped child table collection of simple table field property', async ()
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(json.compoundsEntered)).toEqual(new Set([2,4]));
@@ -237,7 +238,7 @@ test('unwrapped child table collection of field exression property', async () =>
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(json.compoundsEntered)).toEqual(new Set(['test compound 2', 'test compound 4']));
@@ -273,7 +274,7 @@ test('unwrapped child table collection of parent reference property', async () =
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.drugAnalysts.length).toBe(1);
@@ -311,7 +312,7 @@ test('unwrapped child table collection of inlined parent property', async () => 
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.drugRegisteringAnalystIds).toEqual([1]);
@@ -348,7 +349,7 @@ test('unwrapped child collection of child collection property', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.drugAdvisories.length).toEqual(1);
@@ -390,7 +391,7 @@ test('unwrapped child collection of unwrapped child collection property', async 
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.drugAdvisoryTypeIds.length).toEqual(1);
@@ -446,7 +447,7 @@ test('order-by specification determines ordering in a child table collection', a
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`))
@@ -476,7 +477,7 @@ test('referenced parent table', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(Object.keys(json.enteredByAnalyst))).toEqual(new Set(['id', 'shortName']));
@@ -509,7 +510,7 @@ test('simple table field properties from inline parent tables', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(Object.keys(json))).toEqual(new Set(['id', 'analystId', 'analystShortName']));
@@ -553,7 +554,7 @@ test('simple field properties from an inlined parent and its own inlined parent'
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(Object.keys(json))).toEqual(new Set([
@@ -598,7 +599,7 @@ test('referenced parent property from an inlined parent', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const res = await dbPool.query(sql);
+  const res = await db.query(sql);
   expect(res.rows.length).toBe(1);
   const json = res.rows[0].json;
   expect(new Set(Object.keys(json))).toEqual(new Set([

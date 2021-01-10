@@ -9,21 +9,23 @@ import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
-import {getConnectionPool} from './db/connection';
 import {generateQueries} from '..';
+import {DbHandle, getDbHandle} from './db/db-handle';
 
-const dbmdStoredProps = require('./dbmd.json');
+const dbType = process.env.TEST_DB_TYPE || 'pg';
+
+const dbmdStoredProps = require(`./db/${dbType}/dbmd.json`);
+const db: DbHandle = getDbHandle(dbType);
+afterAll(async () => {
+  await db.end();
+});
+
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
 const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
 const resTypesSrcGen = new ResultTypesSourceGenerator({sqlResourcePathPrefix: '', typesHeaderFile: null, customPropertyTypeFn: null});
 const exec = util.promisify(child_process.exec);
-
-const dbPool = getConnectionPool();
-afterAll(async () => {
-  await dbPool.end();
-});
 
 if ( ['1','y','Y','true', 'True'].includes(process.env['SKIP_INTEGRATION_TESTS'] || '0') )
   test.only('skipping integration tests', () => {
@@ -45,7 +47,7 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
   const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const queryRes = await dbPool.query(sql);
+  const queryRes = await db.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -69,7 +71,7 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
   const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
-  const queryRes = await dbPool.query(sql);
+  const queryRes = await db.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -102,7 +104,7 @@ test('simple table field property names specified by jsonProperty attributes', a
   const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const queryRes = await dbPool.query(sql);
+  const queryRes = await db.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -136,7 +138,7 @@ test('parent reference', async () => {
   const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const queryRes = await dbPool.query(sql);
+  const queryRes = await db.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -171,7 +173,7 @@ test('simple table field properties from inline parent tables', async () => {
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -216,7 +218,7 @@ test('simple field properties from an inlined parent and its own inlined parent'
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -256,7 +258,7 @@ test('referenced parent property from an inlined parent', async () => {
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -295,7 +297,7 @@ test('child collection property from an inlined parent', async () => {
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -335,7 +337,7 @@ test('unwrapped child collection property from an inlined parent', async () => {
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -369,7 +371,7 @@ test('child collection', async () => {
   const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const queryRes = await dbPool.query(sql);
+  const queryRes = await db.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -403,7 +405,7 @@ test('unwrapped child table collection of simple table field property', async ()
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -438,7 +440,7 @@ test('unwrapped child table collection of field exression property', async () =>
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -478,7 +480,7 @@ test('unwrapped child table collection of parent reference property', async () =
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -518,7 +520,7 @@ test('unwrapped child table collection of inlined parent property', async () => 
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -560,7 +562,7 @@ test('unwrapped child collection of child collection property', async () => {
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -603,7 +605,7 @@ test('unwrapped child collection of unwrapped child collection property', async 
     const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
 
     const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await dbPool.query(sql);
+    const queryRes = await db.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
