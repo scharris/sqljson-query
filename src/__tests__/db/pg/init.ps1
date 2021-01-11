@@ -2,7 +2,7 @@ $dbDir = "$PSScriptRoot"
 
 docker build -t drugs-pg $dbDir
 
-docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB --env-file=$dbDir/db.env drugs-pg
+docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg
 
 
 # While container 'drugs-pg' started as above is running, you can run a
