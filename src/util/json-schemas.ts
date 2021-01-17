@@ -1,4 +1,4 @@
-import * as Ajv from "ajv";
+import Ajv from "ajv"
 
 export function validateJson(subject: string, json: string, schemaObj: object): any
 {
