@@ -4,13 +4,18 @@
             "path": "."
         },
         {
-            "path": "..\\sqljson-query-example-pg"
+            "path": "../sqljson-query-example-pg"
         },
         {
-            "path": "..\\dbmd-pg"
+            "path": "../dbmd-pg"
         },
         {
-            "path": "..\\dbmd-ora"
+            "path": "../dbmd-ora"
         }
-    ]
+    ],
+    "settings": {
+        "deno.enable": true,
+        "deno.lint": true,
+        "deno.unstable": true
+    }
 }
