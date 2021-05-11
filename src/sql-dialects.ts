@@ -99,12 +99,12 @@ export class OracleDialect implements SqlDialect
   }
 
   getAggregatedColumnValuesExpression
-  (
-    columnName: string,
-    orderBy: string | null | undefined,
-    srcAlias: string
-   )
-   : string
+    (
+      columnName: string,
+      orderBy: string | null | undefined,
+      srcAlias: string
+    )
+    : string
   {
     return (
       `treat(coalesce(json_arrayagg(${srcAlias}.${columnName}` +
