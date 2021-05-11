@@ -1,4 +1,4 @@
-import {indentLines, unDoubleQuote} from './util/strings';
+import {indentLines, unDoubleQuote} from './util';
 import {DatabaseMetadata} from './database-metadata';
 
 
