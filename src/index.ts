@@ -1,10 +1,8 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
 import * as process from 'process';
-import {valueOr} from './util/nullability';
-import {propertyNameDefaultFunction} from './util/property-names';
-import {requireDirExists, requireFileExists} from './util/files';
-import {DatabaseMetadata, DatabaseMetadataStoredProperties} from './database-metadata';
+import {valueOr, propertyNameDefaultFunction, requireDirExists, requireFileExists, validateJson} from './util';
+import {DatabaseMetadata} from './database-metadata';
 import {QueryGroupSpec, ResultRepr} from './query-specs';
 import {QueryReprSqlPath} from './query-repr-sql-path';
 import {QuerySqlGenerator} from './query-sql-generator';
@@ -12,7 +10,6 @@ import {ResultTypesGenerator} from './result-types-generator';
 import {ResultTypesSourceGenerator} from './result-types-source-generator';
 import {writeRelationsMetadataModule} from './relations-md-generator';
 import {ResultType, SimpleTableFieldProperty} from './result-types';
-import {validateJson} from './util/json-schemas';
 
 export async function generateQueries
   (
@@ -44,7 +41,7 @@ export async function generateQueries
 
     const defaultSchema = queryGroupSpec.defaultSchema || null;
     const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
-    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.outputFieldNameDefault);
+    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
 
     const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
     const resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, propNameFn);

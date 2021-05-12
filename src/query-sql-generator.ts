@@ -35,7 +35,7 @@ export class QuerySqlGenerator
   public generateSqls(querySpec: QuerySpec): Map<ResultRepr,string>
   {
     // This query spec may customize the default generated field name making function.
-    const propNameFn = querySpec.outputFieldNameDefault ? propertyNameDefaultFunction(querySpec.outputFieldNameDefault)
+    const propNameFn = querySpec.propertyNameDefault ? propertyNameDefaultFunction(querySpec.propertyNameDefault)
       : this.defaultPropertyNameFn;
 
     const resReprs = querySpec.resultRepresentations || QuerySqlGenerator.DEFAULT_RESULT_REPRS;

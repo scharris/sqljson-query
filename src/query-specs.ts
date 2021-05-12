@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 export interface QueryGroupSpec
 {
   defaultSchema?: string;
-  outputFieldNameDefault?: PropertyNameDefault;
+  propertyNameDefault?: PropertyNameDefault;
   generateUnqualifiedNamesForSchemas: string[];
   querySpecs: QuerySpec[];
 }
@@ -15,7 +15,7 @@ export interface QuerySpec
   resultRepresentations?: ResultRepr[];
   generateResultTypes?: boolean;
   generateSource?: boolean;
-  outputFieldNameDefault?: PropertyNameDefault;
+  propertyNameDefault?: PropertyNameDefault;
   orderBy?: string;
   forUpdate?: boolean;
   typesFileHeader?: string;
@@ -41,7 +41,7 @@ export interface TableFieldExpr
 
 export interface ParentSpec
 {
-  referenceName?: string;
+  referenceName?: string | undefined;
   customJoinCondition?: CustomJoinCondition;
   tableJson: TableJsonSpec;
   viaForeignKeyFields?: string[];
