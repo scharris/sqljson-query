@@ -1,4 +1,4 @@
-import {caseNormalizeName} from './util/database-names';
+import {caseNormalizeName} from './util';
 import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata';
 import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 

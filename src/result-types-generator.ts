@@ -1,4 +1,4 @@
-import {caseNormalizeName, makeMap, valueOr} from './util';
+import {caseNormalizeName, makeMap} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
@@ -93,7 +93,7 @@ export class ResultTypesGenerator
       if ( fieldName != null )
       {
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
-        if ( dbField == null )
+        if ( dbField == undefined )
           throw new Error(`No metadata found for field ${relIdString(relId)}.${fieldName}.`);
         fields.push(this.makeSimpleTableFieldProperty(tfe, dbField));
       }
@@ -121,7 +121,7 @@ export class ResultTypesGenerator
       const parentType = parentResultTypes[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable = parentSpec.tableJson.recordCondition != null || !this.someFkFieldNullableFalse(parentSpec, relId);
+      const nullable = parentSpec.tableJson.recordCondition != undefined || !this.someFkFieldNullableFalse(parentSpec, relId);
 
       typeBuilder.addFieldsFromResultType(parentType, nullable);
       resultTypes.push(...parentResultTypes.slice(1));
@@ -205,10 +205,10 @@ export class ResultTypesGenerator
       name: this.getOutputFieldName(tfe, dbField),
       databaseFieldName: dbField.name,
       databaseType: dbField.databaseType,
-      length: valueOr(dbField.length, null),
-      precision: valueOr(dbField.precision, null),
-      fractionalDigits: valueOr(dbField.fractionalDigits, null),
-      nullable: valueOr(dbField.nullable,  null),
+      length: dbField.length || null,
+      precision: dbField.precision || null,
+      fractionalDigits: dbField.fractionalDigits || null,
+      nullable: dbField.nullable != undefined ? dbField.nullable : null,
       specifiedSourceCodeFieldType: getSpecifiedSourceCodeFieldType(tfe)
     };
   }

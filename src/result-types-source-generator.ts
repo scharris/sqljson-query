@@ -104,10 +104,10 @@ export class ResultTypesSourceGenerator
       lines.push(`   ${f.name}: ${this.getSimpleTableFieldPropertyTSType(f, resType)};`)
     );
     resType.tableExpressionProperty.forEach(f =>
-      lines.push(`   ${f.name}: ${this.getTableExpressionPropertyTSType(f)};`)
+      lines.push(`   ${f.name}: ${getTableExpressionPropertyTSType(f)};`)
     );
     resType.parentReferenceProperties.forEach(f =>
-      lines.push(`   ${f.name}: ${this.getParentReferencePropertyTSType(f, resTypeNames)};`)
+      lines.push(`   ${f.name}: ${getParentReferencePropertyTSType(f, resTypeNames)};`)
     );
     resType.childCollectionProperties.forEach(f =>
       lines.push(`   ${f.name}: ${this.getChildCollectionPropertyTSType(f, resTypeNames)};`)
@@ -175,24 +175,6 @@ export class ResultTypesSourceGenerator
     }
   }
 
-  private getTableExpressionPropertyTSType(tep: TableExpressionProperty): string
-  {
-    if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
-      throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
-
-    return tep.specifiedSourceCodeFieldType;
-  }
-
-  private getParentReferencePropertyTSType
-    (
-      f: ParentReferenceProperty,
-      resTypeNames: Map<ResultType,string>
-    )
-    : string
-  {
-    return resTypeNames.get(f.refResultType)! + (f.nullable ? " | null" : "");
-  }
-
   private getChildCollectionPropertyTSType
     (
       p: ChildCollectionProperty,
@@ -219,11 +201,11 @@ export class ResultTypesSourceGenerator
     if (resType.simpleTableFieldProperties.length === 1)
       return this.getSimpleTableFieldPropertyTSType(resType.simpleTableFieldProperties[0], resType);
     else if (resType.tableExpressionProperty.length === 1)
-      return this.getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
+      return getTableExpressionPropertyTSType(resType.tableExpressionProperty[0]);
     else if (resType.childCollectionProperties.length === 1)
       return this.getChildCollectionPropertyTSType(resType.childCollectionProperties[0], resTypeNames);
     else if (resType.parentReferenceProperties.length === 1)
-      return this.getParentReferencePropertyTSType(resType.parentReferenceProperties[0], resTypeNames);
+      return getParentReferencePropertyTSType(resType.parentReferenceProperties[0], resTypeNames);
     else
       throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
   }
@@ -282,3 +264,22 @@ function paramDefinitions(paramNames: string[]): string
     .map(paramName => `export const ${paramName}Param = '${paramName}';`)
     .join("\n\n");
 }
+
+function getTableExpressionPropertyTSType(tep: TableExpressionProperty): string
+{
+  if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
+    throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
+
+  return tep.specifiedSourceCodeFieldType;
+}
+
+function getParentReferencePropertyTSType
+  (
+    f: ParentReferenceProperty,
+    resTypeNames: Map<ResultType,string>
+  )
+  : string
+{
+  return resTypeNames.get(f.refResultType)! + (f.nullable ? " | null" : "");
+}
+

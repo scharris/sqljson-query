@@ -1,5 +1,4 @@
-import {computeIfAbsent, setsEqual} from './util/collections';
-import {caseNormalizeName} from './util/database-names';
+import {computeIfAbsent, setsEqual,caseNormalizeName} from './util';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties

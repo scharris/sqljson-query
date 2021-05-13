@@ -144,7 +144,7 @@ function getParamNames(tableJsonSpec: TableJsonSpec): string[]
   for (const parentSpec of tableJsonSpec.parentTables || [])
     paramNames.push(...getParamNames(parentSpec.tableJson));
 
-  if (tableJsonSpec?.recordCondition?.paramNames != null)
+  if (tableJsonSpec?.recordCondition?.paramNames != undefined)
     paramNames.push(...tableJsonSpec.recordCondition.paramNames);
 
   return paramNames;

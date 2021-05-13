@@ -240,9 +240,9 @@ export class QuerySqlGenerator
   {
     const customJoinCond = parentSpec.customJoinCondition;
 
-    if ( customJoinCond != null )
+    if ( customJoinCond != undefined )
     {
-      if ( parentSpec.viaForeignKeyFields != null )
+      if ( parentSpec.viaForeignKeyFields != undefined )
         throw new SpecError(specLoc, "Parent with customJoinCondition cannot specify foreignKeyFields.");
 
       const parentRelId = identifyTable(parentSpec.tableJson.table, this.defaultSchema, this.dbmd, specLoc);
@@ -390,7 +390,7 @@ export class QuerySqlGenerator
   {
     const customJoinCond = childCollectionSpec.customJoinCondition;
 
-    if ( customJoinCond != null ) // custom join condition specified
+    if ( customJoinCond != undefined ) // custom join condition specified
     {
       if ( childCollectionSpec.foreignKeyFields )
         throw new SpecError(specLoc, "Child collection that specifies customJoinCondition cannot specify foreignKeyFields.");
@@ -495,7 +495,7 @@ export class QuerySqlGenerator
 
     if ( fk == null )
       throw new SpecError(specLoc, `No foreign key found from ${childRelId.name} to ${parentRelId.name} via ` +
-        (foreignKeyFields != null ? `foreign keys [${Array.from(foreignKeyFields)}]`
+        (foreignKeyFields != undefined ? `foreign keys [${Array.from(foreignKeyFields)}]`
          : "implicit foreign key fields") + ".");
 
     return fk;

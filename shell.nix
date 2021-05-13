@@ -4,6 +4,7 @@ mkShell {
   buildInputs = [
     nodejs
     nodePackages.typescript
+    deno
   ];
 
   shellHook = ''

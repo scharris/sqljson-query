@@ -1,8 +1,6 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
-import {makeArrayValuesMap} from './util/collections';
-import {valueOr} from './util/nullability';
-import {indentLines} from './util/strings';
+import {makeArrayValuesMap,valueOr,indentLines} from './util';
 import {DatabaseMetadata, RelMetadata} from './database-metadata';
 
 export async function writeRelationsMetadataModule

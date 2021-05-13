@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {parseAppArgs} from './util/args';
+import {parseAppArgs} from './util';
 import {generateQueries, SourceGenerationOptions} from './index';
 
 function printUsage(to: 'stderr' | 'stdout')
@@ -7,7 +7,7 @@ function printUsage(to: 'stderr' | 'stdout')
   const out = to === 'stderr' ? console.error : console.log;
   out(`Expected arguments: [options] ${reqdNamedParams.map(p => "--" + p).join(" ")}`);
   out("Options:");
-  out(`   --sql-resource-path-prefix <path> - A prefix to the SQL file name written into source code.`);
+  out(`   --sql-resource-path-prefix <prefix> - A prefix to the SQL file name written into source code.`);
   out(`   --types-header <file> - Contents of this file will be ` +
     "included at the top of each generated module source file (e.g. for additional imports).");
   out(`   --help - Show this message.`);
