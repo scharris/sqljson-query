@@ -3,7 +3,7 @@ import {propertiesCount, ResultType, resultTypesEqual} from '../result-types';
 const emptyResultType: ResultType = {
   queryName: 'query',
   table: 'table',
-  simpleTableFieldProperties: [],
+  tableFieldProperties: [],
   tableExpressionProperty: [],
   parentReferenceProperties: [],
   childCollectionProperties: [],
@@ -15,7 +15,7 @@ function makeExampleResultType(): ResultType
   return {
     queryName: 'query',
     table: 'table',
-    simpleTableFieldProperties: [
+    tableFieldProperties: [
       {name: 'fieldA1', databaseFieldName: 'field_a1', databaseType: 'varchar', length: 2, precision: 0, fractionalDigits: 0, nullable: true, specifiedSourceCodeFieldType: null},
       {name: 'fieldA2', databaseFieldName: 'field_a2', databaseType: 'varchar', length: 2, precision: 0, fractionalDigits: 0, nullable: true, specifiedSourceCodeFieldType: null}
     ],
@@ -30,7 +30,7 @@ function makeExampleResultType(): ResultType
         refResultType: {
           queryName: 'query',
           table: 'table',
-          simpleTableFieldProperties: [],
+          tableFieldProperties: [],
           tableExpressionProperty: [],
           parentReferenceProperties: [],
           childCollectionProperties: [],
@@ -45,7 +45,7 @@ function makeExampleResultType(): ResultType
         elResultType: {
           queryName: 'query',
           table: 'table',
-          simpleTableFieldProperties: [],
+          tableFieldProperties: [],
           tableExpressionProperty: [],
           parentReferenceProperties: [],
           childCollectionProperties: [],
@@ -79,8 +79,8 @@ test('result types equality', () => {
       exampleResultType,
       {
         ...exampleResultType, 
-        simpleTableFieldProperties: 
-          exampleResultType.simpleTableFieldProperties.map(p => ({...p, name: p.name + "_2"})) 
+        tableFieldProperties:
+          exampleResultType.tableFieldProperties.map(p => ({...p, name: p.name + "_2"}))
       }
     )
   ).toBe(false);

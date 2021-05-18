@@ -52,7 +52,7 @@ test('a single result type is generated for a table spec with no parent/child sp
   expect(resTypes.length).toBe(1);
 });
 
-test('simple table field property names should be as specified by jsonProperty where provided', () => {
+test('table field property names should be as specified by jsonProperty where provided', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -70,12 +70,12 @@ test('simple table field property names should be as specified by jsonProperty w
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
-  expect(resTypes[0].simpleTableFieldProperties.map(p => p.name)).toEqual(
+  expect(resTypes[0].tableFieldProperties.map(p => p.name)).toEqual(
     ['drugName', 'compoundIdentifier']
   );
 });
 
-test('simple table field property names should default according to the provided naming function', () => {
+test('table field property names should default according to the provided naming function', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -84,7 +84,7 @@ test('simple table field property names should default according to the provided
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
-  expect(resTypes[0].simpleTableFieldProperties.map(p => p.name)).toEqual(
+  expect(resTypes[0].tableFieldProperties.map(p => p.name)).toEqual(
     ['name', 'compoundId']
   );
 });
@@ -121,12 +121,12 @@ test('types for non-unwrapped child tables are included in results', () => {
   expect(analystType.childCollectionProperties.length).toBe(2);
 
   const compoundType = analystType.childCollectionProperties[0].elResultType;
-  expect(compoundType.simpleTableFieldProperties.map(p => p.name)).toEqual(['id']);
+  expect(compoundType.tableFieldProperties.map(p => p.name)).toEqual(['id']);
 
   // The unwrapped drug type is referenced from the child collection property, but
   // is not listed among types to be generated.
   const drugType = analystType.childCollectionProperties[1].elResultType;
-  expect(drugType.simpleTableFieldProperties.map(p => p.name)).toEqual(['name']);
+  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(['name']);
 });
 
 test('types for referenced parent tables are generated but not for inlined parents', () => {
@@ -159,10 +159,10 @@ test('types for referenced parent tables are generated but not for inlined paren
   const compoundType = resTypes[0];
   expect(compoundType.parentReferenceProperties.length).toBe(1);
   const analystRef = compoundType.parentReferenceProperties[0];
-  expect(analystRef.refResultType.simpleTableFieldProperties.map(p => p.name)).toEqual(['id']);
+  expect(analystRef.refResultType.tableFieldProperties.map(p => p.name)).toEqual(['id']);
 });
 
-test('simple table field properties obtained directly from inlined parent tables should be included in results', () => {
+test('table field properties obtained directly from inlined parent tables should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -183,12 +183,12 @@ test('simple table field properties obtained directly from inlined parent tables
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   const drugType = resTypes[0];
-  expect(drugType.simpleTableFieldProperties.map(p => p.name)).toEqual(
+  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(
     ['id', 'name', 'compoundId', 'compoundDisplayName']
   );
 });
 
-test('simple field properties from an inlined parent and its own inlined parent should be included in results', () => {
+test('table field properties from an inlined parent and its own inlined parent should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -222,7 +222,7 @@ test('simple field properties from an inlined parent and its own inlined parent 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
   expect(resTypes.length).toBe(1);
   const drugType = resTypes[0];
-  expect(drugType.simpleTableFieldProperties.map(p => p.name)).toEqual(
+  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(
     [
       'id', 'name', // from the top-level table, 'drug'
       'compoundId', 'compoundDisplayName', // from the inlined parent table 'compound'
@@ -267,7 +267,7 @@ test('a referenced parent property from an inlined parent should be included in 
     ['enteredByAnalyst'] // referenced parent property within inlined 'compound'
   );
   const analystType = drugType.parentReferenceProperties[0].refResultType;
-  expect(analystType.simpleTableFieldProperties.map(p => p.name)).toEqual(
+  expect(analystType.tableFieldProperties.map(p => p.name)).toEqual(
     ['id', 'shortName']
   );
 });
@@ -304,14 +304,14 @@ test('non-unwrapped child collection properties should be included in results', 
   expect(analystType.childCollectionProperties.map(p => p.name)).toEqual(['compoundsEntered', 'drugNames']);
 
   const compoundType = analystType.childCollectionProperties[0].elResultType;
-  expect(compoundType.simpleTableFieldProperties.map(p => p.name)).toEqual(['id', 'cas']);
+  expect(compoundType.tableFieldProperties.map(p => p.name)).toEqual(['id', 'cas']);
 
   // Unwrapped type is reachable through the collection property, though not listed in types to be generated.
   const drugType = analystType.childCollectionProperties[1].elResultType;
-  expect(drugType.simpleTableFieldProperties.map(p => p.name)).toEqual(['name']);
+  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(['name']);
 });
 
-test('unwrapped child collection of simple table field property is represented properly', () => {
+test('unwrapped child collection of table field property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
@@ -337,8 +337,8 @@ test('unwrapped child collection of simple table field property is represented p
   expect(childCollProp.name).toBe('idsOfCompoundsEntered');
   expect(childCollProp.elResultType.unwrapped).toBe(true);
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.simpleTableFieldProperties.length).toBe(1);
-  expect(childCollProp.elResultType.simpleTableFieldProperties[0].databaseFieldName).toBe('id');
+  expect(childCollProp.elResultType.tableFieldProperties.length).toBe(1);
+  expect(childCollProp.elResultType.tableFieldProperties[0].databaseFieldName).toBe('id');
 });
 
 test('unwrapped child collection of field expression property is represented properly', () => {
@@ -409,7 +409,7 @@ test('unwrapped child collection of parent reference property is represented pro
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
   expect(childCollProp.elResultType.parentReferenceProperties.length).toBe(1);
   expect(childCollProp.elResultType.parentReferenceProperties[0].name).toBe('registeredBy');
-  expect(childCollProp.elResultType.parentReferenceProperties[0].refResultType.simpleTableFieldProperties.length).toBe(2);
+  expect(childCollProp.elResultType.parentReferenceProperties[0].refResultType.tableFieldProperties.length).toBe(2);
 });
 
 test('unwrapped child collection of inlined parent property is represented properly', () => {
@@ -444,8 +444,8 @@ test('unwrapped child collection of inlined parent property is represented prope
   expect(childCollProp.name).toBe('drugRegisteringAnalystIds');
   expect(childCollProp.elResultType.unwrapped).toBe(true);
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.simpleTableFieldProperties.length).toBe(1);
-  expect(childCollProp.elResultType.simpleTableFieldProperties[0].name).toBe('id');
+  expect(childCollProp.elResultType.tableFieldProperties.length).toBe(1);
+  expect(childCollProp.elResultType.tableFieldProperties[0].name).toBe('id');
 });
 
 test('unwrapped child collection of child collection property is represented properly', () => {
@@ -482,9 +482,9 @@ test('unwrapped child collection of child collection property is represented pro
   expect(childCollProp.elResultType.unwrapped).toBe(true);
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
   expect(childCollProp.elResultType.childCollectionProperties.length).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties.length).toBe(2);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[0].name).toBe('id');
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[1].name).toBe('advisoryTypeId');
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties.length).toBe(2);
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name).toBe('id');
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[1].name).toBe('advisoryTypeId');
 });
 
 test('unwrapped child collection of unwrapped child collection property is represented properly', () => {
@@ -522,7 +522,7 @@ test('unwrapped child collection of unwrapped child collection property is repre
   expect(propertiesCount(childCollProp.elResultType)).toBe(1);
   expect(childCollProp.elResultType.childCollectionProperties.length).toBe(1);
   expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.unwrapped).toBe(true);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.simpleTableFieldProperties[0].name).toBe('advisoryTypeId');
+  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name).toBe('advisoryTypeId');
 });
 
 test('unwrapped child collection with element type containing more than one property should cause error', () => {

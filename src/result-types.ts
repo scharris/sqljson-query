@@ -4,7 +4,7 @@ export interface ResultType
 {
   readonly queryName: string;
   readonly table: string;
-  readonly simpleTableFieldProperties: SimpleTableFieldProperty[];
+  readonly tableFieldProperties: TableFieldProperty[];
   readonly tableExpressionProperty: TableExpressionProperty[];
   readonly parentReferenceProperties: ParentReferenceProperty[];
   readonly childCollectionProperties: ChildCollectionProperty[];
@@ -14,7 +14,7 @@ export interface ResultType
 export function propertiesCount(gt: ResultType): number
 {
   return (
-    gt.simpleTableFieldProperties.length +
+    gt.tableFieldProperties.length +
     gt.tableExpressionProperty.length +
     gt.parentReferenceProperties.length +
     gt.childCollectionProperties.length
@@ -30,7 +30,7 @@ export function resultTypesEqual
 {
   return (
     rt1.table === rt2.table &&
-    _.isEqual(rt1.simpleTableFieldProperties, rt2.simpleTableFieldProperties) &&
+    _.isEqual(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
     _.isEqual(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
     _.isEqual(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
     _.isEqual(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
@@ -38,7 +38,7 @@ export function resultTypesEqual
   );
 }
 
-export interface SimpleTableFieldProperty
+export interface TableFieldProperty
 {
   readonly name: string; // json property name
   readonly databaseFieldName: string;

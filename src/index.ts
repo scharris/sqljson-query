@@ -1,21 +1,30 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
 import * as process from 'process';
-import {valueOr, propertyNameDefaultFunction, requireDirExists, requireFileExists, validateJson} from './util';
+import {
+  valueOr,
+  propertyNameDefaultFunction,
+  requireDirExists,
+  requireFileExists,
+  validateJson,
+  upperCamelCase
+} from './util';
 import {DatabaseMetadata} from './database-metadata';
-import {QueryGroupSpec, ResultRepr} from './query-specs';
-import {QueryReprSqlPath} from './query-repr-sql-path';
+import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
+import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {QuerySqlGenerator} from './query-sql-generator';
-import {ResultTypesGenerator} from './result-types-generator';
+import {QueryReprSqlPath} from './query-repr-sql-path';
 import {ResultTypesSourceGenerator} from './result-types-source-generator';
-import {writeRelationsMetadataModule} from './relations-md-generator';
-import {ResultType, SimpleTableFieldProperty} from './result-types';
+
+export * from './source-generation-options';
+export * from './query-specs';
+export * from './result-types';
 
 export async function generateQueries
   (
     querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
     dbmdFile: string,
-    tsOutputDir: string,
+    srcOutputDir: string,
     sqlOutputDir: string,
     opts: SourceGenerationOptions = {}
   )
@@ -24,28 +33,18 @@ export async function generateQueries
   try
   {
     await requireFileExists(dbmdFile, 'Database metadata file not found.');
-    await requireDirExists(tsOutputDir, 'Source output directory not found.');
+    await requireDirExists(srcOutputDir, 'Source output directory not found.');
     await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
-    if ( opts.typesHeaderFile )
-      await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
-
-    let queryGroupSpec;
-    if ( typeof querySpecs === 'string' )
-    {
-      await requireFileExists(querySpecs, 'Query specifications file not found.');
-      queryGroupSpec = await readQueriesSpecFile(querySpecs);
-    }
-    else queryGroupSpec = querySpecs;
+    if ( opts.typesHeaderFile ) await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
-
+    const queryGroupSpec = await readQueryGroupSpec(querySpecs);
     const defaultSchema = queryGroupSpec.defaultSchema || null;
+    const srcLang = opts.sourceLanguage || 'TS';
     const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
-
     const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
-    const resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, propNameFn);
-    const resultTypesSrcGen = new ResultTypesSourceGenerator(opts);
+    const resultTypesSrcGen = new ResultTypesSourceGenerator(dbmd, defaultSchema, propNameFn);
 
     for ( const querySpec of queryGroupSpec.querySpecs )
     {
@@ -54,32 +53,31 @@ export async function generateQueries
 
       if ( valueOr(querySpec.generateResultTypes, true) )
       {
-        const resultTypes = resultTypesGen.generateResultTypes(querySpec.tableJson, querySpec.queryName);
-        const resultTypesModuleSrc = await resultTypesSrcGen.getModuleSource(querySpec, resultTypes, sqlPaths);
-        const outputPath = path.join(tsOutputDir, makeResultTypeModuleName(querySpec.queryName) + ".ts");
-        await fs.writeFile(outputPath, resultTypesModuleSrc);
+        const outputFileName = makeResultTypesFileName(querySpec.queryName, srcLang);
+        const resultTypesSrc = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, outputFileName, opts);
+        await fs.writeFile(path.join(srcOutputDir, outputFileName), resultTypesSrc);
       }
     }
-
-    await writeRelationsMetadataModule(dbmdFile, tsOutputDir);
   }
   catch (e)
   {
-    if ( e.specLocation )
-      throw new Error(
-        "Error in query specification.\n" +
-        "-----------------------------\n" +
-        "In query: " + e.specLocation.queryName + "\n" +
-        (e.specLocation.queryPart ? "At part: " + e.specLocation.queryPart + "\n" : '') +
-        "Problem: " + e.problem + "\n" +
-        "-----------------------------\n"
-      );
-    else
-      throw e;
+    if ( e instanceof SpecError ) throw makeSpecLocationError(e);
+    else throw e;
   }
 }
 
-async function readDatabaseMetadata(dbmdFile: string)
+async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<QueryGroupSpec>
+{
+  if (typeof querySpecs === 'string')
+  {
+    await requireFileExists(querySpecs, 'Query specifications file not found.');
+    return await readQueriesSpecFile(querySpecs);
+  }
+  else
+    return querySpecs;
+}
+
+async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
 {
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
   const dbmdStoredProps = process.env.NODE_ENV !== 'test' ?
@@ -137,19 +135,24 @@ async function writeResultReprSqls
   return res;
 }
 
-function makeResultTypeModuleName(queryName: string): string
+function makeResultTypesFileName(queryName: string, sourceLanguage: SourceLanguage): string
 {
-  return queryName.replace(/ /g, '-').toLowerCase();
+  switch (sourceLanguage)
+  {
+    case 'TS': return queryName.replace(/ /g, '-').toLowerCase() + ".ts";
+    case 'Java': return upperCamelCase(queryName) + ".java";
+    default: throw new Error("Unrecognized source language");
+  }
 }
 
-export type CustomPropertyTypeFn = (prop: SimpleTableFieldProperty, resultType: ResultType) => string | null;
-
-export interface SourceGenerationOptions
+function makeSpecLocationError(e: SpecError): Error
 {
-  sqlResourcePathPrefix?: string;
-  typesHeaderFile?: string | null;
-  customPropertyTypeFn?: CustomPropertyTypeFn | null;
+  return new Error(
+    "Error in query specification.\n" +
+    "-----------------------------\n" +
+    "In query: " + e.specLocation.queryName + "\n" +
+    (e.specLocation.queryPart ? "At part: " + e.specLocation.queryPart + "\n" : '') +
+    "Problem: " + e.problem + "\n" +
+    "-----------------------------\n"
+  );
 }
-
-export * from './query-specs';
-export * from './result-types';

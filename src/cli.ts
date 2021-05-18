@@ -13,14 +13,14 @@ function printUsage(to: 'stderr' | 'stdout')
   out(`   --help - Show this message.`);
 }
 
-const reqdNamedParams = ['dbmd', 'query-specs', 'ts-output-dir', 'sql-output-dir'];
-const optlNamedParams = ['sql-resource-path-prefix', 'types-header'];
+const reqdNamedParams = ['dbmd', 'query-specs', 'src-output-dir', 'sql-output-dir'];
+const optlNamedParams = ['src-lang', 'sql-resource-path-prefix', 'types-header'];
 
-const argsParseResult = parseAppArgs(process.argv.slice(2), reqdNamedParams, optlNamedParams, 0);
+const parsedArgs = parseAppArgs(process.argv.slice(2), reqdNamedParams, optlNamedParams, 0);
 
-if ( typeof argsParseResult === 'string' )
+if ( typeof parsedArgs === 'string' )
 {
-  if ( argsParseResult === 'help' )
+  if ( parsedArgs === 'help' )
   {
     console.log('Help requested:');
     printUsage('stdout');
@@ -28,24 +28,20 @@ if ( typeof argsParseResult === 'string' )
   }
   else // error
   {
-    console.error(`Error: ${argsParseResult}`);
+    console.error(`Error: ${parsedArgs}`);
     process.exit(1);
   }
 }
 
-const opts: SourceGenerationOptions = {
-  sqlResourcePathPrefix: argsParseResult['sql-resource-path-prefix'] || '',
-  typesHeaderFile: argsParseResult['types-header'] || null,
-  customPropertyTypeFn: null
+const srcGenOpts: SourceGenerationOptions = {
+  sourceLanguage: parsedArgs['src-lang'] || 'TypeScript',
+  sqlResourcePathPrefix: parsedArgs['sql-resource-path-prefix'] || '',
+  typesHeaderFile: parsedArgs['types-header']
 };
 
-generateQueries(
-  argsParseResult['query-specs'],
-  argsParseResult['dbmd'],
-  argsParseResult['ts-output-dir'],
-  argsParseResult['sql-output-dir'],
-  opts
-)
+const {querySpecs, dbmd, srcOutDir, sqlOutDir} = parsedArgs;
+
+generateQueries(querySpecs, dbmd, srcOutDir, sqlOutDir, srcGenOpts)
 .catch((err: any) => {
   console.error('Query generation failed.');
   console.error(err);

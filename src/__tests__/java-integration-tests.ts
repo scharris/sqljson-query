@@ -3,14 +3,14 @@ import * as path from 'path';
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as child_process from 'child_process';
 import * as util from 'util';
-import {propertyNameDefaultFunction} from '../util';
+import {indentLines, propertyNameDefaultFunction} from '../util';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
-import {ResultTypesGenerator} from '../result-types-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQueries} from '..';
 import {DbHandle, getDbHandle} from './db/db-handle';
+const execFile = util.promisify(child_process.execFile);
 
 const dbType = process.env.TEST_DB_TYPE || 'pg';
 
@@ -23,14 +23,14 @@ afterAll(async () => {
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
-const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
-const resTypesSrcGen = new ResultTypesSourceGenerator({sqlResourcePathPrefix: '', typesHeaderFile: null, customPropertyTypeFn: null});
-const exec = util.promisify(child_process.exec);
+const srcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
+const java = { sourceLanguage: 'Java' } as const;
 
 if ( ['1','y','Y','true', 'True'].includes(process.env['SKIP_INTEGRATION_TESTS'] || '0') )
   test.only('skipping integration tests', () => {
     console.warn('skipping integration tests - unset environment variable SKIP_INTEGRATION_TESTS to include');
   });
+
 
 test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =
@@ -43,16 +43,18 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
       }
     };
 
-  const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-  const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
   const queryRes = await db.query(sql);
 
-  await compile(
-    resTypesModuleSrc + "\n" +
-    "const rowVals: Drug[] = " +
-    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+      )).join('\n')
   );
 });
 
@@ -67,20 +69,20 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
       }
     };
 
-  const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-  const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
   const queryRes = await db.query(sql);
 
-  await compile(
-    resTypesModuleSrc + "\n" +
-    "const rowVals: Drug[] = " +
-    JSON.stringify(queryRes.rows[0].json, null, 2) + ";"
+  await testWithResultTypes(
+    resTypesSrc,
+    `String resJson = ${JSON.stringify(JSON.stringify(queryRes.rows[0].json))};\n` +
+    `Drug[] drugs = jsonMapper.readValue(resJson.getBytes(), Drug[].class);\n`
   );
 });
 
-test('simple table field property names specified by jsonProperty attributes', async () => {
+test('table field property names specified by jsonProperty attributes', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -100,16 +102,18 @@ test('simple table field property names specified by jsonProperty attributes', a
       },
     };
 
-  const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-  const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
   const queryRes = await db.query(sql);
 
-  await compile(
-    resTypesModuleSrc + "\n" +
-    "const rowVals: Drug[] = " +
-    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
   );
 });
 
@@ -134,20 +138,22 @@ test('parent reference', async () => {
       }
     };
 
-  const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-  const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
   const queryRes = await db.query(sql);
 
-  await compile(
-    resTypesModuleSrc + "\n" +
-    "const rowVals: Compound[] = " +
-    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
   );
 });
 
-test('simple table field properties from inline parent tables', async () => {
+test('table field properties from inline parent tables', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -169,20 +175,22 @@ test('simple table field properties from inline parent tables', async () => {
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
+  );
 });
 
-test('simple field properties from an inlined parent and its own inlined parent', async () => {
+test('table field properties from an inlined parent and its own inlined parent', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -214,17 +222,19 @@ test('simple field properties from an inlined parent and its own inlined parent'
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
+  );
 });
 
 test('referenced parent property from an inlined parent', async () => {
@@ -254,17 +264,19 @@ test('referenced parent property from an inlined parent', async () => {
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
+  );
 });
 
 test('child collection property from an inlined parent', async () => {
@@ -293,17 +305,19 @@ test('child collection property from an inlined parent', async () => {
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child collection property from an inlined parent', async () => {
@@ -333,17 +347,19 @@ test('unwrapped child collection property from an inlined parent', async () => {
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
+  );
 });
 
 test('child collection', async () => {
@@ -367,20 +383,22 @@ test('child collection', async () => {
     }
   };
 
-  const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-  const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
   const queryRes = await db.query(sql);
 
-  await compile(
-    resTypesModuleSrc + "\n" +
-    "const rowVals: Analyst[] = " +
-    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
+    )).join('\n')
   );
 });
 
-test('unwrapped child table collection of simple table field property', async () => {
+test('unwrapped child table collection of table field property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -401,17 +419,19 @@ test('unwrapped child table collection of simple table field property', async ()
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Analyst[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child table collection of field exression property', async () => {
@@ -427,7 +447,7 @@ test('unwrapped child table collection of field exression property', async () =>
             tableJson: {
               table: 'compound',
               fieldExpressions: [
-                { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
+                { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'String' }
               ]
             },
             foreignKeyFields: ['entered_by'],
@@ -436,17 +456,19 @@ test('unwrapped child table collection of field exression property', async () =>
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  console.log(resTypesSrc);
+  const queryRes = await db.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Analyst[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child table collection of parent reference property', async () => {
@@ -476,17 +498,19 @@ test('unwrapped child table collection of parent reference property', async () =
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child table collection of inlined parent property', async () => {
@@ -516,17 +540,19 @@ test('unwrapped child table collection of inlined parent property', async () => 
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child collection of child collection property', async () => {
@@ -558,17 +584,19 @@ test('unwrapped child collection of child collection property', async () => {
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
+  );
 });
 
 test('unwrapped child collection of unwrapped child collection property', async () => {
@@ -601,17 +629,19 @@ test('unwrapped child collection of unwrapped child collection property', async 
       }
     };
 
-    const resTypes = resTypesGen.generateResultTypes(querySpec.tableJson, 'test query');
-    const resTypesModuleSrc = await resTypesSrcGen.getModuleSource(querySpec, resTypes, []);
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-    const queryRes = await db.query(sql);
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
+    )).join('\n')
+  );
 });
 
 test('generateQueries() produces expected output files', async () => {
@@ -661,15 +691,92 @@ test('generateQueries() produces expected output files', async () => {
 
   expect(new Set(tsFiles)).toEqual(new Set([
     'test-query-1.ts',
-    'test-query-2.ts',
-    'relations-metadata.ts'
+    'test-query-2.ts'
   ]));
 });
 
-async function compile(testSource: string): Promise<void>
+// TODO: Test generateRelationsMetadataSource().
+
+async function compileAndRunTest
+  (
+    resultTypesSource: string,
+    testSource: string
+  )
+  : Promise<void>
 {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sjq-tests-'), 'utf8');
-  const srcFileName = 'test.ts';
-  await fs.writeFile(path.join(tmpDir, srcFileName), testSource);
-  await exec(`tsc --strict ${srcFileName}`, {cwd: tmpDir});
+  await fs.writeFile(path.join(tmpDir, 'pom.xml'), mavenPomContents);
+  const srcDir = path.join(tmpDir, 'src/main/java/testpkg');
+  await fs.mkdir(srcDir, {recursive: true});
+  const resultTypesSourceFileName = 'TestQuery.java';
+  const testSourceFileName = 'TestQueryTest.java';
+  await fs.writeFile(path.join(srcDir, resultTypesSourceFileName), resultTypesSource);
+  await fs.writeFile(path.join(srcDir, testSourceFileName), testSource);
+  console.log(`Java files written to ${tmpDir}`);
+  // noinspection TypeScriptValidateTypes
+  await execFile(
+    'nix-shell',
+    ['-p', 'maven', 'openjdk11', '--run', 'mvn compile exec:java -Dexec.mainClass=testpkg.TestQueryTest'],
+    {cwd: tmpDir, env: process.env}
+  );
 }
+
+function testWithResultTypes(resTypesSrc: string, testSrc: string): Promise<void>
+{
+  return compileAndRunTest(
+    'package testpkg;\n' + resTypesSrc,
+    'package testpkg;\n' +
+    'import com.fasterxml.jackson.databind.ObjectMapper;\n' +
+    'import static com.fasterxml.jackson.databind.DeserializationFeature.*;\n\n' +
+    'import static testpkg.TestQuery.*;\n\n' +
+    'public class TestQueryTest {\n' +
+    '  public static void main(String[] args) throws Exception\n' +
+    '  {\n' +
+    '    ObjectMapper jsonMapper = new ObjectMapper().configure(FAIL_ON_UNKNOWN_PROPERTIES, true);\n\n' +
+    indentLines(testSrc, 4) + '\n' +
+    '  }\n' +
+    '}\n'
+  );
+}
+
+/// Maven file contents for compiling java source code for testing.
+const mavenPomContents =
+`<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>org.sqljson</groupId>
+   <artifactId>test-query</artifactId>
+   <version>1.0.0</version>
+   <name>test query test</name>
+   <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+      <checkerFrameworkVersion>3.1.1</checkerFrameworkVersion>
+   </properties>
+   <dependencies>
+      <dependency>
+         <groupId>com.fasterxml.jackson.core</groupId>
+         <artifactId>jackson-databind</artifactId>
+         <version>2.12.1</version>
+      </dependency>
+      <dependency>
+         <groupId>org.checkerframework</groupId>
+         <artifactId>checker-qual</artifactId>
+         <version>3.1.1</version>
+      </dependency>
+   </dependencies>
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.8.1</version>
+            <configuration>
+               <release>11</release>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+</project>
+`

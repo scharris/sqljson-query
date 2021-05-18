@@ -104,7 +104,7 @@ test('record condition properly restricts results for top level table', async ()
   expect(json.name).toBe('Test Drug 1');
 });
 
-test('simple table field property names specified by jsonProperty', async () => {
+test('table field property names specified by jsonProperty', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -133,7 +133,7 @@ test('simple table field property names specified by jsonProperty', async () => 
   expect(json.drugName).toBe('Test Drug 1');
 });
 
-test('simple table field property names default according to the provided naming function', async () => {
+test('table field property names default according to the provided naming function', async () => {
   const appendX = (fieldName: string) => fieldName + "X";
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), appendX, 2);
   const querySpec: QuerySpec =
@@ -184,7 +184,7 @@ test('non-unwrapped child table collection', async () => {
     .toEqual(new Set(['2|Test Compound 2', '4|Test Compound 4']));
 });
 
-test('unwrapped child table collection of simple table field property', async () => {
+test('unwrapped child table collection of table field property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -485,7 +485,7 @@ test('referenced parent table', async () => {
   expect(json.enteredByAnalyst.shortName).toBe('sch');
 });
 
-test('simple table field properties from inline parent tables', async () => {
+test('table field properties from inline parent tables', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -519,7 +519,7 @@ test('simple table field properties from inline parent tables', async () => {
   expect(json.analystShortName).toBe('sch');
 });
 
-test('simple field properties from an inlined parent and its own inlined parent', async () => {
+test('table field properties from an inlined parent and its own inlined parent', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {

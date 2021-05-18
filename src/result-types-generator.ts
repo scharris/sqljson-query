@@ -1,7 +1,7 @@
 import {caseNormalizeName, makeMap} from './util';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
-  ResultType, ChildCollectionProperty, SimpleTableFieldProperty, TableExpressionProperty,
+  ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
 } from './result-types';
 import {
@@ -36,7 +36,7 @@ export class ResultTypesGenerator
     const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(relId);
 
     // Add the table's own fields and expressions involving those fields.
-    typeBuilder.addSimpleTableFieldProperties(this.getSimpleTableFieldProperties(relId, tjs.fieldExpressions, dbFieldsByName));
+    typeBuilder.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions, dbFieldsByName));
     typeBuilder.addTableExpressionProperties(getTableExpressionProperties(relId, tjs.fieldExpressions));
 
     // Inline parents can contribute fields to any primary field category (table field,
@@ -74,17 +74,17 @@ export class ResultTypesGenerator
     return resultTypes;
   }
 
-  private getSimpleTableFieldProperties
+  private getTableFieldProperties
     (
       relId: RelId,
       tableFieldExpressions: (string | TableFieldExpr)[] | undefined,
       dbFieldsByName: Map<string,Field>
     )
-    : SimpleTableFieldProperty[]
+    : TableFieldProperty[]
   {
     if ( !tableFieldExpressions ) return [];
 
-    const fields: SimpleTableFieldProperty[] = [];
+    const fields: TableFieldProperty[] = [];
 
     for ( const tfe of tableFieldExpressions )
     {
@@ -95,7 +95,7 @@ export class ResultTypesGenerator
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if ( dbField == undefined )
           throw new Error(`No metadata found for field ${relIdString(relId)}.${fieldName}.`);
-        fields.push(this.makeSimpleTableFieldProperty(tfe, dbField));
+        fields.push(this.makeTableFieldProperty(tfe, dbField));
       }
     }
 
@@ -194,12 +194,12 @@ export class ResultTypesGenerator
     return { childCollectionProperties, resultTypes };
   }
 
-  private makeSimpleTableFieldProperty
+  private makeTableFieldProperty
     (
       tfe: string | TableFieldExpr,
       dbField: Field
     )
-    : SimpleTableFieldProperty
+    : TableFieldProperty
   {
     return {
       name: this.getOutputFieldName(tfe, dbField),
@@ -281,16 +281,16 @@ class ResultTypeBuilder
   constructor
     (
       private readonly queryName: string,
-      private readonly simpleTableFieldProperties: SimpleTableFieldProperty[] = [],
+      private readonly tableFieldProperties: TableFieldProperty[] = [],
       private readonly tableExpressionProperties: TableExpressionProperty[] = [],
       private readonly parentReferenceProperties: ParentReferenceProperty[] = [],
       private readonly childCollectionProperties: ChildCollectionProperty[] = []
     )
   {}
 
-  addSimpleTableFieldProperties(fs: SimpleTableFieldProperty[])
+  addTableFieldProperties(fs: TableFieldProperty[])
   {
-    fs.forEach(f => this.simpleTableFieldProperties.push(f));
+    fs.forEach(f => this.tableFieldProperties.push(f));
   }
 
   addTableExpressionProperties(fs: TableExpressionProperty[])
@@ -319,14 +319,14 @@ class ResultTypeBuilder
       // Add nullable form of each field, as considered prior to any field
       // type overrides which are applied elsewhere (writing stage).
       // Expression fields are already nullable so need no transformation.
-      this.addSimpleTableFieldProperties(resultType.simpleTableFieldProperties.map(toNullableField));
+      this.addTableFieldProperties(resultType.tableFieldProperties.map(toNullableField));
       this.addTableExpressionProperties(resultType.tableExpressionProperty);
       this.addParentReferenceProperties(resultType.parentReferenceProperties.map(toNullableField));
       this.addChildCollectionProperties(resultType.childCollectionProperties.map(toNullableField));
     }
     else
     {
-      this.addSimpleTableFieldProperties(resultType.simpleTableFieldProperties);
+      this.addTableFieldProperties(resultType.tableFieldProperties);
       this.addTableExpressionProperties(resultType.tableExpressionProperty);
       this.addParentReferenceProperties(resultType.parentReferenceProperties);
       this.addChildCollectionProperties(resultType.childCollectionProperties);
@@ -335,7 +335,7 @@ class ResultTypeBuilder
 
   addFieldsFromTypeBuilder(resultTypeBuilder: ResultTypeBuilder)
   {
-    this.addSimpleTableFieldProperties(resultTypeBuilder.simpleTableFieldProperties);
+    this.addTableFieldProperties(resultTypeBuilder.tableFieldProperties);
     this.addTableExpressionProperties(resultTypeBuilder.tableExpressionProperties);
     this.addParentReferenceProperties(resultTypeBuilder.parentReferenceProperties);
     this.addChildCollectionProperties(resultTypeBuilder.childCollectionProperties);
@@ -350,7 +350,7 @@ class ResultTypeBuilder
     return {
       queryName: this.queryName,
       table,
-      simpleTableFieldProperties: this.simpleTableFieldProperties,
+      tableFieldProperties: this.tableFieldProperties,
       tableExpressionProperty: this.tableExpressionProperties,
       parentReferenceProperties: this.parentReferenceProperties,
       childCollectionProperties: this.childCollectionProperties,

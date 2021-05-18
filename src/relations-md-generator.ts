@@ -1,16 +1,20 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
-import {makeArrayValuesMap,valueOr,indentLines} from './util';
+import {makeArrayValuesMap, valueOr, indentLines} from './util';
 import {DatabaseMetadata, RelMetadata} from './database-metadata';
+import {SourceLanguage} from './source-generation-options';
 
-export async function writeRelationsMetadataModule
+export async function generateRelationsMetadataSource
   (
     dbmdFile: string,
-    sourceOutputDir: string
+    sourceOutputDir: string,
+    srcLanguage: SourceLanguage
   )
 {
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
   const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
+
+  // TODO: Make the rest conditional on srcLanguage.
 
   const outputFile = path.join(sourceOutputDir, "relations-metadata.ts");
 
@@ -38,7 +42,7 @@ function relationsModuleSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`export const ${schema} = { // schema '${schema}'\n`);
+    parts.push(`export const ${schema} = { // schema '${schema}'\n\n`);
 
     for ( const relMd of relMds )
     {

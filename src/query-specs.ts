@@ -129,7 +129,7 @@ export function getReferencedParentSpecs(tableSpec: TableJsonSpec): ReferencedPa
   );
 }
 
-export function getQuerySpecParamNames(querySpec: QuerySpec): string[]
+export function getQueryParamNames(querySpec: QuerySpec): string[]
 {
   return getParamNames(querySpec.tableJson);
 }
