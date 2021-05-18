@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [ '10.x', '14.x', '15.x' ]
+        node-version: [ '10.x', '14.x', '16.x' ]
     name: Node ${{ matrix.node-version }} / ${{ matrix.db-type }}
     env:
       TEST_DB_TYPE: pg
@@ -50,6 +50,11 @@ jobs:
         run: npm ci
       - name: Build project
         run: npm run build
+      - name: Set up JDK 11 for Java tests
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
       - name: Run project tests
         run: npm test
         env:

@@ -715,8 +715,8 @@ async function compileAndRunTest
 
   // noinspection TypeScriptValidateTypes
   await execFile(
-    'nix-shell',
-    ['-p', 'maven', 'openjdk11', '--run', 'mvn compile exec:java -Dexec.mainClass=testpkg.TestQueryTest'],
+    'mvn',
+    ['compile', 'exec:java', '-Dexec.mainClass=testpkg.TestQueryTest'],
     {cwd: tmpDir, env: process.env}
   );
 }
