@@ -1,6 +1,6 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
-import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet} from './util';
+import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines} from './util';
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
@@ -10,7 +10,6 @@ import {QueryReprSqlPath} from './query-repr-sql-path';
 import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options';
 import {DatabaseMetadata} from './database-metadata';
 import {ResultTypesGenerator} from './result-types-generator';
-import {indentLines} from '../lib/util';
 
 export class ResultTypesSourceGenerator
 {
