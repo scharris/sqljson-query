@@ -459,7 +459,7 @@ test('unwrapped child table collection of field exression property', async () =>
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
-  console.log(resTypesSrc);
+
   const queryRes = await db.query(sql);
 
   await testWithResultTypes(
@@ -712,7 +712,7 @@ async function compileAndRunTest
   const testSourceFileName = 'TestQueryTest.java';
   await fs.writeFile(path.join(srcDir, resultTypesSourceFileName), resultTypesSource);
   await fs.writeFile(path.join(srcDir, testSourceFileName), testSource);
-  console.log(`Java files written to ${tmpDir}`);
+
   // noinspection TypeScriptValidateTypes
   await execFile(
     'nix-shell',

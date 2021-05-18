@@ -4,5 +4,6 @@
   "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(ts)$",
   "testPathIgnorePatterns": ["<rootDir>/lib/", "<rootDir>/node_modules/", "<rootDir>/src/__tests__/db/"],
   "moduleFileExtensions": ["ts", "js", "json"],
-  "testTimeout": 20000
+  "testTimeout": 20000,
+  "verbose": true
 }
