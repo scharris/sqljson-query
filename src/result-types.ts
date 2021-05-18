@@ -47,14 +47,14 @@ export interface TableFieldProperty
   readonly precision: number | null;
   readonly fractionalDigits: number | null;
   readonly nullable: boolean | null;
-  readonly specifiedSourceCodeFieldType: string | null; // As optionally specified in query spec.
+  readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As optionally specified in query spec.
 }
 
 export interface TableExpressionProperty
 {
   readonly name: string;
   readonly fieldExpression: string | null;
-  readonly specifiedSourceCodeFieldType: string | null; // As specified in query spec.
+  readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As specified in query spec.
 }
 
 export interface ParentReferenceProperty

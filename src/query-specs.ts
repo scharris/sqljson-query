@@ -1,5 +1,7 @@
 import * as _ from 'lodash';
 
+import {SourceLanguage} from './source-generation-options';
+
 export interface QueryGroupSpec
 {
   defaultSchema?: string;
@@ -35,7 +37,7 @@ export interface TableFieldExpr
   field?: string;
   expression?: string;
   jsonProperty?: string; // Required if value is not a simple field name.
-  fieldTypeInGeneratedSource?: string;
+  fieldTypeInGeneratedSource?: string | {[srcLang: string]: string};
   withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
 }
 

@@ -413,7 +413,7 @@ test('unwrapped child table collection of table field property', async () => {
     );
 });
 
-test('unwrapped child table collection of field exression property', async () => {
+test('unwrapped child table collection of field expression property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -446,6 +446,43 @@ test('unwrapped child table collection of field exression property', async () =>
       "const rowVals: Analyst[] = " +
       JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
     );
+});
+
+test('unwrapped child table collection of field expression property with lang-specific type', async () => {
+  const querySpec: QuerySpec =
+    {
+      queryName: 'test query',
+      tableJson: {
+        table: 'analyst',
+        childTables: [
+          {
+            collectionName: 'compoundsEntered',
+            unwrap: true,
+            tableJson: {
+              table: 'compound',
+              fieldExpressions: [
+                { expression: 'lower(display_name)',
+                  jsonProperty: 'lcName',
+                  fieldTypeInGeneratedSource: {'TS': 'string', 'Java': 'String'} }
+              ]
+            },
+            foreignKeyFields: ['entered_by'],
+          }
+        ]
+      }
+    };
+
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+
+  const queryRes = await db.query(sql);
+
+  await compile(
+    resTypesModuleSrc + "\n" +
+    "const rowVals: Analyst[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 });
 
 test('unwrapped child table collection of parent reference property', async () => {

@@ -209,7 +209,7 @@ export class ResultTypesGenerator
       precision: dbField.precision || null,
       fractionalDigits: dbField.fractionalDigits || null,
       nullable: dbField.nullable != undefined ? dbField.nullable : null,
-      specifiedSourceCodeFieldType: getSpecifiedSourceCodeFieldType(tfe)
+      specifiedSourceCodeFieldType: typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null
     };
   }
 
@@ -387,11 +387,6 @@ function getTableExpressionProperties
   }
 
   return fields;
-}
-
-function getSpecifiedSourceCodeFieldType(tfe: string | TableFieldExpr): string | null
-{
-  return typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null;
 }
 
 /// Return nullable variant of a database field, for any of the above field types

@@ -471,6 +471,45 @@ test('unwrapped child table collection of field exression property', async () =>
   );
 });
 
+test('unwrapped child table collection of field expression property with lang-specific type', async () => {
+  const querySpec: QuerySpec =
+    {
+      queryName: 'test query',
+      tableJson: {
+        table: 'analyst',
+        childTables: [
+          {
+            collectionName: 'compoundsEntered',
+            unwrap: true,
+            tableJson: {
+              table: 'compound',
+              fieldExpressions: [
+                { expression: 'lower(display_name)',
+                  jsonProperty: 'lcName',
+                  fieldTypeInGeneratedSource: {'TS': 'string', 'Java': 'String'} }
+              ]
+            },
+            foreignKeyFields: ['entered_by'],
+          }
+        ]
+      }
+    };
+
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+
+  const queryRes = await db.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
+    )).join('\n')
+  );
+});
+
 test('unwrapped child table collection of parent reference property', async () => {
   const querySpec: QuerySpec =
     {

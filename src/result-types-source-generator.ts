@@ -205,7 +205,7 @@ function tsResultTypeDeclaration
     `${f.name}: ${tableFieldPropertyType(f, resType, customPropTypeFn, 'TS')};`
   ));
   resType.tableExpressionProperty.forEach(f => lines.push('  ' +
-    `${f.name}: ${tableExpressionPropertyType(f)};`
+    `${f.name}: ${tableExpressionPropertyType(f, 'TS')};`
   ));
   resType.parentReferenceProperties.forEach(f => lines.push('  ' +
     `${f.name}: ${parentReferencePropertyType(f, resTypeNameAssignments, 'TS')};`
@@ -235,7 +235,7 @@ function javaResultTypeDeclaration
     `public ${tableFieldPropertyType(f, resType, customPropTypeFn, 'Java')} ${f.name};`
   ));
   resType.tableExpressionProperty.forEach(f => lines.push('  ' +
-    `public ${tableExpressionPropertyType(f)} ${f.name};`
+    `public ${tableExpressionPropertyType(f, 'Java')} ${f.name};`
   ));
   resType.parentReferenceProperties.forEach(f => lines.push('  ' +
     `public ${parentReferencePropertyType(f, resTypeNameAssignments, 'Java')} ${f.name};`
@@ -258,7 +258,7 @@ function tableFieldPropertyType
   : string
 {
   if ( tfp.specifiedSourceCodeFieldType != null )
-    return tfp.specifiedSourceCodeFieldType;
+    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, srcLang);
 
   const customizedType = customPropTypeFn && customPropTypeFn(tfp, inResType);
   if ( customizedType )
@@ -307,11 +307,36 @@ function tableFieldPropertyType
   }
 }
 
-function tableExpressionPropertyType(tep: TableExpressionProperty): string
+function tableExpressionPropertyType
+  (
+    tep: TableExpressionProperty,
+    srcLang: SourceLanguage
+  )
+  : string
 {
   if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
     throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
-  return tep.specifiedSourceCodeFieldType;
+
+  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, srcLang);
+}
+
+function specifiedSourceCodeFieldType
+  (
+    specSourceCodeFieldType: string | {[srcLang: string]: string},
+    srcLang: SourceLanguage
+  )
+  : string
+{
+  switch (typeof specSourceCodeFieldType)
+  {
+    case 'string':
+      return specSourceCodeFieldType;
+    default:
+      if ( !(srcLang in specSourceCodeFieldType) ) throw new Error(
+        `Expression type for language ${srcLang} not specified for table expression property ${specSourceCodeFieldType}.`
+      );
+      return specSourceCodeFieldType[srcLang];
+  }
 }
 
 function parentReferencePropertyType
@@ -362,7 +387,7 @@ function getSolePropertyType
   if (resType.tableFieldProperties.length === 1)
     return tableFieldPropertyType(resType.tableFieldProperties[0], resType, customPropTypeFn, srcLang);
   else if (resType.tableExpressionProperty.length === 1)
-    return tableExpressionPropertyType(resType.tableExpressionProperty[0]);
+    return tableExpressionPropertyType(resType.tableExpressionProperty[0], srcLang);
   else if (resType.childCollectionProperties.length === 1)
     return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, customPropTypeFn, srcLang);
   else if (resType.parentReferenceProperties.length === 1)
