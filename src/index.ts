@@ -19,6 +19,7 @@ import {ResultTypesSourceGenerator} from './result-types-source-generator';
 export * from './source-generation-options';
 export * from './query-specs';
 export * from './result-types';
+export * from './relations-md-generator';
 
 export async function generateQueries
   (
