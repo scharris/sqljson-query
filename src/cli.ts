@@ -47,7 +47,10 @@ async function main(): Promise<void>
     }
   }
 
-  const {querySpecs, dbmd, srcOutputDir, sqlOutputDir} = parsedArgs;
+  const dbmd = parsedArgs['dbmd'];
+  const querySpecs = parsedArgs['query-specs'];
+  const srcOutputDir = parsedArgs['src-output-dir'];
+  const sqlOutputDir = parsedArgs['sql-output-dir'];
 
   try
   {
