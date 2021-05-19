@@ -1,10 +1,12 @@
 {
   "name": "sqljson-query",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
-    "database"
+    "SQL/JSON",
+    "database",
+    "ORM"
   ],
   "author": "Stephen C. Harris",
   "license": "MIT",
