@@ -6,7 +6,6 @@ import {
   propertyNameDefaultFunction,
   requireDirExists,
   requireFileExists,
-  validateJson,
   upperCamelCase
 } from './util';
 import {DatabaseMetadata} from './database-metadata';
@@ -81,10 +80,8 @@ async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<
 async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
 {
   const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
-  const dbmdStoredProps = process.env.NODE_ENV !== 'test' ?
-    validateJson("database metadata", dbmdStoredPropsJson, require('./schemas/dbmd.schema.json'))
-    : JSON.parse(dbmdStoredPropsJson);
-  return new DatabaseMetadata(dbmdStoredProps);
+  // TODO: Validate the dbmd file contents somehow here.
+  return new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
 }
 
 async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
@@ -95,12 +92,6 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
     const modulePath = filePath.startsWith('./') ? process.cwd() + filePath.substring(1) : filePath;
     const mod = await import(modulePath);
     return mod.default;
-  }
-  else if (fileExt === '.json')
-  {
-    const querySpecsSchema = require('./schemas/query-specs.schema.json');
-    const queryGroupSpecJson = await fs.readFile(filePath, 'utf8');
-    return validateJson("query specs", queryGroupSpecJson, querySpecsSchema) as QueryGroupSpec;
   }
   else
     throw new Error('Unrecognized file extension for query specs file.');
