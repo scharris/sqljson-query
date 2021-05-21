@@ -1,6 +1,6 @@
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as path from 'path';
-import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines} from './util';
+import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase} from './util';
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
@@ -47,7 +47,7 @@ export class ResultTypesSourceGenerator
       case 'Java':
         if ( fileName == null ) throw new Error('file name is required to generate Java result types source code.');
         return await makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, fileName, opts);
-      default: missingLang(srcLang);
+      default: missingCase(srcLang);
     }
   }
 } // ends class ResultTypesSourceGenerator
@@ -98,6 +98,7 @@ async function makeJavaSource
     indentLines(queryParamDefinitions(queryParamNames, 'Java'), 2) + '\n\n';
 
   return (
+    (opts.javaPackage ? `package ${opts.javaPackage};\n\n` : '') +
     await generalTypesFileHeader(opts.typesHeaderFile) +
     (queryTypesFileHeader || '') + '\n' +
     javaStandardImports + '\n\n' +
@@ -148,7 +149,7 @@ function queryParamDefinitions(paramNames: string[], srcLang: SourceLanguage): s
   const makeParamDecl: (paramName: string) => string =
     srcLang == 'TS' ? (paramName: string) => `export const ${paramName}Param = '${paramName}';` :
     srcLang == 'Java' ? (paramName: string) => `   public static final String ${paramName}Param = \"${paramName}\";` :
-      missingLang(srcLang)
+      missingCase(srcLang)
   return paramNames.map(makeParamDecl).join('\n\n');
 }
 
@@ -170,7 +171,7 @@ function resultTypeDeclarations
   const makeTypeDecl =
     srcLang === 'TS' ? tsResultTypeDeclaration :
     srcLang === 'Java' ? javaResultTypeDeclaration :
-      missingLang(srcLang)
+      missingCase(srcLang)
 
   for ( const resType of resultTypes )
   {
@@ -368,7 +369,7 @@ function childCollectionPropertyType
   {
     case 'TS': return withNullability(p.nullable, `${collElType}[]`, 'TS');
     case 'Java': return withNullability(p.nullable, `List<${collElType}>`, 'Java');
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -410,7 +411,7 @@ function generalNumericTableFieldPropertyType(fp: TableFieldProperty, srcLang: S
         const primTypeName = fp.precision == null || fp.precision > 9 ? "long" : "int";
         return withNullability(fp.nullable, primTypeName, 'Java');
       }
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -420,7 +421,7 @@ function floatingNumericTableFieldPropertyType(fp: TableFieldProperty, srcLang: 
   {
     case 'TS': return withNullability(fp.nullable, 'number', 'TS');
     case 'Java': return withNullability(fp.nullable, "double", 'Java');
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -430,7 +431,7 @@ function textTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLangu
   {
     case 'TS': return withNullability(fp.nullable, 'string', 'TS');
     case 'Java': return withNullability(fp.nullable, "String", 'Java');
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -440,7 +441,7 @@ function booleanTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLa
   {
     case 'TS': return withNullability(fp.nullable, 'boolean', 'TS');
     case 'Java': return withNullability(fp.nullable, "boolean", 'Java');
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -450,7 +451,7 @@ function jsonTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLangu
   {
     case 'TS': return withNullability(fp.nullable, 'any', 'TS');
     case 'Java': return withNullability(fp.nullable, 'JsonNode', 'Java');
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -469,7 +470,7 @@ function withNullability
     case 'Java':
       if (nullable) return '@Nullable ' + toJavaReferenceType(typeName);
       else return typeName;
-    default: missingLang(srcLang);
+    default: missingCase(srcLang);
   }
 }
 
@@ -540,11 +541,4 @@ const javaStandardImports: string =
   'import com.fasterxml.jackson.databind.node.*;\n';
 
 type NonLangSrcGenOptions = Omit<SourceGenerationOptions, 'sourceLanguage'>;
-
-function missingLang(srcLang: never): never
-{
-  let _: never;
-  console.log(_ = srcLang);
-  return _;
-}
 

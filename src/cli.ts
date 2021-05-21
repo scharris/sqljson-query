@@ -13,7 +13,6 @@ function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
   out(`   --help - Show this message.`);
 }
 
-
 function getSourceLanguage(srcLang: string | undefined): SourceLanguage
 {
   switch (srcLang)
@@ -28,7 +27,7 @@ function getSourceLanguage(srcLang: string | undefined): SourceLanguage
 async function main(): Promise<void>
 {
   const reqdNamedParams = ['dbmd', 'query-specs', 'src-output-dir', 'sql-output-dir'];
-  const optlNamedParams = ['src-lang', 'sql-resource-path-prefix', 'types-header'];
+  const optlNamedParams = ['src-lang', 'sql-resource-path-prefix', 'types-header', 'java-pkg'];
 
   const parsedArgs = parseAppArgs(process.argv.slice(2), reqdNamedParams, optlNamedParams, 0);
 
@@ -56,12 +55,13 @@ async function main(): Promise<void>
   {
     const srcGenOpts: SourceGenerationOptions & { sourceLanguage: SourceLanguage } = {
       sourceLanguage: getSourceLanguage(parsedArgs['src-lang']),
+      javaPackage: parsedArgs['java-pkg'],
       sqlResourcePathPrefix: parsedArgs['sql-resource-path-prefix'] || '',
       typesHeaderFile: parsedArgs['types-header']
     };
 
     await generateQueries(querySpecs, dbmd, srcOutputDir, sqlOutputDir, srcGenOpts);
-    await generateRelationsMetadataSource(dbmd, srcOutputDir, srcGenOpts.sourceLanguage);
+    await generateRelationsMetadataSource(dbmd, srcOutputDir, srcGenOpts.sourceLanguage, srcGenOpts.javaPackage);
   }
   catch(e: any)
   {
