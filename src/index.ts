@@ -6,6 +6,7 @@ import {
   propertyNameDefaultFunction,
   requireDirExists,
   requireFileExists,
+  missingCase,
   upperCamelCase
 } from './util';
 import {DatabaseMetadata} from './database-metadata';
@@ -127,13 +128,13 @@ async function writeResultReprSqls
   return res;
 }
 
-function makeResultTypesFileName(queryName: string, sourceLanguage: SourceLanguage): string
+function makeResultTypesFileName(queryName: string, srcLang: SourceLanguage): string
 {
-  switch (sourceLanguage)
+  switch (srcLang)
   {
     case 'TS': return queryName.replace(/ /g, '-').toLowerCase() + ".ts";
     case 'Java': return upperCamelCase(queryName) + ".java";
-    default: throw new Error("Unrecognized source language");
+    default: missingCase(srcLang);
   }
 }
 
@@ -148,3 +149,4 @@ function makeSpecLocationError(e: SpecError): Error
     "-----------------------------\n"
   );
 }
+

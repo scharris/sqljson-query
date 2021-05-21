@@ -7,6 +7,7 @@ export type CustomPropertyTypeFn = (prop: TableFieldProperty, resultType: Result
 export interface SourceGenerationOptions
 {
   sourceLanguage?: SourceLanguage;
+  javaPackage?: string;
   sqlResourcePathPrefix?: string;
   typesHeaderFile?: string;
   customPropertyTypeFn?: CustomPropertyTypeFn;
