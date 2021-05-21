@@ -227,26 +227,34 @@ function javaResultTypeDeclaration
   )
   : string
 {
-  const lines: string[] = [];
+  const fieldDecls: string[] = [];
+
+  resType.tableFieldProperties.forEach(f => {
+    const fieldType = tableFieldPropertyType(f, resType, customPropTypeFn, 'Java');
+    fieldDecls.push(`public ${fieldType} ${f.name};`);
+  });
+  resType.tableExpressionProperty.forEach(f => {
+    const fieldType = tableExpressionPropertyType(f, 'Java');
+    fieldDecls.push(`public ${fieldType} ${f.name};`);
+  });
+  resType.parentReferenceProperties.forEach(f => {
+    const fieldType = parentReferencePropertyType(f, resTypeNameAssignments, 'Java');
+    fieldDecls.push(`public ${fieldType} ${f.name};`);
+  });
+  resType.childCollectionProperties.forEach(f => {
+    const fieldType = childCollectionPropertyType(f, resTypeNameAssignments, customPropTypeFn, 'Java');
+    fieldDecls.push(`public ${fieldType} ${f.name};`);
+  });
+
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
-  lines.push(`public static class ${resTypeName}`);
-  lines.push('{');
-  resType.tableFieldProperties.forEach(f => lines.push('  ' +
-    `public ${tableFieldPropertyType(f, resType, customPropTypeFn, 'Java')} ${f.name};`
-  ));
-  resType.tableExpressionProperty.forEach(f => lines.push('  ' +
-    `public ${tableExpressionPropertyType(f, 'Java')} ${f.name};`
-  ));
-  resType.parentReferenceProperties.forEach(f => lines.push('  ' +
-    `public ${parentReferencePropertyType(f, resTypeNameAssignments, 'Java')} ${f.name};`
-  ));
-  resType.childCollectionProperties.forEach(f => lines.push('  ' +
-    `public ${childCollectionPropertyType(f, resTypeNameAssignments, customPropTypeFn, 'Java')} ${f.name};`
-  ));
-  lines.push('}')
-
-  return lines.join('\n');
+  return (
+    '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
+    `public static class ${resTypeName}\n` +
+    '{\n' +
+    indentLines(fieldDecls.join('\n'), 2) + '\n' +
+    '}'
+  );
 }
 
 function tableFieldPropertyType

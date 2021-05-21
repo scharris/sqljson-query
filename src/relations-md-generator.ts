@@ -70,20 +70,23 @@ function relationsJavaSource(dbmd: DatabaseMetadata): string
       relMd => relMd
     );
 
-  parts.push('public class Relations');
+  parts.push('public class RelationsMetadata');
   parts.push('{');
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`  public static class ${schema} = { // schema '${schema}'\n`);
+    parts.push(`  public static class ${schema} // schema '${schema}'`);
+    parts.push('  {');
 
     for ( const relMd of relMds )
     {
       parts.push(indentLines(relationMetadataJavaSource(relMd), 4));
     }
 
-    parts.push("}"); // close schema object
+    parts.push("  }"); // schema class
   }
+
+  parts.push("}"); // Relations class
 
   return parts.join('\n');
 }
