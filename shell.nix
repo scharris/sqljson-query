@@ -2,8 +2,7 @@ with (import <nixpkgs> {});
 
 mkShell {
   buildInputs = [
-    nodejs
-    nodePackages.typescript
+    deno
     openjdk11
     maven
   ];
