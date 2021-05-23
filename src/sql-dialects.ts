@@ -1,4 +1,4 @@
-import {indentLines, unDoubleQuote} from './util/index.ts';
+import {indentLines, unDoubleQuote} from './util/mod.ts';
 import {DatabaseMetadata} from './database-metadata.ts';
 
 

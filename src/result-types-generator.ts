@@ -1,4 +1,4 @@
-import {caseNormalizeName, makeMap} from './util/index.ts';
+import {caseNormalizeName, makeMap} from './util/mod.ts';
 import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata.ts';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,

@@ -1,7 +1,7 @@
 import {QuerySpec} from '../query-specs';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
-import {propertyNameDefaultFunction} from '../util';
+import {propertyNameDefaultFunction} from '../util/mod.ts';
 
 const dbmdStoredProps = require('./db/pg/dbmd.json');
 const dbmd = new DatabaseMetadata(dbmdStoredProps);

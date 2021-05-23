@@ -7,9 +7,9 @@ import {
   missingCase,
   upperCamelCase,
   writeTextFile,
-  readTextFile
-} from './util/index.ts';
-import {cwd} from './util/process.ts';
+  readTextFile,
+  cwd
+} from './util/mod.ts';
 import {DatabaseMetadata} from './database-metadata.ts';
 import {SourceGenerationOptions, SourceLanguage} from './source-generation-options.ts';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs.ts';

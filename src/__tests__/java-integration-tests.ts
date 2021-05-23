@@ -3,7 +3,7 @@ import * as path from 'path';
 import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
 import * as child_process from 'child_process';
 import * as util from 'util';
-import {indentLines, propertyNameDefaultFunction} from '../util';
+import {indentLines, propertyNameDefaultFunction} from '../util/mod.ts';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';

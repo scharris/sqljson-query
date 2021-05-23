@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import {parseAppArgs} from './util/args.ts';
-import {exit} from './util/process.ts';
-import {generateQueries, generateRelationsMetadataSource, SourceGenerationOptions, SourceLanguage} from './index.ts';
+import {parseAppArgs,exit} from './util/mod.ts';
+import {generateQueries, generateRelationsMetadataSource, SourceGenerationOptions, SourceLanguage} from './mod.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
 {

@@ -1,4 +1,4 @@
-import {propertyNameDefaultFunction} from '../util';
+import {propertyNameDefaultFunction} from '../util/mod.ts';
 import {TableJsonSpec} from '../query-specs';
 import {DatabaseMetadata} from '../database-metadata';
 import {ResultTypesGenerator} from '../result-types-generator';

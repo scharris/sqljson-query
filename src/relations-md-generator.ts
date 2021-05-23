@@ -1,5 +1,5 @@
 import {path} from './deps.ts';
-import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/index.ts';
+import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/mod.ts';
 import {DatabaseMetadata, RelMetadata} from './database-metadata.ts';
 import {SourceLanguage} from './source-generation-options.ts';
 

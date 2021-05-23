@@ -1,6 +1,6 @@
 import {path} from './deps.ts';
 import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase, readTextFile}
-  from './util/index.ts';
+  from './util/mod.ts';
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs.ts';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,

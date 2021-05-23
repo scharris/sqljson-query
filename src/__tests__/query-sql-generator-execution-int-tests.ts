@@ -1,4 +1,4 @@
-import {propertyNameDefaultFunction} from '../util';
+import {propertyNameDefaultFunction} from '../util/mod.ts';
 import {QuerySpec} from '..';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';

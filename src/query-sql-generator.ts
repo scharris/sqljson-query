@@ -1,7 +1,7 @@
 import {
   makeMap, mapSet, caseNormalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
   lowerCaseInitials, makeNameNotInSet, replaceAll
-} from './util/index.ts';
+} from './util/mod.ts';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
   CustomJoinCondition, ParentSpec, ReferencedParentSpec, InlineParentSpec, getInlineParentSpecs,

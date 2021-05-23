@@ -1,4 +1,4 @@
-import {caseNormalizeName} from './util/index.ts';
+import {caseNormalizeName} from './util/mod.ts';
 import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata.ts';
 import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs.ts';
 
