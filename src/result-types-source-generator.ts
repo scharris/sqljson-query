@@ -1,15 +1,15 @@
-import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
-import * as path from 'path';
-import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase} from './util';
-import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
+import {path} from './deps.ts';
+import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase, readTextFile}
+  from './util/index.ts';
+import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs.ts';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount, resultTypesEqual
-} from './result-types';
-import {QueryReprSqlPath} from './query-repr-sql-path';
-import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options';
-import {DatabaseMetadata} from './database-metadata';
-import {ResultTypesGenerator} from './result-types-generator';
+} from './result-types.ts';
+import {QueryReprSqlPath} from './query-repr-sql-path.ts';
+import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options.ts';
+import {DatabaseMetadata} from './database-metadata.ts';
+import {ResultTypesGenerator} from './result-types-generator.ts';
 
 export class ResultTypesSourceGenerator
 {
@@ -114,7 +114,7 @@ async function makeJavaSource
 
 async function generalTypesFileHeader(typesHeaderFile: string | undefined): Promise<string>
 {
-  if ( typesHeaderFile != null ) return await fs.readFile(typesHeaderFile, 'utf8') + "\n";
+  if ( typesHeaderFile != null ) return await readTextFile(typesHeaderFile) + "\n";
   else return '';
 }
 

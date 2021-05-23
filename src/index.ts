@@ -1,25 +1,26 @@
-import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
-import * as path from 'path';
-import * as process from 'process';
+import {path} from './deps.ts';
 import {
   valueOr,
   propertyNameDefaultFunction,
   requireDirExists,
   requireFileExists,
   missingCase,
-  upperCamelCase
-} from './util';
-import {DatabaseMetadata} from './database-metadata';
-import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
-import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
-import {QuerySqlGenerator} from './query-sql-generator';
-import {QueryReprSqlPath} from './query-repr-sql-path';
-import {ResultTypesSourceGenerator} from './result-types-source-generator';
+  upperCamelCase,
+  writeTextFile,
+  readTextFile
+} from './util/index.ts';
+import {cwd} from './util/process.ts';
+import {DatabaseMetadata} from './database-metadata.ts';
+import {SourceGenerationOptions, SourceLanguage} from './source-generation-options.ts';
+import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs.ts';
+import {QuerySqlGenerator} from './query-sql-generator.ts';
+import {QueryReprSqlPath} from './query-repr-sql-path.ts';
+import {ResultTypesSourceGenerator} from './result-types-source-generator.ts';
 
-export * from './source-generation-options';
-export * from './query-specs';
-export * from './result-types';
-export * from './relations-md-generator';
+export * from './source-generation-options.ts';
+export * from './query-specs.ts';
+export * from './result-types.ts';
+export * from './relations-md-generator.ts';
 
 export async function generateQueries
   (
@@ -56,7 +57,7 @@ export async function generateQueries
       {
         const outputFileName = makeResultTypesFileName(querySpec.queryName, srcLang);
         const resultTypesSrc = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, outputFileName, opts);
-        await fs.writeFile(path.join(srcOutputDir, outputFileName), resultTypesSrc);
+        await writeTextFile(path.join(srcOutputDir, outputFileName), resultTypesSrc);
       }
     }
   }
@@ -80,7 +81,7 @@ async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<
 
 async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
 {
-  const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
+  const dbmdStoredPropsJson = await readTextFile(dbmdFile);
   // TODO: Validate the dbmd file contents somehow here.
   return new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
 }
@@ -90,7 +91,7 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
   const fileExt = path.extname(filePath).toLowerCase();
   if ( fileExt === '.ts' || fileExt === '.js' ) // .ts only supported when running via ts-node or deno.
   {
-    const modulePath = filePath.startsWith('./') ? process.cwd() + filePath.substring(1) : filePath;
+    const modulePath = filePath.startsWith('./') ? cwd() + filePath.substring(1) : filePath;
     const mod = await import(modulePath);
     return mod.default;
   }
@@ -116,7 +117,7 @@ async function writeResultReprSqls
     const sqlFileName = multReprs ? `${modQueryName}(${reprDescr}).sql` : `${modQueryName}.sql`;
     const sqlPath = path.join(outputDir, sqlFileName);
 
-    await fs.writeFile(sqlPath,
+    await writeTextFile(sqlPath,
       "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
       "-- " + resultRepr + " results representation for " + queryName + "\n" +
       sql + "\n"

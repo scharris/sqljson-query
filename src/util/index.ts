@@ -1,10 +1,10 @@
-export * from './args';
-export * from './collections';
-export * from './database-names';
-export * from './files';
-export * from './nullability';
-export * from './property-names';
-export * from './strings';
+export * from './args.ts';
+export * from './collections.ts';
+export * from './database-names.ts';
+export * from './files.ts';
+export * from './nullability.ts';
+export * from './property-names.ts';
+export * from './strings.ts';
 
 export function missingCase(caseVal: never): never
 {

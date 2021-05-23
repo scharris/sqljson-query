@@ -1,8 +1,7 @@
-import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
-import * as path from 'path';
-import {makeArrayValuesMap, valueOr, indentLines, missingCase} from './util';
-import {DatabaseMetadata, RelMetadata} from './database-metadata';
-import {SourceLanguage} from './source-generation-options';
+import {path} from './deps.ts';
+import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/index.ts';
+import {DatabaseMetadata, RelMetadata} from './database-metadata.ts';
+import {SourceLanguage} from './source-generation-options.ts';
 
 export async function generateRelationsMetadataSource
   (
@@ -13,7 +12,7 @@ export async function generateRelationsMetadataSource
   )
   : Promise<void>
 {
-  const dbmdStoredPropsJson = await fs.readFile(dbmdFile, 'utf8');
+  const dbmdStoredPropsJson = await readTextFile(dbmdFile);
   const dbmd = new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
 
   switch (srcLang)
@@ -21,14 +20,16 @@ export async function generateRelationsMetadataSource
     case 'TS':
     {
       const outputFile = path.join(sourceOutputDir, 'relations-metadata.ts');
-      return await fs.writeFile(outputFile, autogenWarning + "\n\n" + relationsTSModuleSource(dbmd));
+      return await writeTextFile(outputFile, autogenWarning + "\n\n" + relationsTSModuleSource(dbmd));
     }
     case 'Java':
     {
-      await fs.writeFile(path.join(sourceOutputDir, 'Field.java'), fieldStructSource(javaPackage));
+      const fieldStructOutputFile = path.join(sourceOutputDir, 'Field.java');
+      await writeTextFile(fieldStructOutputFile, fieldStructSource(javaPackage));
+
       const relMdsOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
-      return await fs.writeFile(relMdsOutputFile, header + "\n\n" + relationsJavaSource(dbmd));
+      return await writeTextFile(relMdsOutputFile, header + "\n\n" + relationsJavaSource(dbmd));
     }
     default: missingCase(srcLang);
   }
@@ -190,7 +191,8 @@ function lit(s: string)
 }
 
 const autogenWarning =
-  "// ---------------------------------------------------------------------------\n" +
-  "//   THIS SOURCE CODE WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST.  \n" +
-  "// ---------------------------------------------------------------------------\n";
+`// ---------------------------------------------------------------------------
+//   THIS SOURCE CODE WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST.
+// ---------------------------------------------------------------------------
+`;
 

@@ -1,13 +1,13 @@
-import {caseNormalizeName, makeMap} from './util';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
+import {caseNormalizeName, makeMap} from './util/index.ts';
+import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata.ts';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
-} from './result-types';
+} from './result-types.ts';
 import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec
-} from './query-specs';
+} from './query-specs.ts';
 
 export class ResultTypesGenerator
 {
@@ -391,7 +391,7 @@ function getTableExpressionProperties
 
 /// Return nullable variant of a database field, for any of the above field types
 /// having a "nullable" property.
-function toNullableField<T>(f: T & { nullable: boolean }): T
+function toNullableField<T extends {nullable: boolean|null}>(f: T): T
 {
   return (f.nullable != null && f.nullable) ? f : {...f, nullable: true};
 }

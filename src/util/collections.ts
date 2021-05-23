@@ -1,4 +1,3 @@
-import * as _ from 'lodash';
 
 export function computeIfAbsent<K,V>
   (
@@ -97,7 +96,9 @@ export function partitionByEquality<T>
   const origItemIxs = getItemIndexMap(ts);
   const eqGroupToMinItemIx = new Map<T[],number>();
 
-  for (const hashGroup of Object.values(_.groupBy(ts, hash)))
+  const hashGroups = makeArrayValuesMap(ts, hash, t => t).values();
+
+  for (const hashGroup of hashGroups)
   {
     const equalityGroups: T[][] = [];
 
@@ -140,4 +141,3 @@ function getItemIndexMap<T>(ts: T[])
   ts.forEach((t, ix) => m.set(t, ix));
   return m;
 }
-

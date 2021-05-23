@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import {parseAppArgs} from './util';
-import {generateQueries, generateRelationsMetadataSource, SourceGenerationOptions, SourceLanguage} from './index';
+import {parseAppArgs} from './util/args.ts';
+import {exit} from './util/process.ts';
+import {generateQueries, generateRelationsMetadataSource, SourceGenerationOptions, SourceLanguage} from './index.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
 {
@@ -29,7 +30,7 @@ async function main(): Promise<void>
   const reqdNamedParams = ['dbmd', 'query-specs', 'src-output-dir', 'sql-output-dir'];
   const optlNamedParams = ['src-lang', 'sql-resource-path-prefix', 'types-header', 'java-pkg'];
 
-  const parsedArgs = parseAppArgs(process.argv.slice(2), reqdNamedParams, optlNamedParams, 0);
+  const parsedArgs = parseAppArgs(reqdNamedParams, optlNamedParams, 0);
 
   if ( typeof parsedArgs === 'string' )
   {
@@ -37,12 +38,12 @@ async function main(): Promise<void>
     {
       console.log('Help requested:');
       printUsage('stdout', reqdNamedParams);
-      process.exit(0);
+      exit(0);
     }
     else // error
     {
       console.error(`Error: ${parsedArgs}`);
-      process.exit(1);
+      exit(1);
     }
   }
 
@@ -67,7 +68,7 @@ async function main(): Promise<void>
   {
     console.error('Query generation failed.');
     console.error(e);
-    process.exit(1);
+    exit(1);
   }
 }
 

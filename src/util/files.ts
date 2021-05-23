@@ -1,21 +1,23 @@
-import {promises as fs} from 'fs'; // for some older node versions (e.g. v10)
-import * as cbfs from 'fs';
+import {dirEntExists} from '../deps.ts';
 
-function dirEntExists(path: string): Promise<boolean>
+export async function writeTextFile(path: string, data: string): Promise<void>
 {
-  return new Promise((resolve, reject) => {
-    cbfs.access(path, cbfs.constants.F_OK, error => {resolve(!error);});
-  });
+  await Deno.writeTextFile(path, data);
+}
+
+export async function readTextFile(path: string): Promise<string>
+{
+  return await Deno.readTextFile(path);
 }
 
 export async function fileExists(path: string): Promise<boolean>
 {
-  return (await dirEntExists(path)) && (await fs.stat(path)).isFile();
+  return (await dirEntExists(path)) && (await Deno.stat(path)).isFile;
 }
 
 export async function dirExists(path: string): Promise<boolean>
 {
-  return (await dirEntExists(path)) && (await fs.stat(path)).isDirectory();
+  return (await dirEntExists(path)) && (await Deno.stat(path)).isDirectory;
 }
 
 export async function requireFileExists(path: string, errMsg: string): Promise<void>

@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import {deepEquals} from './util/objects.ts';
 
 export interface ResultType
 {
@@ -30,10 +30,10 @@ export function resultTypesEqual
 {
   return (
     rt1.table === rt2.table &&
-    _.isEqual(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
-    _.isEqual(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
-    _.isEqual(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
-    _.isEqual(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
+    deepEquals(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
+    deepEquals(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
+    deepEquals(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
+    deepEquals(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
     rt1.unwrapped === rt2.unwrapped
   );
 }

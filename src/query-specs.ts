@@ -1,6 +1,3 @@
-import * as _ from 'lodash';
-
-import {SourceLanguage} from './source-generation-options';
 
 export interface QueryGroupSpec
 {
@@ -117,17 +114,15 @@ export type ResultRepr = "MULTI_COLUMN_ROWS" | "JSON_OBJECT_ROWS" | "JSON_ARRAY_
 
 export function getInlineParentSpecs(tableSpec: TableJsonSpec): InlineParentSpec[]
 {
-  return _.flatMap(
-    tableSpec.parentTables || [],
-    ts => ts.referenceName === undefined ? [ts as InlineParentSpec] : []
+  return (tableSpec.parentTables || []).flatMap(ts =>
+    ts.referenceName === undefined ? [ts as InlineParentSpec] : []
   );
 }
 
 export function getReferencedParentSpecs(tableSpec: TableJsonSpec): ReferencedParentSpec[]
 {
-  return _.flatMap(
-    tableSpec.parentTables || [],
-    ts => ts.referenceName != null ? [ts as ReferencedParentSpec] : []
+  return (tableSpec.parentTables || []).flatMap(ts =>
+    ts.referenceName != null ? [ts as ReferencedParentSpec] : []
   );
 }
 

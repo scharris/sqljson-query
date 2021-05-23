@@ -1,4 +1,4 @@
-import {computeIfAbsent, setsEqual,caseNormalizeName} from './util';
+import {computeIfAbsent, setsEqual,caseNormalizeName} from './util/index.ts';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties

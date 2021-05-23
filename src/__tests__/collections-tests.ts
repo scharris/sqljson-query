@@ -1,4 +1,3 @@
-import {sortedUniq} from 'lodash';
 import {
   computeIfAbsent, setsEqual, mapSet, makeMap, makeArrayValuesMap, partitionByEquality
 } from '../util/collections';

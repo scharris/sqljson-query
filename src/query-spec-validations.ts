@@ -1,6 +1,6 @@
-import {caseNormalizeName} from './util';
-import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata';
-import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
+import {caseNormalizeName} from './util/index.ts';
+import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata.ts';
+import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs.ts';
 
 export function identifyTable
   (
