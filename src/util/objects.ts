@@ -1,7 +1,7 @@
 
 export function deepEquals(o1: any, o2: any): boolean
 {
-  if ( typeof o1 !== 'object' )
+  if ( typeof o1 !== 'object' || o1 === null )
     return o1 === o2;
 
   const keys1 = Object.keys(o1);
