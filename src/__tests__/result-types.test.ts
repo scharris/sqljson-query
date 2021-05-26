@@ -1,4 +1,5 @@
-import {propertiesCount, ResultType, resultTypesEqual} from '../result-types';
+import {assertEquals, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
+import {propertiesCount, ResultType, resultTypesEqual} from '../result-types.ts';
 
 const emptyResultType: ResultType = {
   queryName: 'query',
@@ -60,21 +61,21 @@ function makeExampleResultType(): ResultType
 
 const exampleResultType = makeExampleResultType();
 
-test('result type fields counts', () => {
-  expect(propertiesCount(emptyResultType)).toBe(0);
-  expect(propertiesCount(exampleResultType)).toBe(7);
+Deno.test('result type fields counts', () => {
+  assertEquals(propertiesCount(emptyResultType), 0);
+  assertEquals(propertiesCount(exampleResultType), 7);
 });
 
-test('result types equality', () => {
+Deno.test('result types equality', () => {
   
-  expect(resultTypesEqual(exampleResultType, exampleResultType)).toBe(true);
+  assertEquals(resultTypesEqual(exampleResultType, exampleResultType), true);
 
   const exampleCopy = makeExampleResultType();
-  expect(resultTypesEqual(exampleResultType, exampleCopy)).toBe(true);
+  assert(resultTypesEqual(exampleResultType, exampleCopy));
   
-  expect(resultTypesEqual(exampleResultType, {...exampleResultType, table: "other_table"})).toBe(false);
+  assertEquals(resultTypesEqual(exampleResultType, {...exampleResultType, table: "other_table"}), false);
 
-  expect(
+  assertEquals(
     resultTypesEqual(
       exampleResultType,
       {
@@ -83,9 +84,9 @@ test('result types equality', () => {
           exampleResultType.tableFieldProperties.map(p => ({...p, name: p.name + "_2"}))
       }
     )
-  ).toBe(false);
+  , false);
 
-  expect(
+  assertEquals(
     resultTypesEqual(
       exampleResultType,
       {
@@ -94,9 +95,9 @@ test('result types equality', () => {
           exampleResultType.tableExpressionProperty.map(p => ({...p, name: p.name + "_2"})) 
       }
     )
-  ).toBe(false);
+  , false);
 
-  expect(
+  assertEquals(
     resultTypesEqual(
       exampleResultType,
       {
@@ -105,9 +106,9 @@ test('result types equality', () => {
           exampleResultType.parentReferenceProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
     )
-  ).toBe(false);
+  , false);
 
-  expect(
+  assertEquals(
     resultTypesEqual(
       exampleResultType,
       {
@@ -116,13 +117,13 @@ test('result types equality', () => {
           exampleResultType.childCollectionProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
     )
-  ).toBe(false);
+  , false);
 
-  expect(
+  assertEquals(
     resultTypesEqual(
       exampleResultType,
       {...exampleResultType, unwrapped: !exampleResultType.unwrapped}
     )
-  ).toBe(false);
+  , false);
   
 });

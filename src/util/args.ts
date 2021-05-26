@@ -1,7 +1,8 @@
 import {flags} from "../deps.ts";
 
-export function parseAppArgs
+export function parseArgs
   (
+    args: string[],
     requiredNamedArgs: string[],
     optionalNamedArgs: string[],
     minPositionalArgs: number,
@@ -9,8 +10,6 @@ export function parseAppArgs
   )
   : flags.Args | 'help' | string
 {
-  const args = Deno.args;
-
   if ( args.length === 1 && args[0] === '--help' )
     return 'help';
 
@@ -39,4 +38,16 @@ export function parseAppArgs
   }
 
   return parsedArgs;
+
+}
+export function parseAppArgs
+  (
+    requiredNamedArgs: string[],
+    optionalNamedArgs: string[],
+    minPositionalArgs: number,
+    maxPositionalArgs: number | null = null
+  )
+  : flags.Args | 'help' | string
+{
+  return parseArgs(Deno.args, requiredNamedArgs, optionalNamedArgs, minPositionalArgs, maxPositionalArgs);
 }

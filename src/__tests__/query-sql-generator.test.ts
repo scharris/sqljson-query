@@ -1,13 +1,17 @@
-import {QuerySpec} from '../query-specs';
-import {DatabaseMetadata} from '../database-metadata';
-import {QuerySqlGenerator} from '../query-sql-generator';
+import * as path from 'https://deno.land/std@0.97.0/path/mod.ts';
+import {assertEquals, assertThrows, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
+import {QuerySpec} from '../query-specs.ts';
+import {DatabaseMetadata} from '../database-metadata.ts';
+import {QuerySqlGenerator} from '../query-sql-generator.ts';
 import {propertyNameDefaultFunction} from '../util/mod.ts';
 
-const dbmdStoredProps = require('./db/pg/dbmd.json');
+const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
+const dbmdPath = path.join(scriptDir, 'db', 'pg', 'dbmd.json');
+const dbmdStoredProps = JSON.parse(Deno.readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 
-test('unqualified tables are rejected when no default schema specified', () => {
+Deno.test('unqualified tables are rejected when no default schema specified', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2); // no default schema
   const querySpec: QuerySpec =
     {
@@ -18,10 +22,10 @@ test('unqualified tables are rejected when no default schema specified', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table 'drug'.* not found/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'Table \'drug\' was not found');
 });
 
-test('fully qualified table which exists in dbmd is accepted', () => {
+Deno.test('fully qualified table which exists in dbmd is accepted', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2); // no default schema
   const querySpec: QuerySpec =
     {
@@ -33,10 +37,10 @@ test('fully qualified table which exists in dbmd is accepted', () => {
       }
     };
 
-  expect(sqlGen.generateSqls(querySpec).size).toBeGreaterThan(0);
+  assert(sqlGen.generateSqls(querySpec).size > 0);
 });
 
-test('non-existent table specified fully-qualifed causes error', () => {
+Deno.test('non-existent table specified fully-qualifed causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, null, new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -48,10 +52,10 @@ test('non-existent table specified fully-qualifed causes error', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'table_which_dne');
 });
 
-test('non-existent table specified with default schema causes error', () => {
+Deno.test('non-existent table specified with default schema causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -63,10 +67,10 @@ test('non-existent table specified with default schema causes error', () => {
       }
     };
 
- expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'table_which_dne');
 });
 
-test('SQL is generated for each specified result representation', () => {
+Deno.test('SQL is generated for each specified result representation', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(['drugs']), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -79,10 +83,13 @@ test('SQL is generated for each specified result representation', () => {
     };
 
   const res = sqlGen.generateSqls(querySpec);
-  expect(new Set(res.keys())).toEqual(new Set(['JSON_OBJECT_ROWS', 'JSON_ARRAY_ROW', 'MULTI_COLUMN_ROWS']));
+  assertEquals(
+    new Set(res.keys()),
+    new Set(['JSON_OBJECT_ROWS', 'JSON_ARRAY_ROW', 'MULTI_COLUMN_ROWS'])
+  );
 });
 
-test('result representation defaults to JSON_OBJECT_ROWS', () => {
+Deno.test('result representation defaults to JSON_OBJECT_ROWS', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(['drugs']), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -94,10 +101,13 @@ test('result representation defaults to JSON_OBJECT_ROWS', () => {
     };
 
   const res = sqlGen.generateSqls(querySpec);
-  expect(new Set(res.keys())).toEqual(new Set(['JSON_OBJECT_ROWS']));
+  assertEquals(
+    new Set(res.keys()),
+    new Set(['JSON_OBJECT_ROWS'])
+  );
 });
 
-test('a table field which does not exist in datase metadata causes error', () => {
+Deno.test('a table field which does not exist in datase metadata causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -109,10 +119,10 @@ test('a table field which does not exist in datase metadata causes error', () =>
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/field_which_dne/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'field_which_dne');
 });
 
-test('expression fields must specify json property', () => {
+Deno.test('expression fields must specify json property', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -124,10 +134,10 @@ test('expression fields must specify json property', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/property name is required/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'property name is required');
 });
 
-test('expression fields must specify field type in generated source', () => {
+Deno.test('expression fields must specify field type in generated source', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -139,10 +149,10 @@ test('expression fields must specify field type in generated source', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/field type in generated source must be specified/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'field type in generated source must be specified');
 });
 
-test('a table field/expresion specifying both field and expression values causes error', () => {
+Deno.test('a table field/expresion specifying both field and expression values causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -156,10 +166,10 @@ test('a table field/expresion specifying both field and expression values causes
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/exactly one of 'field' or 'expression'/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'exactly one of \'field\' or \'expression\'');
 });
 
-test('a table field/expresion specifying neither field nor expression value causes error', () => {
+Deno.test('a table field/expresion specifying neither field nor expression value causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -173,10 +183,10 @@ test('a table field/expresion specifying neither field nor expression value caus
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/exactly one of 'field' or 'expression'/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'exactly one of \'field\' or \'expression\'');
 });
 
-test('a non-existent child table causes error', () => {
+Deno.test('a non-existent child table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -197,10 +207,10 @@ test('a non-existent child table causes error', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'table_which_dne');
 });
 
-test('a non-existent parent table causes error', () => {
+Deno.test('a non-existent parent table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -220,10 +230,10 @@ test('a non-existent parent table causes error', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/table_which_dne/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'table_which_dne');
 });
 
-test('a missing foreign key for a child collection causes error', () => {
+Deno.test('a missing foreign key for a child collection causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -244,10 +254,10 @@ test('a missing foreign key for a child collection causes error', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/no foreign key found/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'No foreign key found');
 });
 
-test('a missing foreign key to parent table causes error', () => {
+Deno.test('a missing foreign key to parent table causes error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -267,10 +277,10 @@ test('a missing foreign key to parent table causes error', () => {
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/no foreign key found/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'No foreign key found');
 });
 
-test('foreign key fields must be provided when multiple fk constraints exist for a child collection', () => {
+Deno.test('foreign key fields must be provided when multiple fk constraints exist for a child collection', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -291,10 +301,10 @@ test('foreign key fields must be provided when multiple fk constraints exist for
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/multiple foreign key constraints exist/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'Multiple foreign key constraints exist');
 });
 
-test('providing foreign key fields avoids error when multiple fk constraints exist for child collection', () => {
+Deno.test('providing foreign key fields avoids error when multiple fk constraints exist for child collection', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -316,10 +326,10 @@ test('providing foreign key fields avoids error when multiple fk constraints exi
       }
     };
 
-  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+  assertEquals(sqlGen.generateSqls(querySpec).size, 1);
 });
 
-test('a custom join condition for a child table may be used when no suitable foreign key exists', () => {
+Deno.test('a custom join condition for a child table may be used when no suitable foreign key exists', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -341,10 +351,10 @@ test('a custom join condition for a child table may be used when no suitable for
       }
     };
 
-  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+  assertEquals(sqlGen.generateSqls(querySpec).size, 1);
 });
 
-test('a custom join condition for a child table can only utilize fields which exist in datase metadata', () => {
+Deno.test('a custom join condition for a child table can only utilize fields which exist in datase metadata', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -366,10 +376,10 @@ test('a custom join condition for a child table can only utilize fields which ex
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec).size).toThrowError(/field_which_dne/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec).size, Error, 'field_which_dne');
 });
 
-test('foreign key fields must be provided when multiple fk constraints exist to a parent table', () => {
+Deno.test('foreign key fields must be provided when multiple fk constraints exist to a parent table', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -389,10 +399,10 @@ test('foreign key fields must be provided when multiple fk constraints exist to 
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(/multiple foreign key constraints exist/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'Multiple foreign key constraints exist');
 });
 
-test('providing fk fields avoids error when multiple fk constraints exist with a parent table', () => {
+Deno.test('providing fk fields avoids error when multiple fk constraints exist with a parent table', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -413,10 +423,10 @@ test('providing fk fields avoids error when multiple fk constraints exist with a
       }
     };
 
-  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+  assertEquals(sqlGen.generateSqls(querySpec).size, 1);
 });
 
-test('a custom join condition for a parent table may be used when no suitable foreign key exists', () => {
+Deno.test('a custom join condition for a parent table may be used when no suitable foreign key exists', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -437,10 +447,10 @@ test('a custom join condition for a parent table may be used when no suitable fo
       }
     };
 
-  expect(sqlGen.generateSqls(querySpec).size).toBe(1);
+  assertEquals(sqlGen.generateSqls(querySpec).size, 1);
 });
 
-test('a custom join condition for a parent table can only utilize fields which exist in datase metadata', () => {
+Deno.test('a custom join condition for a parent table can only utilize fields which exist in datase metadata', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -461,5 +471,5 @@ test('a custom join condition for a parent table can only utilize fields which e
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec).size).toThrowError(/field_which_dne/i);
+  assertThrows(() => sqlGen.generateSqls(querySpec).size, Error, 'field_which_dne');
 });
