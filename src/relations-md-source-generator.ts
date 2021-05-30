@@ -97,7 +97,7 @@ function relationMetadataTSSource(relMd: RelMetadata): string
   const parts: string[] = [];
 
   const relName = relMd.relationId.name;
-  parts.push(`"${relName}": { // relation '${relName}'\n`);
+  parts.push(`"${relName}": { // relation '${relName}'`);
 
   for ( const f of relMd.fields )
   {
