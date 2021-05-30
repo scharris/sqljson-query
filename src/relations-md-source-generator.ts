@@ -47,7 +47,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`export const schema_${schema} = { '${schema}'\n\n`);
+    parts.push(`export const Schema_${schema} = {\n\n`);
 
     for ( const relMd of relMds )
     {
@@ -76,7 +76,7 @@ function relationsJavaSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`  public static class Schema_${schema} '${schema}'`);
+    parts.push(`  public static class Schema_${schema}`);
     parts.push('  {');
 
     for ( const relMd of relMds )
