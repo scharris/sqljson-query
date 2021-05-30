@@ -109,7 +109,7 @@ function relationMetadataTSSource(relMd: RelMetadata): string
       `len: ${f.length}, ` +
       `prec: ${f.precision}, ` +
       `precRadix: ${f.precisionRadix}, ` +
-      `scale: ${f.fractionalDigits} },\n`
+      `scale: ${f.fractionalDigits} },`
     );
   }
 
