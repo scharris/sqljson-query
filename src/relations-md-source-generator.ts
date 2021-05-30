@@ -101,16 +101,16 @@ function relationMetadataTSSource(relMd: RelMetadata): string
 
   for ( const f of relMd.fields )
   {
-    parts.push(`   ${lit(f.name)}: { `);
-    parts.push(`type: ${lit(f.databaseType)}, `);
-    parts.push(`nullable: ${f.nullable}, `);
-    const pkPartNum = f.primaryKeyPartNumber;
-    parts.push(`pkPart: ${pkPartNum != null ? pkPartNum.toString() : "null"}, `);
-    parts.push(`len: ${f.length}, `);
-    parts.push(`prec: ${f.precision}, `);
-    parts.push(`precRadix: ${f.precisionRadix}, `);
-    parts.push(`scale: ${f.fractionalDigits}`);
-    parts.push(" },\n");
+    parts.push(
+      `   ${lit(f.name)}: { ` +
+      `type: ${lit(f.databaseType)}, ` +
+      `nullable: ${f.nullable}, ` +
+      `pkPart: ${f.primaryKeyPartNumber != null ? f.primaryKeyPartNumber.toString() : "null"}, ` +
+      `len: ${f.length}, ` +
+      `prec: ${f.precision}, ` +
+      `precRadix: ${f.precisionRadix}, ` +
+      `scale: ${f.fractionalDigits} },\n`
+    );
   }
 
   parts.push("},\n");

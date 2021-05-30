@@ -20,7 +20,7 @@ import {ResultTypesSourceGenerator} from './result-types-source-generator.ts';
 export * from './source-generation-options.ts';
 export * from './query-specs.ts';
 export * from './result-types.ts';
-export * from './relations-md-generator.ts';
+export * from './relations-md-source-generator.ts';
 
 export async function generateQueries
   (
