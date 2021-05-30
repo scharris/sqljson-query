@@ -47,7 +47,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`export const Schema_${schema} = {\n\n`);
+    parts.push(`export const Schema_${schema} = {\n`);
 
     for ( const relMd of relMds )
     {
