@@ -126,8 +126,8 @@ function relationMetadataJavaSource(relMd: RelMetadata): string
   const relId = relMd.relationId.schema ? relMd.relationId.schema + '.' + relName : relName;
   parts.push(`public static class ${relName} // relation`);
   parts.push('{');
-  parts.push(`  public static String id() { return "${relId}"; }`);
-  parts.push(`  public static String name() { return "${relMd.relationId.name}"; }`);
+  parts.push(`  public static final String id = "${relId}";`);
+  parts.push(`  public static final String name = "${relMd.relationId.name}";`);
 
   for ( const f of relMd.fields )
   {
