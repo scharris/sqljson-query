@@ -222,7 +222,7 @@ export class QuerySqlGenerator
     q.fromEntries.push(
       lineCommentJoinToParent(parentSpec) + "\n" +
       "left join (\n" +
-         this.indent(fromClauseQuery.sql) + "\n" +
+         this.indent(fromClauseQuery.sql) +
       ") " + fromClauseQueryAlias + " on " + joinCond
     );
 
@@ -636,8 +636,8 @@ class SqlParts
       (this.whereEntries.length === 0 ? "":
       "where (\n" +
         indentLines(this.whereEntries.join(" and\n"), indentSpaces) + "\n" +
-      ")") +
-      (this.orderBy ? "\norder by " + this.orderBy: "")
+      ")\n") +
+      (this.orderBy ? "order by " + this.orderBy + "\n": "")
     );
   }
 }
