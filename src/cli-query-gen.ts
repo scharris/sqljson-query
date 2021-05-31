@@ -1,5 +1,5 @@
 import {parseAppArgs,exit} from './util/mod.ts';
-import {generateQueries, SourceGenerationOptions, SourceLanguage} from './mod.ts';
+import {generateQuerySources, SourceGenerationOptions, SourceLanguage} from './mod.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
 {
@@ -59,7 +59,7 @@ async function main(): Promise<void>
       typesHeaderFile: parsedArgs['types-header']
     };
 
-    await generateQueries(querySpecs, dbmd, srcOutputDir, sqlOutputDir, srcGenOpts);
+    await generateQuerySources(querySpecs, dbmd, srcOutputDir, sqlOutputDir, srcGenOpts);
   }
   catch(e: any)
   {

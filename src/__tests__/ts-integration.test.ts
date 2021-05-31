@@ -6,7 +6,7 @@ import {DatabaseMetadata} from '../database-metadata.ts';
 import {QuerySqlGenerator} from '../query-sql-generator.ts';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator.ts';
 import {QueryGroupSpec, QuerySpec} from '../query-specs.ts';
-import {generateQueries} from '../mod.ts';
+import {generateQuerySources} from '../mod.ts';
 import {getDbClient} from './db/db-handle.ts';
 
 const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
@@ -739,7 +739,7 @@ Deno.test('generateQueries() produces expected output files', async () => {
   await Deno.mkdir(tsOutputDir);
   await Deno.writeTextFile(dbmdFile, JSON.stringify(dbmdStoredProps));
 
-  await generateQueries(queryGroupSpec, dbmdFile, tsOutputDir, sqlOutputDir);
+  await generateQuerySources(queryGroupSpec, dbmdFile, tsOutputDir, sqlOutputDir);
 
   const sqlFiles = Array.from(Deno.readDirSync(sqlOutputDir)).map(f => f.name);
   const tsFiles = Array.from(Deno.readDirSync(tsOutputDir)).map(f => f.name);

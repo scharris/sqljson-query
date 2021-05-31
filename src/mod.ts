@@ -22,7 +22,7 @@ export * from './query-specs.ts';
 export * from './result-types.ts';
 export * from './relations-md-source-generator.ts';
 
-export async function generateQueries
+export async function generateQuerySources
   (
     querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
     dbmdFile: string,
