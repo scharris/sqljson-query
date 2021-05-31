@@ -69,6 +69,7 @@ export function makeNameNotInSet
   }
 }
 
+// TODO: Leave blank lines alone here.
 export function indentLines
   (
     linesStr: string,
@@ -82,12 +83,12 @@ export function indentLines
   const indention = ' '.repeat(spacesCount);
 
   let pastFirst = false;
-  for ( const line of linesStr.split("\n") )
+  for ( const line of linesStr.split('\n') )
   {
     if ( pastFirst )
       sb.push('\n');
 
-    if ( pastFirst || indentFirstLine )
+    if ( (pastFirst || indentFirstLine) && line.length > 0 )
       sb.push(indention);
 
     sb.push(line);
@@ -96,7 +97,7 @@ export function indentLines
       pastFirst = true;
   }
 
-  return sb.join("");
+  return sb.join('');
 }
 
 export function unDoubleQuote(s: string): string
