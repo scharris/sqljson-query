@@ -476,7 +476,7 @@ export class QuerySqlGenerator
         this.indent(this.sqlDialect.getRowObjectExpression(baseQuery.resultColumnNames, "q")) + " json\n" +
       "from (\n" +
         this.indent(lineCommentBaseTableQuery(tjSpec)) + "\n" +
-        this.indent(baseQuery.sql) + "\n" +
+        this.indent(baseQuery.sql) +
       ") q" +
       (orderBy != null ? "\norder by " + orderBy.replace(/\$\$/g, "q") : "")
     );
