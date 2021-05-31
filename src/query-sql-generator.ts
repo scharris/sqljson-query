@@ -450,7 +450,7 @@ export class QuerySqlGenerator
           ) + " json\n" +
       "from (\n" +
         this.indent(lineCommentBaseTableQuery(tableSpec)) + "\n" +
-        this.indent(baseQuery.sql) + "\n" +
+        this.indent(baseQuery.sql) +
       ") q"
     );
   }
