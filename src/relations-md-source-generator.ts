@@ -126,8 +126,8 @@ function relationMetadataJavaSource(relMd: RelMetadata): string
   const relId = relMd.relationId.schema ? relMd.relationId.schema + '.' + relName : relName;
   parts.push(`public static class ${relName} // relation`);
   parts.push('{');
-  parts.push(`  public static String id() { return "${relId}"; }`);
-  parts.push(`  public static String name() { return "${relMd.relationId.name}"; }`);
+  parts.push(`  public static String tableId() { return "${relId}"; }`);
+  parts.push(`  public static String tableName() { return "${relMd.relationId.name}"; }`);
 
   for ( const f of relMd.fields )
   {
@@ -181,7 +181,7 @@ public class Field
       this.precisionRadix = precisionRadix;
       this.fractionalDigits = fractionalDigits;
    }
-
+   public String toString() { return this.name; }
 }
 `
 }
