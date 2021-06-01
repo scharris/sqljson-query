@@ -1,4 +1,4 @@
-import {parseAppArgs,exit} from './util/mod.ts';
+import {parseAppArgs, exit, lowerCamelCase} from './util/mod.ts';
 import {generateRelationsMetadataSource, SourceLanguage} from './mod.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
@@ -53,7 +53,7 @@ async function main(): Promise<void>
     const srcLang = getSourceLanguage(parsedArgs['src-lang']);
     const javaPkg = parsedArgs['java-pkg'] as string | undefined;
 
-    await generateRelationsMetadataSource(dbmd, srcOutputDir, srcLang, javaPkg);
+    await generateRelationsMetadataSource(dbmd, srcOutputDir, srcLang, javaPkg, true);
   }
   catch(e: any)
   {

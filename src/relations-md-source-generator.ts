@@ -1,6 +1,6 @@
 import {path} from './deps.ts';
 import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/mod.ts';
-import {DatabaseMetadata, RelMetadata} from './database-metadata.ts';
+import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata.ts';
 import {SourceLanguage} from './source-generation-options.ts';
 
 export async function generateRelationsMetadataSource
@@ -8,7 +8,8 @@ export async function generateRelationsMetadataSource
     dbmdFile: string,
     sourceOutputDir: string,
     srcLang: SourceLanguage,
-    javaPackage: string | undefined = undefined
+    javaPackage: string | undefined = undefined,
+    preferLowercaseNames: boolean = true
   )
   : Promise<void>
 {
@@ -20,7 +21,10 @@ export async function generateRelationsMetadataSource
     case 'TS':
     {
       const outputFile = path.join(sourceOutputDir, 'relations-metadata.ts');
-      return await writeTextFile(outputFile, autogenWarning + "\n\n" + relationsTSModuleSource(dbmd));
+      return await writeTextFile(
+        outputFile,
+        autogenWarning + "\n\n" + relationsTSModuleSource(dbmd, preferLowercaseNames)
+      );
     }
     case 'Java':
     {
@@ -29,13 +33,16 @@ export async function generateRelationsMetadataSource
 
       const relMdsOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
-      return await writeTextFile(relMdsOutputFile, header + "\n\n" + relationsJavaSource(dbmd));
+      return await writeTextFile(
+        relMdsOutputFile,
+        header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames)
+      );
     }
     default: missingCase(srcLang);
   }
 }
 
-function relationsTSModuleSource(dbmd: DatabaseMetadata): string
+function relationsTSModuleSource(dbmd: DatabaseMetadata, preferLowercaseNames: boolean): string
 {
   const parts: string[] = [];
 
@@ -47,11 +54,14 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`export const Schema_${schema} = {\n`);
+    parts.push(`export const Schema_${ident(schema, dbmd.caseSensitivity, preferLowercaseNames)} = {\n`);
 
     for ( const relMd of relMds )
     {
-      parts.push(indentLines(relationMetadataTSSource(relMd), 2));
+      parts.push(indentLines(
+        relationMetadataTSSource(relMd, dbmd.caseSensitivity, preferLowercaseNames),
+        2
+      ));
       parts.push("\n");
     }
 
@@ -61,7 +71,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata): string
   return parts.join('');
 }
 
-function relationsJavaSource(dbmd: DatabaseMetadata): string
+function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boolean): string
 {
   const parts: string[] = [];
 
@@ -76,12 +86,15 @@ function relationsJavaSource(dbmd: DatabaseMetadata): string
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`  public static class Schema_${schema}`);
+    parts.push(`  public static class Schema_${ident(schema, dbmd.caseSensitivity, preferLowercaseNames)}`);
     parts.push('  {');
 
     for ( const relMd of relMds )
     {
-      parts.push(indentLines(relationMetadataJavaSource(relMd), 4));
+      parts.push(indentLines(
+        relationMetadataJavaSource(relMd, dbmd.caseSensitivity, preferLowercaseNames),
+        4
+      ));
     }
 
     parts.push("  }"); // schema class
@@ -92,17 +105,23 @@ function relationsJavaSource(dbmd: DatabaseMetadata): string
   return parts.join('\n');
 }
 
-function relationMetadataTSSource(relMd: RelMetadata): string
+function relationMetadataTSSource
+  (
+    relMd: RelMetadata,
+    dbCaseSensitivity: CaseSensitivity,
+    preferLowercaseNames: boolean
+  )
+  : string
 {
   const parts: string[] = [];
 
-  const relName = relMd.relationId.name;
+  const relName = ident(relMd.relationId.name, dbCaseSensitivity, preferLowercaseNames);
   parts.push(`"${relName}": { // relation ${relName}`);
 
   for ( const f of relMd.fields )
   {
     parts.push(
-      `   ${lit(f.name)}: { ` +
+      `   ${lit(ident(f.name, dbCaseSensitivity, preferLowercaseNames))}: { ` +
       `type: ${lit(f.databaseType)}, ` +
       `nullable: ${f.nullable}, ` +
       `pkPart: ${f.primaryKeyPartNumber != null ? f.primaryKeyPartNumber.toString() : "null"}, ` +
@@ -118,23 +137,32 @@ function relationMetadataTSSource(relMd: RelMetadata): string
   return parts.join('\n');
 }
 
-function relationMetadataJavaSource(relMd: RelMetadata): string
+function relationMetadataJavaSource
+  (
+    relMd: RelMetadata,
+    dbCaseSensitivity: CaseSensitivity,
+    preferLowercaseNames: boolean
+  )
+  : string
 {
   const parts: string[] = [];
 
-  const relName = relMd.relationId.name;
-  const relId = relMd.relationId.schema ? relMd.relationId.schema + '.' + relName : relName;
+  const relName = ident(relMd.relationId.name, dbCaseSensitivity, preferLowercaseNames);
+  const relId = relMd.relationId.schema ?
+    ident(relMd.relationId.schema, dbCaseSensitivity, preferLowercaseNames) + '.' + relName
+    : relName;
   parts.push(`public static class ${relName} // relation`);
   parts.push('{');
   parts.push(`  public static String tableId() { return "${relId}"; }`);
-  parts.push(`  public static String tableName() { return "${relMd.relationId.name}"; }`);
+  parts.push(`  public static String tableName() { return "${relName}"; }`);
 
   for ( const f of relMd.fields )
   {
     const pkPartNum = f.primaryKeyPartNumber;
+    const fName = ident(f.name, dbCaseSensitivity, preferLowercaseNames);
     parts.push(
-      `  public static final Field ${f.name} = new Field(` +
-      `${lit(f.name)}, ${lit(f.databaseType)}, ${f.nullable}, ${pkPartNum?.toString() || "null"}, ` +
+      `  public static final Field ${fName} = new Field(` +
+      `${lit(fName)}, ${lit(f.databaseType)}, ${f.nullable}, ${pkPartNum?.toString() || "null"}, ` +
       `${f.length}, ${f.precision}, ${f.precisionRadix}, ${f.fractionalDigits});`
     );
   }
@@ -184,6 +212,21 @@ public class Field
    public String toString() { return this.name; }
 }
 `
+}
+
+function ident
+  (
+    name: string,
+    dbCaseSensitivity: CaseSensitivity,
+    preferLowercaseNames: boolean
+  )
+  : string
+{
+  if ( preferLowercaseNames && dbCaseSensitivity === 'INSENSITIVE_STORED_UPPER' &&
+       !name.startsWith('"') && name === name.toUpperCase() )
+    return name.toLowerCase();
+  else
+    return name;
 }
 
 function lit(s: string)
