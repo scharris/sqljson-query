@@ -137,7 +137,7 @@ function sqlFileReferences
     switch (srcLang)
     {
       case 'TS': lines.push(`export const ${memberName} = "${resourceName}";`); break;
-      case 'Java': lines.push(`   public static final String ${memberName} = "${resourceName}";`); break;
+      case 'Java': lines.push(`public static final String ${memberName} = "${resourceName}";`); break;
     }
   }
 
@@ -148,7 +148,7 @@ function queryParamDefinitions(paramNames: string[], srcLang: SourceLanguage): s
 {
   const makeParamDecl: (paramName: string) => string =
     srcLang == 'TS' ? (paramName: string) => `export const ${paramName}Param = '${paramName}';` :
-    srcLang == 'Java' ? (paramName: string) => `   public static final String ${paramName}Param = \"${paramName}\";` :
+    srcLang == 'Java' ? (paramName: string) => `public static final String ${paramName}Param = \"${paramName}\";` :
       missingCase(srcLang)
   return paramNames.map(makeParamDecl).join('\n\n');
 }
