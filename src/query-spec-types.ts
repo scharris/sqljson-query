@@ -43,6 +43,7 @@ export interface ParentSpec
   customJoinCondition?: CustomJoinCondition;
   tableJson: TableJsonSpec;
   viaForeignKeyFields?: string[];
+  alias?: string | undefined;
 }
 
 export interface ReferencedParentSpec extends ParentSpec

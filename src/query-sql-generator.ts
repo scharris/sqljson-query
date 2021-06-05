@@ -202,7 +202,7 @@ export class QuerySqlGenerator
 
     const fromClauseQuery = this.baseQuery(parentSpec.tableJson, null, true, null, propNameFn, specLoc);
 
-    const fromClauseQueryAlias = makeNameNotInSet("q", avoidAliases);
+    const fromClauseQueryAlias = parentSpec.alias || makeNameNotInSet("q", avoidAliases);
     q.aliasesInScope.add(fromClauseQueryAlias);
 
     for ( const [i, parentColumnName] of fromClauseQuery.resultColumnNames.entries() )
@@ -289,6 +289,9 @@ export class QuerySqlGenerator
 
     for ( const [ix, parentSpec] of refdParentSpecs.entries() )
     {
+      if ( parentSpec.hasOwnProperty('alias') )
+        throw new SpecError(specLoc, "Refrenced parent table cannot specify an alias.");
+
       const parentLoc = addLocPart(specLoc,
         `referencedParentTables entry #${ix+1}, '${parentSpec.tableJson.table}' table`
       );
