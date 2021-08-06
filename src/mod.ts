@@ -26,8 +26,8 @@ export async function generateQuerySources
   (
     querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
     dbmdFile: string,
-    srcOutputDir: string,
-    sqlOutputDir: string,
+    srcOutputDir: string | null,
+    sqlOutputDir: string | null,
     opts: SourceGenerationOptions = {}
   )
   : Promise<void>
@@ -35,9 +35,12 @@ export async function generateQuerySources
   try
   {
     await requireFileExists(dbmdFile, 'Database metadata file not found.');
-    await requireDirExists(srcOutputDir, 'Source output directory not found.');
-    await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
-    if ( opts.typesHeaderFile ) await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
+    if ( srcOutputDir )
+      await requireDirExists(srcOutputDir, 'Source output directory not found.');
+    if ( sqlOutputDir )
+      await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
+    if ( opts.typesHeaderFile )
+      await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
@@ -51,9 +54,9 @@ export async function generateQuerySources
     for ( const querySpec of queryGroupSpec.querySpecs )
     {
       const resReprSqls = sqlGen.generateSqls(querySpec);
-      const sqlPaths = await writeResultReprSqls(querySpec.queryName, resReprSqls, sqlOutputDir);
+      const sqlPaths = sqlOutputDir ? await writeResultReprSqls(querySpec.queryName, resReprSqls, sqlOutputDir) : [];
 
-      if ( valueOr(querySpec.generateResultTypes, true) )
+      if ( srcOutputDir && valueOr(querySpec.generateResultTypes, true) )
       {
         const outputFileName = makeResultTypesFileName(querySpec.queryName, srcLang);
         const resultTypesSrc = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, outputFileName, opts);
