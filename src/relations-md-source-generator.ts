@@ -38,7 +38,7 @@ export async function generateRelationsMetadataSource
         header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames)
       );
     }
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 

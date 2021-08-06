@@ -47,7 +47,7 @@ export class ResultTypesSourceGenerator
       case 'Java':
         if ( fileName == null ) throw new Error('file name is required to generate Java result types source code.');
         return await makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, fileName, opts);
-      default: missingCase(srcLang);
+      default: return missingCase(srcLang);
     }
   }
 } // ends class ResultTypesSourceGenerator
@@ -377,7 +377,7 @@ function childCollectionPropertyType
   {
     case 'TS': return withNullability(p.nullable, `${collElType}[]`, 'TS');
     case 'Java': return withNullability(p.nullable, `List<${collElType}>`, 'Java');
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -419,7 +419,7 @@ function generalNumericTableFieldPropertyType(fp: TableFieldProperty, srcLang: S
         const primTypeName = fp.precision == null || fp.precision > 9 ? "long" : "int";
         return withNullability(fp.nullable, primTypeName, 'Java');
       }
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -429,7 +429,7 @@ function floatingNumericTableFieldPropertyType(fp: TableFieldProperty, srcLang: 
   {
     case 'TS': return withNullability(fp.nullable, 'number', 'TS');
     case 'Java': return withNullability(fp.nullable, "double", 'Java');
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -439,7 +439,7 @@ function textTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLangu
   {
     case 'TS': return withNullability(fp.nullable, 'string', 'TS');
     case 'Java': return withNullability(fp.nullable, "String", 'Java');
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -449,7 +449,7 @@ function booleanTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLa
   {
     case 'TS': return withNullability(fp.nullable, 'boolean', 'TS');
     case 'Java': return withNullability(fp.nullable, "boolean", 'Java');
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -459,7 +459,7 @@ function jsonTableFieldPropertyType(fp: TableFieldProperty, srcLang: SourceLangu
   {
     case 'TS': return withNullability(fp.nullable, 'any', 'TS');
     case 'Java': return withNullability(fp.nullable, 'JsonNode', 'Java');
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
@@ -478,7 +478,7 @@ function withNullability
     case 'Java':
       if (nullable) return '@Nullable ' + toJavaReferenceType(typeName);
       else return typeName;
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 

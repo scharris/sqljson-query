@@ -138,7 +138,7 @@ function makeResultTypesFileName(queryName: string, srcLang: SourceLanguage): st
   {
     case 'TS': return queryName.replace(/ /g, '-').toLowerCase() + ".ts";
     case 'Java': return upperCamelCase(queryName) + ".java";
-    default: missingCase(srcLang);
+    default: return missingCase(srcLang);
   }
 }
 
