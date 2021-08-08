@@ -1,24 +1,33 @@
-import * as path from 'https://deno.land/std@0.97.0/path/mod.ts';
-import {Client} from "https://deno.land/x/postgres/mod.ts";
-import {assertEquals, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import {propertyNameDefaultFunction} from '../util/mod.ts';
-import {DatabaseMetadata} from '../database-metadata.ts';
-import {QuerySqlGenerator} from '../query-sql-generator.ts';
-import {ResultTypesSourceGenerator} from '../result-types-source-generator.ts';
-import {QueryGroupSpec, QuerySpec} from '../query-specs.ts';
-import {generateQuerySources} from '../mod.ts';
-import {getDbClient} from './db/db-handle.ts';
+import * as path from 'path';
+import * as child_process from 'child_process';
+import * as util from 'util';
+import {Client} from 'pg';
+import {
+  makeTempDir,
+  makeDir,
+  propertyNameDefaultFunction,
+  readDirSync,
+  readTextFileSync,
+  writeTextFile
+} from '../util/mod';
+import {DatabaseMetadata} from '../database-metadata';
+import {QuerySqlGenerator} from '../query-sql-generator';
+import {ResultTypesSourceGenerator} from '../result-types-source-generator';
+import {QueryGroupSpec, QuerySpec} from '../query-specs';
+import {generateQuerySources} from '../mod';
+import {getDbClient} from './db/db-handle';
+import {ChildProcess, spawn, spawnSync} from 'child_process';
 
-const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
-const dbmdPath = path.join(scriptDir, 'db', 'pg', 'dbmd.json');
-const dbmdStoredProps = JSON.parse(Deno.readTextFileSync(dbmdPath));
+const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
+const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+const exec = util.promisify(child_process.exec);
 
 const resTypesSrcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
 
-Deno.test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
+test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -35,7 +44,7 @@ Deno.test('results match generated types for JSON_OBJECT_ROWS query of single ta
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -46,7 +55,7 @@ Deno.test('results match generated types for JSON_OBJECT_ROWS query of single ta
   dbClient.end();
 });
 
-Deno.test('results match generated types for JSON_ARRAY_ROW query of single table', async () => {
+test('results match generated types for JSON_ARRAY_ROW query of single table', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -63,7 +72,7 @@ Deno.test('results match generated types for JSON_ARRAY_ROW query of single tabl
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -74,7 +83,7 @@ Deno.test('results match generated types for JSON_ARRAY_ROW query of single tabl
   dbClient.end();
 });
 
-Deno.test('table field property names specified by jsonProperty attributes', async () => {
+test('table field property names specified by jsonProperty attributes', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -100,7 +109,7 @@ Deno.test('table field property names specified by jsonProperty attributes', asy
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -111,7 +120,7 @@ Deno.test('table field property names specified by jsonProperty attributes', asy
   dbClient.end();
 });
 
-Deno.test('parent reference', async () => {
+test('parent reference', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -138,7 +147,7 @@ Deno.test('parent reference', async () => {
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -149,7 +158,7 @@ Deno.test('parent reference', async () => {
   dbClient.end();
 });
 
-Deno.test('table field properties from inline parent tables', async () => {
+test('table field properties from inline parent tables', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -177,7 +186,7 @@ Deno.test('table field properties from inline parent tables', async () => {
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -188,7 +197,7 @@ Deno.test('table field properties from inline parent tables', async () => {
     dbClient.end();
 });
 
-Deno.test('table field properties from an inlined parent and its own inlined parent', async () => {
+test('table field properties from an inlined parent and its own inlined parent', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -226,7 +235,7 @@ Deno.test('table field properties from an inlined parent and its own inlined par
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -237,7 +246,7 @@ Deno.test('table field properties from an inlined parent and its own inlined par
     dbClient.end();
 });
 
-Deno.test('referenced parent property from an inlined parent', async () => {
+test('referenced parent property from an inlined parent', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -270,7 +279,7 @@ Deno.test('referenced parent property from an inlined parent', async () => {
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -281,7 +290,7 @@ Deno.test('referenced parent property from an inlined parent', async () => {
     dbClient.end();
 });
 
-Deno.test('child collection property from an inlined parent', async () => {
+test('child collection property from an inlined parent', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -313,7 +322,7 @@ Deno.test('child collection property from an inlined parent', async () => {
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -324,7 +333,7 @@ Deno.test('child collection property from an inlined parent', async () => {
     dbClient.end();
 });
 
-Deno.test('unwrapped child collection property from an inlined parent', async () => {
+test('unwrapped child collection property from an inlined parent', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -357,7 +366,7 @@ Deno.test('unwrapped child collection property from an inlined parent', async ()
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -368,7 +377,7 @@ Deno.test('unwrapped child collection property from an inlined parent', async ()
     dbClient.end();
 });
 
-Deno.test('child collection', async () => {
+test('child collection', async () => {
   const querySpec: QuerySpec =
   {
     queryName: 'test query',
@@ -395,7 +404,7 @@ Deno.test('child collection', async () => {
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -406,7 +415,7 @@ Deno.test('child collection', async () => {
   dbClient.end();
 });
 
-Deno.test('unwrapped child table collection of table field property', async () => {
+test('unwrapped child table collection of table field property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -433,7 +442,7 @@ Deno.test('unwrapped child table collection of table field property', async () =
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -444,7 +453,7 @@ Deno.test('unwrapped child table collection of table field property', async () =
     dbClient.end();
 });
 
-Deno.test('unwrapped child table collection of field expression property', async () => {
+test('unwrapped child table collection of field expression property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -472,7 +481,7 @@ Deno.test('unwrapped child table collection of field expression property', async
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -483,7 +492,7 @@ Deno.test('unwrapped child table collection of field expression property', async
     dbClient.end();
 });
 
-Deno.test('unwrapped child table collection of field expression property with lang-specific type', async () => {
+test('unwrapped child table collection of field expression property with lang-specific type', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -513,7 +522,7 @@ Deno.test('unwrapped child table collection of field expression property with la
 
   const dbClient: Client = await getDbClient();
 
-  const queryRes = await dbClient.queryObject(sql);
+  const queryRes = await dbClient.query(sql);
 
   await compile(
     resTypesModuleSrc + "\n" +
@@ -524,7 +533,7 @@ Deno.test('unwrapped child table collection of field expression property with la
   dbClient.end();
 });
 
-Deno.test('unwrapped child table collection of parent reference property', async () => {
+test('unwrapped child table collection of parent reference property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -557,7 +566,7 @@ Deno.test('unwrapped child table collection of parent reference property', async
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -568,7 +577,7 @@ Deno.test('unwrapped child table collection of parent reference property', async
     dbClient.end();
 });
 
-Deno.test('unwrapped child table collection of inlined parent property', async () => {
+test('unwrapped child table collection of inlined parent property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -601,7 +610,7 @@ Deno.test('unwrapped child table collection of inlined parent property', async (
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -612,7 +621,7 @@ Deno.test('unwrapped child table collection of inlined parent property', async (
     dbClient.end();
 });
 
-Deno.test('unwrapped child collection of child collection property', async () => {
+test('unwrapped child collection of child collection property', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -647,7 +656,7 @@ Deno.test('unwrapped child collection of child collection property', async () =>
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -658,7 +667,7 @@ Deno.test('unwrapped child collection of child collection property', async () =>
     dbClient.end();
 });
 
-Deno.test('unwrapped child collection of unwrapped child collection property', async () => {
+test('unwrapped child collection of unwrapped child collection property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -694,7 +703,7 @@ Deno.test('unwrapped child collection of unwrapped child collection property', a
 
     const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.queryObject(sql);
+    const queryRes = await dbClient.query(sql);
 
     await compile(
       resTypesModuleSrc + "\n" +
@@ -705,7 +714,7 @@ Deno.test('unwrapped child collection of unwrapped child collection property', a
     dbClient.end();
 });
 
-Deno.test('generateQueries() produces expected output files', async () => {
+test('generateQueries() produces expected output files', async () => {
   const queryGroupSpec: QueryGroupSpec =
   {
     defaultSchema: 'drugs',
@@ -730,27 +739,27 @@ Deno.test('generateQueries() produces expected output files', async () => {
     ]
   };
 
-  const tmpDir = await Deno.makeTempDir({ prefix: 'sjq-tests-' });
+  const tmpDir = await makeTempDir('sjq-tests-');
   const sqlOutputDir = path.join(tmpDir, 'sql');
   const tsOutputDir = path.join(tmpDir, 'ts');
   const dbmdFile = path.join(tmpDir, 'dbmd.json');
 
-  await Deno.mkdir(sqlOutputDir);
-  await Deno.mkdir(tsOutputDir);
-  await Deno.writeTextFile(dbmdFile, JSON.stringify(dbmdStoredProps));
+  await makeDir(sqlOutputDir);
+  await makeDir(tsOutputDir);
+  await writeTextFile(dbmdFile, JSON.stringify(dbmdStoredProps));
 
   await generateQuerySources(queryGroupSpec, dbmdFile, tsOutputDir, sqlOutputDir);
 
-  const sqlFiles = Array.from(Deno.readDirSync(sqlOutputDir)).map(f => f.name);
-  const tsFiles = Array.from(Deno.readDirSync(tsOutputDir)).map(f => f.name);
+  const sqlFiles = Array.from(readDirSync(sqlOutputDir)).map(f => f.name);
+  const tsFiles = Array.from(readDirSync(tsOutputDir)).map(f => f.name);
 
-  assertEquals(new Set(sqlFiles), new Set([
+  expect(new Set(sqlFiles)).toEqual(new Set([
     'test-query-1(json array row).sql',
     'test-query-1(json object rows).sql',
     'test-query-2.sql'
   ]));
 
-  assertEquals(new Set(tsFiles), new Set([
+  expect(new Set(tsFiles)).toEqual(new Set([
     'test-query-1.ts',
     'test-query-2.ts'
   ]));
@@ -760,16 +769,16 @@ Deno.test('generateQueries() produces expected output files', async () => {
 
 async function compile(testSource: string): Promise<void>
 {
-  const tmpDir = await Deno.makeTempDir({ prefix: 'sjq-tests-' });
+  const tmpDir = await makeTempDir('sjq-tests-');
   const srcFileName = 'test.ts';
-  await Deno.writeTextFile(path.join(tmpDir, srcFileName), testSource);
+  await writeTextFile(path.join(tmpDir, srcFileName), testSource);
+  const tscPath = `${path.dirname(path.dirname((__dirname)))}/node_modules/typescript/bin/tsc`;
+  const cp = spawnSync(
+    tscPath,
+    ['--strict', srcFileName],
+    {cwd: tmpDir, encoding: 'utf8'}
+  );
 
-  const compileProcess = Deno.run({
-    cmd: ['deno', 'run', srcFileName],
-    cwd: tmpDir,
-    env: Deno.env.toObject()
-  });
-  const compileStatus = await compileProcess.status();
-  assert(compileStatus.success);
-  compileProcess.close();
+  expect(cp.error).toBeUndefined();
+  expect(cp.stderr || '').toEqual('');
 }

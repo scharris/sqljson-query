@@ -1,131 +1,118 @@
-import * as path from 'https://deno.land/std@0.97.0/path/mod.ts';
-import {assertEquals, assertNotEquals, assert, assertThrows} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import {DatabaseMetadata, foreignKeyFieldNames, relIdString, toRelId} from '../database-metadata.ts';
+import * as path from 'path';
+import * as fs from 'fs';
+import {DatabaseMetadata, foreignKeyFieldNames, relIdString, toRelId} from '../database-metadata';
 
-const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
-const dbmdPath = path.join(scriptDir, 'db', 'pg', 'dbmd.json');
-const dbmdStoredProps = JSON.parse(Deno.readTextFileSync(dbmdPath));
+const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
+const dbmdStoredProps = JSON.parse(fs.readFileSync(dbmdPath, 'utf8'));
 
-
-Deno.test('can be initialized from stored properties', () => {
+test('can be initialized from stored properties', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  assert(!!dbmd);
+  expect(dbmd).toBeTruthy();
 });
 
-Deno.test('fetch metadata for existing table by rel id', () => {
+test('fetch metadata for existing table by rel id', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  assert(!!dbmd.getRelationMetadata({schema: 'drugs', name: 'authority'}));
+  expect(dbmd.getRelationMetadata({schema: 'drugs', name: 'authority'})).toBeTruthy();
 });
 
-Deno.test('do not fetch metadata for non-existing rel id', () => {
+test('do not fetch metadata for non-existing rel id', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  assertEquals(dbmd.getRelationMetadata({schema: 'drugs', name: 'dne'}), null);
+  expect(dbmd.getRelationMetadata({schema: 'drugs', name: 'dne'})).toBeNull();
 });
 
-Deno.test('get single primary key field name', () => {
+test('get single primary key field name', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const authTable = {schema: 'drugs', name: 'authority'};
-  assertEquals(dbmd.getPrimaryKeyFieldNames(authTable), ["id"]);
-  assertEquals(dbmd.getPrimaryKeyFieldNames(authTable, "a"), ["a.id"]);
+  expect(dbmd.getPrimaryKeyFieldNames(authTable)).toEqual(["id"]);
+  expect(dbmd.getPrimaryKeyFieldNames(authTable, "a")).toEqual(["a.id"]);
 });
 
-Deno.test('get multiple primary key field names', () => {
+test('get multiple primary key field names', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const drugRef = {schema: 'drugs', name: 'drug_reference'};
-  assertEquals(dbmd.getPrimaryKeyFieldNames(drugRef), ['drug_id', 'reference_id']);
-  assertEquals(dbmd.getPrimaryKeyFieldNames(drugRef, "dr"), ['dr.drug_id', 'dr.reference_id']);
+  expect(dbmd.getPrimaryKeyFieldNames(drugRef)).toEqual(['drug_id', 'reference_id']);
+  expect(dbmd.getPrimaryKeyFieldNames(drugRef, "dr")).toEqual(['dr.drug_id', 'dr.reference_id']);
 });
 
-Deno.test('get unique foreign key from child to parent without specifying fk fields', () => {
+test('get unique foreign key from child to parent without specifying fk fields', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const drug = {schema: 'drugs', name: 'drug'};
   const drugRef = {schema: 'drugs', name: 'drug_reference'};
   const fk = dbmd.getForeignKeyFromTo(drugRef, drug); // (from/to order intentionally reversed)
-  assertEquals(fk?.constraintName, 'drug_reference_drug_fk');
+  expect(fk?.constraintName).toEqual('drug_reference_drug_fk');
 });
 
-Deno.test('get foreign key from child to parent when specifying fk field(s)', () => {
+test('get foreign key from child to parent when specifying fk field(s)', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const compound = {schema: 'drugs', name: 'compound'};
   const analyst = {schema: 'drugs', name: 'analyst'};
   const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['entered_by']));
-  assertEquals(fk?.constraintName, 'compound_enteredby_analyst_fk');
+  expect(fk?.constraintName).toEqual('compound_enteredby_analyst_fk');
 });
 
-Deno.test('return no foreign key from child to parent when specifying non-existing fk field', () => {
+test('return no foreign key from child to parent when specifying non-existing fk field', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const compound = {schema: 'drugs', name: 'compound'};
   const analyst = {schema: 'drugs', name: 'analyst'};
   const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['nonexisting_field']));
-  assert(fk === null);
+  expect(fk).toBeNull();
 });
 
-Deno.test('return null when foreign key does not exist between specified tables', () => {
+test('return null when foreign key does not exist between specified tables', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const drug = {schema: 'drugs', name: 'drug'};
   const drugRef = {schema: 'drugs', name: 'drug_reference'};
   const fk = dbmd.getForeignKeyFromTo(drug, drugRef);
-  assert(fk === null);
+  expect(fk).toBeNull();
 });
 
-Deno.test('throw error if multiple foreign keys satisfy conditions for call to getForeignKeyFromTo()', () => {
+test('throw error if multiple foreign keys satisfy conditions for call to getForeignKeyFromTo()', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const compound = {schema: 'drugs', name: 'compound'};
   const analyst = {schema: 'drugs', name: 'analyst'};
-  assertThrows(() => dbmd.getForeignKeyFromTo(compound, analyst), Error, 'Multiple foreign key constraints exist');
+  expect(() => dbmd.getForeignKeyFromTo(compound, analyst))
+  .toThrowError(/multiple foreign key constraints exist /i);
 });
 
-Deno.test('get foreign key field names from foreign key', () => {
+test('get foreign key field names from foreign key', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const compound = {schema: 'drugs', name: 'compound'};
   const analyst = {schema: 'drugs', name: 'analyst'};
   const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['entered_by']));
-  assertEquals(foreignKeyFieldNames(fk!), ['entered_by']);
+  expect(foreignKeyFieldNames(fk!)).toEqual(['entered_by']);
 });
 
-Deno.test('make rel ids with default schema applied', () => {
-  assertEquals(
-    toRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'),
-    {schema: 'drugs', name: 'authority'}
-  );
-  assertEquals(
-    toRelId('AUTHORITY', null, 'INSENSITIVE_STORED_LOWER'),
-    {schema: null, name: 'authority'}
-  );
-  assertEquals(
-    toRelId('authority', 'drugs', 'INSENSITIVE_STORED_UPPER'),
-    {schema: 'DRUGS', name: 'AUTHORITY'}
-  );
-  assertEquals(
-    toRelId('authority', null, 'INSENSITIVE_STORED_UPPER'),
-    {schema: null, name: 'AUTHORITY'}
-  );
+test('make rel ids with default schema applied', () => {
+  expect(toRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: 'drugs', name: 'authority'});
+  expect(toRelId('AUTHORITY', null, 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: null, name: 'authority'});
+  expect(toRelId('authority', 'drugs', 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
+  expect(toRelId('authority', null, 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: null, name: 'AUTHORITY'});
 });
 
-Deno.test('make rel id by parsing qualified name', () => {
-  assertEquals(
-    toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_UPPER'),
-    {schema: 'DRUGS', name: 'AUTHORITY'}
-  );
-  assertEquals(
-    toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_LOWER'),
-    {schema: 'drugs', name: 'authority'}
-  );
+test('make rel id by parsing qualified name', () => {
+  expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
+    expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: 'drugs', name: 'authority'});
 });
 
-Deno.test('rel id string', () => {
-  assertEquals(relIdString({schema: 'DRUGS', name: 'AUTHORITY'}), 'DRUGS.AUTHORITY');
-  assertEquals(relIdString({schema: null, name: 'AUTHORITY'}), 'AUTHORITY');
-  assertEquals(relIdString({schema: 'drugs', name: 'authority'}), 'drugs.authority');
-  assertEquals(relIdString({schema: null, name: 'authority'}), 'authority');
+test('rel id string', () => {
+  expect(relIdString({schema: 'DRUGS', name: 'AUTHORITY'})).toEqual('DRUGS.AUTHORITY');
+  expect(relIdString({schema: null, name: 'AUTHORITY'})).toEqual('AUTHORITY');
+  expect(relIdString({schema: 'drugs', name: 'authority'})).toEqual('drugs.authority');
+  expect(relIdString({schema: null, name: 'authority'})).toEqual('authority');
 });
 
-Deno.test('rel ids equal', () => {
-  assertEquals({schema: 'DRUGS', name: 'AUTHORITY'}, {schema: 'DRUGS', name: 'AUTHORITY'});
-  assertEquals({schema: null, name: 'AUTHORITY'}, {schema: null, name: 'AUTHORITY'});
-  assertEquals({schema: 'drugs', name: 'authority'}, {schema: 'drugs', name: 'authority'});
-  assertEquals({schema: null, name: 'authority'}, {schema: null, name: 'authority'});
-  assertNotEquals({schema: 'DRUGS', name: 'AUTHORITY'}, {schema: 'DRUGS', name: 'authority'});
-  assertNotEquals({schema: 'DRUGS', name: 'AUTHORITY'}, {schema: 'drugs', name: 'AUTHORITY'});
-  assertNotEquals({schema: null, name: 'AUTHORITY'}, {schema: null, name: 'authority'});
+test('rel ids equal', () => {
+  expect({schema: 'DRUGS', name: 'AUTHORITY'}).toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
+  expect({schema: null, name: 'AUTHORITY'}).toEqual({schema: null, name: 'AUTHORITY'});
+  expect({schema: 'drugs', name: 'authority'}).toEqual({schema: 'drugs', name: 'authority'});
+  expect({schema: null, name: 'authority'}).toEqual({schema: null, name: 'authority'});
+  expect({schema: 'DRUGS', name: 'AUTHORITY'}).not.toEqual({schema: 'DRUGS', name: 'authority'});
+  expect({schema: 'DRUGS', name: 'AUTHORITY'}).not.toEqual({schema: 'drugs', name: 'AUTHORITY'});
+  expect({schema: null, name: 'AUTHORITY'}).not.toEqual({schema: null, name: 'authority'});
 });

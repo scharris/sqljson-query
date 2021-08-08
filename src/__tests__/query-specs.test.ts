@@ -1,5 +1,4 @@
-import {assertEquals} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import {getInlineParentSpecs, getReferencedParentSpecs, TableJsonSpec} from "../query-specs.ts";
+import {getInlineParentSpecs, getReferencedParentSpecs, TableJsonSpec} from "../query-specs";
 
 const parent1Spec: TableJsonSpec = {
   table: "parent1",
@@ -32,7 +31,7 @@ const parent3Spec: TableJsonSpec = {
   ]
 };
 
-Deno.test('get non-empty inline parent tables', () => {
+test('get non-empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
@@ -41,10 +40,10 @@ Deno.test('get non-empty inline parent tables', () => {
       { tableJson: parent3Spec, referenceName: "parent3Ref" },
     ]
   };
-  assertEquals(getInlineParentSpecs(tableJsonSpec), [{ tableJson: parent1Spec }]);
+  expect(getInlineParentSpecs(tableJsonSpec)).toEqual([{ tableJson: parent1Spec }]);
 });
 
-Deno.test('get empty inline parent tables', () => {
+test('get empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
@@ -52,11 +51,11 @@ Deno.test('get empty inline parent tables', () => {
       { tableJson: parent3Spec, referenceName: "parent3Ref" },
     ]
   };
-  assertEquals(getInlineParentSpecs(tableJsonSpec), []);
-  assertEquals(getInlineParentSpecs({table: "empty"}), []);
+  expect(getInlineParentSpecs(tableJsonSpec)).toEqual([]);
+  expect(getInlineParentSpecs({table: "empty"})).toEqual([]);
 });
 
-Deno.test('get non-empty referenced parent tables', () => {
+test('get non-empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
@@ -65,19 +64,19 @@ Deno.test('get non-empty referenced parent tables', () => {
       { tableJson: parent3Spec, referenceName: "parent3Ref" },
     ]
   };
-  assertEquals(getReferencedParentSpecs(tableJsonSpec), [
+  expect(getReferencedParentSpecs(tableJsonSpec)).toEqual([
     { tableJson: parent2Spec, referenceName: "parent2Ref" },
     { tableJson: parent3Spec, referenceName: "parent3Ref" }
   ]);
 });
 
-Deno.test('get empty referenced parent tables', () => {
+test('get empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
       { tableJson: parent1Spec },
     ]
   };
-  assertEquals(getReferencedParentSpecs(tableJsonSpec), []);
-  assertEquals(getReferencedParentSpecs({table: "empty"}), []);
+  expect(getReferencedParentSpecs(tableJsonSpec)).toEqual([]);
+  expect(getReferencedParentSpecs({table: "empty"})).toEqual([]);
 });

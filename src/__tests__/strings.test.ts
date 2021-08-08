@@ -1,39 +1,37 @@
-import {assertEquals, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import * as strings from '../util/strings.ts';
+import * as strings from '../util/strings';
 
-Deno.test('lower camel case', () => {
-  assertEquals(strings.lowerCamelCase('some_name'), 'someName');
-  assertEquals(strings.lowerCamelCase('sOme_name'), 'someName');
+test('lower camel case', () => {
+  expect(strings.lowerCamelCase('some_name')).toBe('someName');
+  expect(strings.lowerCamelCase('sOme_name')).toBe('someName');
 });
 
-Deno.test('upper camel case', () => {
-  assertEquals(strings.upperCamelCase('some_name'), 'SomeName');
-  assertEquals(strings.upperCamelCase('sOme_name'), 'SomeName');
+test('upper camel case', () => {
+  expect(strings.upperCamelCase('some_name')).toBe('SomeName');
+  expect(strings.upperCamelCase('sOme_name')).toBe('SomeName');
 });
 
-Deno.test('lowercase initials', () => {
-  assertEquals(strings.lowerCaseInitials('some_multipart_name', '_'), 'smn');
-  assertEquals(strings.lowerCaseInitials('some', '_'), 's');
+test('lowercase initials', () => {
+  expect(strings.lowerCaseInitials('some_multipart_name', '_')).toBe('smn');
+  expect(strings.lowerCaseInitials('some', '_')).toBe('s');
 });
 
-Deno.test('replace all', () => {
-  assertEquals(strings.replaceAll('line 1 $$\n$$ on line 2', '$$', 'repl'), 'line 1 repl\nrepl on line 2');
+test('replace all', () => {
+  expect(strings.replaceAll('line 1 $$\n$$ on line 2', '$$', 'repl')).toBe('line 1 repl\nrepl on line 2');
 });
 
-Deno.test('make names not in set', () => {
+test('make names not in set', () => {
   const existingNames = new Set(['aName', 'aName_1', 'bName']);
-  assertEquals(strings.makeNameNotInSet('aName', existingNames), 'aName1');
-  assertEquals(strings.makeNameNotInSet('aName', existingNames, '_'), 'aName_2');
-  assertEquals(strings.makeNameNotInSet('cName', existingNames, '_'), 'cName');
+  expect(strings.makeNameNotInSet('aName', existingNames)).toBe('aName1');
+  expect(strings.makeNameNotInSet('aName', existingNames, '_')).toBe('aName_2');
+  expect(strings.makeNameNotInSet('cName', existingNames, '_')).toBe('cName');
 });
 
-Deno.test('indent lines', () => {
-  assertEquals(strings.indentLines('line 1\nline 2', 2), '  line 1\n  line 2');
-  assertEquals(strings.indentLines('line 1\nline 2', 2, false), 'line 1\n  line 2');
+test('indent lines', () => {
+  expect(strings.indentLines('line 1\nline 2', 2)).toBe('  line 1\n  line 2');
+  expect(strings.indentLines('line 1\nline 2', 2, false)).toBe('line 1\n  line 2');
 });
 
-Deno.test('un-doublequote', () => {
-  assertEquals(strings.unDoubleQuote('not quoted'), 'not quoted');
-  assertEquals(strings.unDoubleQuote('"abc"'), 'abc');
+test('un-doublequote', () => {
+  expect(strings.unDoubleQuote('not quoted')).toBe('not quoted');
+  expect(strings.unDoubleQuote('"abc"')).toBe('abc');
 });
-

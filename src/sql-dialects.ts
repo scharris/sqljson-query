@@ -1,5 +1,5 @@
-import {indentLines, unDoubleQuote} from './util/mod.ts';
-import {DatabaseMetadata} from './database-metadata.ts';
+import {indentLines, unDoubleQuote} from './util/mod';
+import {DatabaseMetadata} from './database-metadata';
 
 
 type DbmsType = 'PG' | 'ORA' | 'ISO';

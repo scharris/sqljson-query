@@ -1,10 +1,10 @@
 
 export function exit(code: number): never
 {
-  return Deno.exit(code);
+  return process.exit(code);
 }
 
 export function cwd(): string
 {
-  return Deno.cwd();
+  return process.cwd();
 }

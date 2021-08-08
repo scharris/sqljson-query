@@ -1,5 +1,5 @@
-import {parseAppArgs,exit} from './util/mod.ts';
-import {generateQuerySources, SourceGenerationOptions, SourceLanguage} from './mod.ts';
+import {parseAppArgs,exit} from './util/mod';
+import {generateQuerySources, SourceGenerationOptions, SourceLanguage} from './mod';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
 {

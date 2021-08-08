@@ -1,13 +1,13 @@
-import {caseNormalizeName, makeMap} from './util/mod.ts';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata.ts';
+import {caseNormalizeName, makeMap} from './util/mod';
+import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
-} from './result-types.ts';
+} from './result-types';
 import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec
-} from './query-specs.ts';
+} from './query-specs';
 
 export class ResultTypesGenerator
 {

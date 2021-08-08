@@ -1,0 +1,56 @@
+{
+  "name": "sqljson-query",
+  "type": "module",
+  "version": "1.1.0",
+  "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
+  "keywords": [
+    "SQL",
+    "SQL/JSON",
+    "database",
+    "ORM"
+  ],
+  "author": "Stephen C. Harris",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scharris/sqljson-query.git"
+  },
+  "bin": {
+    "sjq-gen-queries": "lib/cli-query-gen.js",
+    "sjq-gen-relmds": "lib/cli-relmds-gen.js"
+  },
+  "main": "./lib/mod.js",
+  "exports": "./lib/mod.js",
+  "scripts": {
+    "gen-qspecs-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/query-specs.schema.json tsconfig.json QueryGroupSpec",
+    "gen-dbmd-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/dbmd.schema.json tsconfig.json DatabaseMetadataStoredProperties",
+    "gen-json-schemas": "mkdirp lib/schemas && npm run gen-qspecs-json-schema && npm run gen-dbmd-json-schema",
+    "build": "npm run clean && tsc && npm run gen-json-schemas",
+    "test": "jest",
+    "clean": "rimraf lib"
+  },
+  "dependencies": {
+    "ajv": "^8.6.2",
+    "lodash": "^4.17.20",
+    "minimist": "^1.2.5"
+  },
+  "devDependencies": {
+    "@types/ajv": "^1.0.0",
+    "@types/jest": "^26.0.23",
+    "@types/lodash": "^4.14.170",
+    "@types/minimist": "^1.2.1",
+    "@types/node": "^16.4.13",
+    "@types/pg": "^8.6.1",
+    "copyfiles": "^2.4.1",
+    "dotenv": "^10.0.0",
+    "jest": "^27.0.6",
+    "jest-cli": "^27.0.6",
+    "mkdirp": "^1.0.4",
+    "path": "^0.12.7",
+    "pg": "^8.6.0",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^27.0.4",
+    "typescript": "^4.2.4",
+    "typescript-json-schema": "^0.50.1"
+  }
+}

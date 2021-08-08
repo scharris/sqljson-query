@@ -1,46 +1,45 @@
-import {assertEquals} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import {quoteIfNeeded, caseNormalizeName} from '../util/database-names.ts';
+import {quoteIfNeeded, caseNormalizeName} from '../util/database-names';
 
-Deno.test('leave uppercase name unquoted for stored-uppercase db', () => {
-  assertEquals(quoteIfNeeded('UC', 'INSENSITIVE_STORED_UPPER'), 'UC');
+test('leave uppercase name unquoted for stored-uppercase db', () => {
+  expect(quoteIfNeeded('UC', 'INSENSITIVE_STORED_UPPER')).toBe('UC');
 });
 
-Deno.test('leave lowercase name unquoted for stored-lowercase db', () => {
-  assertEquals(quoteIfNeeded('lc', 'INSENSITIVE_STORED_LOWER'), 'lc');
+test('leave lowercase name unquoted for stored-lowercase db', () => {
+  expect(quoteIfNeeded('lc', 'INSENSITIVE_STORED_LOWER')).toBe('lc');
 });
 
-Deno.test('quote mixedcase name for stored-uppercase db', () => {
-  assertEquals(quoteIfNeeded('mC', 'INSENSITIVE_STORED_UPPER'), '"mC"');
+test('quote mixedcase name for stored-uppercase db', () => {
+  expect(quoteIfNeeded('mC', 'INSENSITIVE_STORED_UPPER')).toBe('"mC"');
 });
 
-Deno.test('quote mixedcase name for stored-lowercase db', () => {
-  assertEquals(quoteIfNeeded('mC', 'INSENSITIVE_STORED_LOWER'), '"mC"');
+test('quote mixedcase name for stored-lowercase db', () => {
+  expect(quoteIfNeeded('mC', 'INSENSITIVE_STORED_LOWER')).toBe('"mC"');
 });
 
-Deno.test('leave quoted name quoted for stored-lowercase db', () => {
-  assertEquals(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_LOWER'), '"mC"');
+test('leave quoted name quoted for stored-lowercase db', () => {
+  expect(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_LOWER')).toBe('"mC"');
 });
 
-Deno.test('leave quoted name quoted for stored-uppercase db', () => {
-  assertEquals(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_UPPER'), '"mC"');
+test('leave quoted name quoted for stored-uppercase db', () => {
+  expect(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_UPPER')).toBe('"mC"');
 });
 
-Deno.test('leave quoted name quoted for stored-lowercase db', () => {
-  assertEquals(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_LOWER'), '"mC"');
+test('leave quoted name quoted for stored-lowercase db', () => {
+  expect(quoteIfNeeded('"mC"', 'INSENSITIVE_STORED_LOWER')).toBe('"mC"');
 });
 
-Deno.test('nromalize quoted name as quoted for stored-lowercase db', () => {
-  assertEquals(caseNormalizeName('"mC"', 'INSENSITIVE_STORED_LOWER'), '"mC"');
+test('nromalize quoted name as quoted for stored-lowercase db', () => {
+  expect(caseNormalizeName('"mC"', 'INSENSITIVE_STORED_LOWER')).toBe('"mC"');
 });
 
-Deno.test('normalize quoted name as quoted for stored-uppercase db', () => {
-  assertEquals(caseNormalizeName('"mC"', 'INSENSITIVE_STORED_UPPER'), '"mC"');
+test('normalize quoted name as quoted for stored-uppercase db', () => {
+  expect(caseNormalizeName('"mC"', 'INSENSITIVE_STORED_UPPER')).toBe('"mC"');
 });
 
-Deno.test('normalize unquoted name to uppercase for stored-uppercase db', () => {
-  assertEquals(caseNormalizeName('mC', 'INSENSITIVE_STORED_UPPER'), 'MC');
+test('normalize unquoted name to uppercase for stored-uppercase db', () => {
+  expect(caseNormalizeName('mC', 'INSENSITIVE_STORED_UPPER')).toBe('MC');
 });
 
-Deno.test('normalize unquoted name to lowercase for stored-lowercase db', () => {
-  assertEquals(caseNormalizeName('mC', 'INSENSITIVE_STORED_LOWER'), 'mc');
+test('normalize unquoted name to lowercase for stored-lowercase db', () => {
+  expect(caseNormalizeName('mC', 'INSENSITIVE_STORED_LOWER')).toBe('mc');
 });

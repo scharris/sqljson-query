@@ -1,4 +1,4 @@
-import {ResultRepr} from './query-specs.ts';
+import {ResultRepr} from './query-specs';
 
 export interface QueryReprSqlPath
 {

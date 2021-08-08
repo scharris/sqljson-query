@@ -1,4 +1,4 @@
-import {ResultType, TableFieldProperty} from './result-types.ts';
+import {ResultType, TableFieldProperty} from './result-types';
 
 export type SourceLanguage = 'TS' | 'Java';
 

@@ -1,5 +1,4 @@
-import {assertEquals, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
-import {propertiesCount, ResultType, resultTypesEqual} from '../result-types.ts';
+import {propertiesCount, ResultType, resultTypesEqual} from '../result-types';
 
 const emptyResultType: ResultType = {
   queryName: 'query',
@@ -61,21 +60,21 @@ function makeExampleResultType(): ResultType
 
 const exampleResultType = makeExampleResultType();
 
-Deno.test('result type fields counts', () => {
-  assertEquals(propertiesCount(emptyResultType), 0);
-  assertEquals(propertiesCount(exampleResultType), 7);
+test('result type fields counts', () => {
+  expect(propertiesCount(emptyResultType)).toBe(0);
+  expect(propertiesCount(exampleResultType)).toBe(7);
 });
 
-Deno.test('result types equality', () => {
+test('result types equality', () => {
   
-  assertEquals(resultTypesEqual(exampleResultType, exampleResultType), true);
+  expect(resultTypesEqual(exampleResultType, exampleResultType)).toBe(true);
 
   const exampleCopy = makeExampleResultType();
-  assert(resultTypesEqual(exampleResultType, exampleCopy));
+  expect(resultTypesEqual(exampleResultType, exampleCopy)).toBe(true);
   
-  assertEquals(resultTypesEqual(exampleResultType, {...exampleResultType, table: "other_table"}), false);
+  expect(resultTypesEqual(exampleResultType, {...exampleResultType, table: "other_table"})).toBe(false);
 
-  assertEquals(
+  expect(
     resultTypesEqual(
       exampleResultType,
       {
@@ -83,10 +82,9 @@ Deno.test('result types equality', () => {
         tableFieldProperties:
           exampleResultType.tableFieldProperties.map(p => ({...p, name: p.name + "_2"}))
       }
-    )
-  , false);
+    )).toBe(false);
 
-  assertEquals(
+  expect(
     resultTypesEqual(
       exampleResultType,
       {
@@ -94,10 +92,9 @@ Deno.test('result types equality', () => {
         tableExpressionProperty: 
           exampleResultType.tableExpressionProperty.map(p => ({...p, name: p.name + "_2"})) 
       }
-    )
-  , false);
+    )).toBe(false);
 
-  assertEquals(
+  expect(
     resultTypesEqual(
       exampleResultType,
       {
@@ -105,10 +102,9 @@ Deno.test('result types equality', () => {
         parentReferenceProperties: 
           exampleResultType.parentReferenceProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
-    )
-  , false);
+    )).toBe(false);
 
-  assertEquals(
+  expect(
     resultTypesEqual(
       exampleResultType,
       {
@@ -116,14 +112,11 @@ Deno.test('result types equality', () => {
         childCollectionProperties: 
           exampleResultType.childCollectionProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
-    )
-  , false);
+    )).toBe(false);
 
-  assertEquals(
+  expect(
     resultTypesEqual(
       exampleResultType,
       {...exampleResultType, unwrapped: !exampleResultType.unwrapped}
-    )
-  , false);
-  
+    )).toBe(false);
 });

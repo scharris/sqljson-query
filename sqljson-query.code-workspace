@@ -8,14 +8,6 @@
         },
         {
             "path": "../dbmd-pg"
-        },
-        {
-            "path": "../dbmd-ora"
         }
-    ],
-    "settings": {
-        "deno.enable": true,
-        "deno.lint": true,
-        "deno.unstable": true
-    }
+    ]
 }

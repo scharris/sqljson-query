@@ -1,15 +1,15 @@
 import {
   makeMap, mapSet, caseNormalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
   lowerCaseInitials, makeNameNotInSet, replaceAll
-} from './util/mod.ts';
+} from './util/mod';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
   CustomJoinCondition, ParentSpec, ReferencedParentSpec, InlineParentSpec, getInlineParentSpecs,
   getReferencedParentSpecs,
-} from './query-specs.ts';
-import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-spec-validations.ts';
-import {SqlDialect, getSqlDialect} from './sql-dialects.ts';
-import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata.ts';
+} from './query-specs';
+import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-spec-validations';
+import {SqlDialect, getSqlDialect} from './sql-dialects';
+import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata';
 
 export class QuerySqlGenerator
 {
