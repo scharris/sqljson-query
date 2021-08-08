@@ -35,9 +35,9 @@ jobs:
       - name: Initialize testing database
         run: |
           cd "$GITHUB_WORKSPACE"/src/__tests__/db/pg
-          psql "$CONNSTR" -a -q -f create-schema.sql
-          psql "$CONNSTR" -a -q -f create-schema-objects.sql
-          psql "$CONNSTR" -a -q -f create-test-data.sql
+          psql "$CONNSTR" -a -q -f sql/create-schema.sql
+          psql "$CONNSTR" -a -q -f sql/create-schema-objects.sql
+          psql "$CONNSTR" -a -q -f sql/create-test-data.sql
         env:
           CONNSTR: "postgresql://drugs:drugs@localhost:5432/drugs"
       - name: Setup node.js
