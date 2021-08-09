@@ -1,0 +1,12 @@
+node_modules
+src
+.vscode
+.idea
+.editorconfig
+.github
+*.code-workspace
+jest.config.json
+NOTES
+*.md
+shell.nix
+
