@@ -151,7 +151,7 @@ function relationMetadataJavaSource
   const relId = relMd.relationId.schema ?
     ident(relMd.relationId.schema, dbCaseSensitivity, preferLowercaseNames) + '.' + relName
     : relName;
-  parts.push(`public static class ${relName} // relation`);
+  parts.push(`public static class ${relJavaClassName(relName)} // relation`);
   parts.push('{');
   parts.push(`  public static String tableId() { return "${relId}"; }`);
   parts.push(`  public static String tableName() { return "${relName}"; }`);
@@ -232,6 +232,66 @@ function ident
 function lit(s: string)
 {
   return "\"" + s.replace(/"/g, '\\"') + "\"";
+}
+
+function relJavaClassName(relName: string)
+{
+  switch(relName)
+  {
+    case 'abstract':
+    case 'continue':
+    case 'for':
+    case 'new':
+    case 'switch':
+    case 'assert':
+    case 'default':
+    case 'goto':
+    case 'package':
+    case 'synchronized':
+    case 'boolean':
+    case 'do':
+    case 'if':
+    case 'private':
+    case 'this':
+    case 'break':
+    case 'double:':
+    case 'implements':
+    case 'protected':
+    case 'throw':
+    case 'byte':
+    case 'else':
+    case 'import':
+    case 'public':
+    case 'throws':
+    case 'case':
+    case 'enum':
+    case 'instanceof':
+    case 'return':
+    case 'transient':
+    case 'catch':
+    case 'extends':
+    case 'int':
+    case 'short':
+    case 'try':
+    case 'char':
+    case 'final':
+    case 'interface':
+    case 'static':
+    case 'void':
+    case 'class':
+    case 'finally':
+    case 'long':
+    case 'strictfp':
+    case 'volatile':
+    case 'const':
+    case 'float':
+    case 'native':
+    case 'super':
+    case 'while':
+      return relName + "_";
+    default:
+      return relName;
+  }
 }
 
 const autogenWarning =
