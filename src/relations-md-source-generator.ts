@@ -28,9 +28,6 @@ export async function generateRelationsMetadataSource
     }
     case 'Java':
     {
-      const fieldStructOutputFile = path.join(sourceOutputDir, 'Field.java');
-      await writeTextFile(fieldStructOutputFile, fieldStructSource(javaPackage));
-
       const relMdsOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
       return await writeTextFile(
@@ -81,6 +78,8 @@ function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boole
       relMd => relMd
     );
 
+  parts.push('import org.checkerframework.checker.nullness.qual.Nullable;\n');
+
   parts.push('public class RelationsMetadata');
   parts.push('{');
 
@@ -99,6 +98,8 @@ function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boole
 
     parts.push("  }"); // schema class
   }
+
+  parts.push(indentLines(fieldStructSource(), 2));
 
   parts.push("}"); // Relations class
 
@@ -166,18 +167,15 @@ function relationMetadataJavaSource
       `${f.length}, ${f.precision}, ${f.precisionRadix}, ${f.fractionalDigits});`
     );
   }
-
   parts.push("}\n");
 
   return parts.join('\n');
 }
 
-function fieldStructSource(javaPackage: string | undefined): string
+function fieldStructSource(): string
 {
-  return (javaPackage ? `package ${javaPackage};\n` : '') + `
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-public class Field
+  return `
+public static class Field
 {
    public String name;
    public String databaseType;

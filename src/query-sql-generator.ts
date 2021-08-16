@@ -733,7 +733,7 @@ function jsonPropertiesCount(tjs: TableJsonSpec): number
 
 function lineCommentTableRowObject(tableJsonSpec: TableJsonSpec): string
 {
-  return `-- row object builder for table '${tableJsonSpec.table}'`;
+  return `-- row object for table '${tableJsonSpec.table}'`;
 }
 
 function lineCommentBaseTableQuery(tableSpec: TableJsonSpec): string
@@ -743,7 +743,7 @@ function lineCommentBaseTableQuery(tableSpec: TableJsonSpec): string
 
 function lineCommentAggregatedRowObjects(tableSpec: TableJsonSpec): string
 {
-  return `-- aggregated row objects builder for table '${tableSpec.table}'`;
+  return `-- aggregated row objects for table '${tableSpec.table}'`;
 }
 
 function lineCommentChildCollectionSelectExpression(childSpec: ChildSpec): string

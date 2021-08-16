@@ -34,13 +34,13 @@ export async function generateQuerySources
 {
   try
   {
-    await requireFileExists(dbmdFile, 'Database metadata file not found.');
+    await requireFileExists(dbmdFile, 'The database metadata file was not found.');
     if ( srcOutputDir )
-      await requireDirExists(srcOutputDir, 'Source output directory not found.');
+      await requireDirExists(srcOutputDir, 'The result types source output directory was not found.');
     if ( sqlOutputDir )
-      await requireDirExists(sqlOutputDir, 'Queries output directory not found.');
+      await requireDirExists(sqlOutputDir, 'The SQL output directory was not found.');
     if ( opts.typesHeaderFile )
-      await requireFileExists(opts.typesHeaderFile, 'Types header file not found.');
+      await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
