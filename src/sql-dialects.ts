@@ -76,7 +76,7 @@ export class OracleDialect implements SqlDialect
 
     return (
       "json_object(\n" +
-        indentLines(objectFieldDecls, this.indentSpaces) + " returning clob\n" +
+        indentLines(objectFieldDecls + "\nreturning clob", this.indentSpaces) + "\n" +
       ")"
     );
   }
@@ -92,8 +92,8 @@ export class OracleDialect implements SqlDialect
     return (
       "treat(coalesce(json_arrayagg(" +
         this.getRowObjectExpression(columnNames, srcAlias) +
-        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") +
-        " returning clob" +
+        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") + "\n" +
+        "  returning clob" +
       "), to_clob('[]')) as json)"
     );
   }
@@ -108,8 +108,8 @@ export class OracleDialect implements SqlDialect
   {
     return (
       `treat(coalesce(json_arrayagg(${srcAlias}.${columnName}` +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") +
-        " returning clob" +
+        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") + "\n" +
+        "  returning clob" +
       "), to_clob('[]')) as json)"
     );
   }
