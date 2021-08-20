@@ -170,10 +170,8 @@ test('non-unwrapped child table collection', async () => {
         childTables: [
           {
             collectionName: 'compoundsEntered',
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id', 'display_name'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id', 'display_name'],
             foreignKeyFields: ['entered_by'],
           }
         ],
@@ -204,10 +202,8 @@ test('unwrapped child table collection of table field property', async () => {
           {
             collectionName: 'compoundsEntered',
             unwrap: true,
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id'],
             foreignKeyFields: ['entered_by'],
           }
         ],
@@ -235,12 +231,10 @@ test('unwrapped child table collection of field exression property', async () =>
           {
             collectionName: 'compoundsEntered',
             unwrap: true,
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: [
-                { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
-              ]
-            },
+            table: 'compound',
+            fieldExpressions: [
+              { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
+            ],
             foreignKeyFields: ['entered_by'],
           }
         ],
@@ -268,18 +262,14 @@ test('unwrapped child table collection of parent reference property', async () =
           {
             collectionName: 'drugAnalysts',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              parentTables: [
-                {
-                  referenceName: 'registeredBy',
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id', 'short_name']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            parentTables: [
+              {
+                referenceName: 'registeredBy',
+                table: 'analyst',
+                fieldExpressions: ['id', 'short_name'],
+              }
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -309,17 +299,13 @@ test('unwrapped child table collection of inlined parent property', async () => 
           {
             collectionName: 'drugRegisteringAnalystIds',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              parentTables: [
-                {
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            parentTables: [
+              {
+                table: 'analyst',
+                fieldExpressions: ['id']
+              }
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -346,19 +332,15 @@ test('unwrapped child collection of child collection property', async () => {
           {
             collectionName: 'drugAdvisories',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              childTables: [
-                {
-                  collectionName: 'advisories',
-                  unwrap: false,
-                  tableJson: {
-                    table: 'advisory',
-                    fieldExpressions: ['id', 'advisory_type_id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisories',
+                unwrap: false,
+                table: 'advisory',
+                fieldExpressions: ['id', 'advisory_type_id']
+              }
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -391,19 +373,15 @@ test('unwrapped child collection of unwrapped child collection property', async 
           {
             collectionName: 'drugAdvisoryTypeIds',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              childTables: [
-                {
-                  collectionName: 'advisories',
-                  unwrap: true,
-                  tableJson: {
-                    table: 'advisory',
-                    fieldExpressions: ['advisory_type_id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisories',
+                unwrap: true,
+                table: 'advisory',
+                fieldExpressions: ['advisory_type_id'],
+              }
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -432,10 +410,8 @@ test('unwrapped child collection with element type containing more than one prop
           {
             collectionName: 'advisoryTypeIdLists',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              fieldExpressions: ['id', 'name']
-            }
+            table: 'drug',
+            fieldExpressions: ['id', 'name']
           }
         ]
       }
@@ -456,10 +432,8 @@ test('order-by specification determines ordering in a child table collection', a
         childTables: [
           {
             collectionName: 'compoundsEntered',
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id', 'display_name'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id', 'display_name'],
             foreignKeyFields: ['entered_by'],
             orderBy: '$$.id desc'
           }
@@ -490,10 +464,8 @@ test('referenced parent table', async () => {
         parentTables: [
           {
             referenceName: 'enteredByAnalyst',
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id', 'short_name']
-            },
+            table: 'analyst',
+            fieldExpressions: ['id', 'short_name'],
             viaForeignKeyFields: ['entered_by']
           }
         ],
@@ -522,13 +494,11 @@ test('table field properties from inline parent tables', async () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: [
-                { field: 'id', jsonProperty: 'analystId' },
-                { field: 'short_name', jsonProperty: 'analystShortName' }
-              ]
-            },
+            table: 'analyst',
+            fieldExpressions: [
+              { field: 'id', jsonProperty: 'analystId' },
+              { field: 'short_name', jsonProperty: 'analystShortName' }
+            ],
             viaForeignKeyFields: ['entered_by']
           }
         ],
@@ -558,24 +528,20 @@ test('table field properties from an inlined parent and its own inlined parent',
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: [
-                { field: 'id', jsonProperty: 'compoundId' },
-                { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-              ],
-              parentTables: [
-                {
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: [
-                      { field: 'short_name', jsonProperty: 'compoundApprovedBy' }
-                    ],
-                  },
-                  viaForeignKeyFields: ['approved_by']
-                }
-              ]
-            }
+            table: 'compound',
+            fieldExpressions: [
+              {field: 'id', jsonProperty: 'compoundId'},
+              {field: 'display_name', jsonProperty: 'compoundDisplayName'}
+            ],
+            parentTables: [
+              {
+                table: 'analyst',
+                fieldExpressions: [
+                  { field: 'short_name', jsonProperty: 'compoundApprovedBy' }
+                ],
+                viaForeignKeyFields: ['approved_by']
+              }
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -610,19 +576,15 @@ test('referenced parent property from an inlined parent', async () => {
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              parentTables: [
-                {
-                  referenceName: 'enteredByAnalyst',
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id', 'short_name'],
-                  },
-                  viaForeignKeyFields: ['entered_by']
-                },
-              ]
-            }
+            table: 'compound',
+            parentTables: [
+              {
+                referenceName: 'enteredByAnalyst',
+                table: 'analyst',
+                fieldExpressions: ['id', 'short_name'],
+                viaForeignKeyFields: ['entered_by']
+              },
+            ],
           }
         ],
         recordCondition: {sql: '$$.id = 1'}

@@ -35,20 +35,20 @@ test('get non-empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      parent1Spec,
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
-  expect(getInlineParentSpecs(tableJsonSpec)).toEqual([{ tableJson: parent1Spec }]);
+  expect(getInlineParentSpecs(tableJsonSpec)).toEqual([parent1Spec]);
 });
 
 test('get empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
   expect(getInlineParentSpecs(tableJsonSpec)).toEqual([]);
@@ -59,14 +59,15 @@ test('get non-empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      parent1Spec,
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
+
   expect(getReferencedParentSpecs(tableJsonSpec)).toEqual([
-    { tableJson: parent2Spec, referenceName: "parent2Ref" },
-    { tableJson: parent3Spec, referenceName: "parent3Ref" }
+    {...parent2Spec, referenceName: "parent2Ref" },
+    {...parent3Spec, referenceName: "parent3Ref" }
   ]);
 });
 
@@ -74,7 +75,7 @@ test('get empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
+      parent1Spec,
     ]
   };
   expect(getReferencedParentSpecs(tableJsonSpec)).toEqual([]);
