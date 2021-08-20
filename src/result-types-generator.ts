@@ -117,11 +117,11 @@ export class ResultTypesGenerator
     for ( const parentSpec of parentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypes(parentSpec.tableJson, queryName);
+      const parentResultTypes = this.generateResultTypes(parentSpec, queryName);
       const parentType = parentResultTypes[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable = parentSpec.tableJson.recordCondition != undefined || !this.someFkFieldNullableFalse(parentSpec, relId);
+      const nullable = parentSpec.recordCondition != undefined || !this.someFkFieldNullableFalse(parentSpec, relId);
 
       typeBuilder.addFieldsFromResultType(parentType, nullable);
       resultTypes.push(...parentResultTypes.slice(1));
@@ -145,11 +145,11 @@ export class ResultTypesGenerator
     for ( const parentSpec of refdParentSpecs )
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypes(parentSpec.tableJson, queryName);
+      const parentResultTypes = this.generateResultTypes(parentSpec, queryName);
       const resultType = parentResultTypes[0]; // parent object type
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable = !!parentSpec.tableJson.recordCondition || !this.someFkFieldNullableFalse(parentSpec, relId);
+      const nullable = !!parentSpec.recordCondition || !this.someFkFieldNullableFalse(parentSpec, relId);
 
       parentReferenceProperties.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
       resultTypes.push(...parentResultTypes);
@@ -171,7 +171,7 @@ export class ResultTypesGenerator
     for ( const childCollSpec of childSpecs )
     {
       // Generate types for the child table and any related tables it includes recursively.
-      const childResultTypes = this.generateResultTypes(childCollSpec.tableJson, queryName);
+      const childResultTypes = this.generateResultTypes(childCollSpec, queryName);
       const elType = childResultTypes[0];
 
       // Mark the child collection element type as unwrapped if specified.
@@ -239,7 +239,7 @@ export class ResultTypesGenerator
     )
     : boolean
   {
-    const parentRelId = toRelId(parentSpec.tableJson.table, this.defaultSchema, this.dbmd.caseSensitivity);
+    const parentRelId = toRelId(parentSpec.table, this.defaultSchema, this.dbmd.caseSensitivity);
     const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
     if ( !fk ) throw new Error(`Foreign key from ${relIdString(childRelId)} to parent ${relIdString(parentRelId)} not found.`);

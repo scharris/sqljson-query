@@ -36,20 +36,20 @@ Deno.test('get non-empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      parent1Spec,
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
-  assertEquals(getInlineParentSpecs(tableJsonSpec), [{ tableJson: parent1Spec }]);
+  assertEquals(getInlineParentSpecs(tableJsonSpec), [parent1Spec]);
 });
 
 Deno.test('get empty inline parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
   assertEquals(getInlineParentSpecs(tableJsonSpec), []);
@@ -60,14 +60,14 @@ Deno.test('get non-empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
-      { tableJson: parent2Spec, referenceName: "parent2Ref" },
-      { tableJson: parent3Spec, referenceName: "parent3Ref" },
+      parent1Spec,
+      { ...parent2Spec, referenceName: "parent2Ref" },
+      { ...parent3Spec, referenceName: "parent3Ref" },
     ]
   };
   assertEquals(getReferencedParentSpecs(tableJsonSpec), [
-    { tableJson: parent2Spec, referenceName: "parent2Ref" },
-    { tableJson: parent3Spec, referenceName: "parent3Ref" }
+    { ...parent2Spec, referenceName: "parent2Ref" },
+    { ...parent3Spec, referenceName: "parent3Ref" }
   ]);
 });
 
@@ -75,7 +75,7 @@ Deno.test('get empty referenced parent tables', () => {
   const tableJsonSpec: TableJsonSpec = {
     table: "child_table",
     parentTables: [
-      { tableJson: parent1Spec },
+      parent1Spec,
     ]
   };
   assertEquals(getReferencedParentSpecs(tableJsonSpec), []);

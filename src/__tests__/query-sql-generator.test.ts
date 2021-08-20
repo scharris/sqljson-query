@@ -198,10 +198,8 @@ Deno.test('a non-existent child table causes error', () => {
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'table_which_dne',
-              fieldExpressions: ['id'],
-            }
+            table: 'table_which_dne',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -221,10 +219,8 @@ Deno.test('a non-existent parent table causes error', () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'table_which_dne',
-              fieldExpressions: ['id'],
-            }
+            table: 'table_which_dne',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -245,10 +241,8 @@ Deno.test('a missing foreign key for a child collection causes error', () => {
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            }
+            table: 'reference',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -268,10 +262,8 @@ Deno.test('a missing foreign key to parent table causes error', () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            }
+            table: 'reference',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -292,10 +284,8 @@ Deno.test('foreign key fields must be provided when multiple fk constraints exis
         childTables: [
           {
             collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            }
+            table: 'compound',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -316,10 +306,8 @@ Deno.test('providing foreign key fields avoids error when multiple fk constraint
         childTables: [
           {
             collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id'],
             foreignKeyFields: ['entered_by'] // disambiguates
           }
         ]
@@ -341,10 +329,8 @@ Deno.test('a custom join condition for a child table may be used when no suitabl
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
@@ -366,10 +352,8 @@ Deno.test('a custom join condition for a child table can only utilize fields whi
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'field_which_dne'}]}
           }
         ]
@@ -390,10 +374,8 @@ Deno.test('foreign key fields must be provided when multiple fk constraints exis
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id'],
-            }
+            table: 'analyst',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -413,10 +395,8 @@ Deno.test('providing fk fields avoids error when multiple fk constraints exist w
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id'],
-            },
+            table: 'analyst',
+            fieldExpressions: ['id'],
             viaForeignKeyFields: ['entered_by'] // disambiguates
           }
         ]
@@ -437,10 +417,8 @@ Deno.test('a custom join condition for a parent table may be used when no suitab
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
@@ -461,10 +439,8 @@ Deno.test('a custom join condition for a parent table can only utilize fields wh
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'field_which_dne', parentPrimaryKeyField: 'id'}]}
           }
         ]

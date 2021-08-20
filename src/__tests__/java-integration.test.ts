@@ -126,10 +126,8 @@ Deno.test('parent reference', async () => {
         parentTables: [
           {
             referenceName: 'enteredByAnalylst',
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id'],
-            },
+            table: 'analyst',
+            fieldExpressions: ['id'],
             viaForeignKeyFields: ['entered_by'] // disambiguates among two fks
           }
         ]
@@ -164,13 +162,11 @@ Deno.test('table field properties from inline parent tables', async () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: [
-                { field: 'id', jsonProperty: 'analystId' },
-                { field: 'short_name', jsonProperty: 'analystShortName' }
-              ]
-            },
+            table: 'analyst',
+            fieldExpressions: [
+              { field: 'id', jsonProperty: 'analystId' },
+              { field: 'short_name', jsonProperty: 'analystShortName' }
+            ],
             viaForeignKeyFields: ['entered_by']
           }
         ]
@@ -205,24 +201,20 @@ Deno.test('table field properties from an inlined parent and its own inlined par
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: [
-                { field: 'id', jsonProperty: 'compoundId' },
-                { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-              ],
-              parentTables: [
-                {
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: [
-                      { field: 'short_name', jsonProperty: 'compoundApprovedBy' }
-                    ],
-                  },
-                  viaForeignKeyFields: ['approved_by']
-                }
-              ]
-            }
+            table: 'compound',
+            fieldExpressions: [
+              { field: 'id', jsonProperty: 'compoundId' },
+              { field: 'display_name', jsonProperty: 'compoundDisplayName' }
+            ],
+            parentTables: [
+              {
+                table: 'analyst',
+                fieldExpressions: [
+                  { field: 'short_name', jsonProperty: 'compoundApprovedBy' }
+                ],
+                viaForeignKeyFields: ['approved_by']
+              }
+            ]
           }
         ]
       }
@@ -256,19 +248,15 @@ Deno.test('referenced parent property from an inlined parent', async () => {
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              parentTables: [
-                {
-                  referenceName: 'enteredByAnalyst',
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id', 'short_name'],
-                  },
-                  viaForeignKeyFields: ['entered_by']
-                },
-              ]
-            }
+            table: 'compound',
+            parentTables: [
+              {
+                referenceName: 'enteredByAnalyst',
+                table: 'analyst',
+                fieldExpressions: ['id', 'short_name'],
+                viaForeignKeyFields: ['entered_by']
+              },
+            ]
           }
         ]
       }
@@ -302,18 +290,14 @@ Deno.test('child collection property from an inlined parent', async () => {
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              childTables: [
-                {
-                  collectionName: 'compoundSharingDrugs',
-                  tableJson: {
-                    table: 'drug',
-                    fieldExpressions: ['id', 'name']
-                  }
-                }
-              ]
-            }
+            table: 'compound',
+            childTables: [
+              {
+                collectionName: 'compoundSharingDrugs',
+                table: 'drug',
+                fieldExpressions: ['id', 'name']
+              }
+            ]
           }
         ]
       }
@@ -347,19 +331,15 @@ Deno.test('unwrapped child collection property from an inlined parent', async ()
         fieldExpressions: ['id', 'name'],
         parentTables: [
           {
-            tableJson: {
-              table: 'compound',
-              childTables: [
-                {
-                  collectionName: 'compoundSharingDrugIds',
-                  unwrap: true,
-                  tableJson: {
-                    table: 'drug',
-                    fieldExpressions: ['id']
-                  }
-                }
-              ]
-            }
+            table: 'compound',
+            childTables: [
+              {
+                collectionName: 'compoundSharingDrugIds',
+                unwrap: true,
+                table: 'drug',
+                fieldExpressions: ['id']
+              }
+            ]
           }
         ]
       }
@@ -395,10 +375,8 @@ Deno.test('child collection', async () => {
       childTables: [
         {
           collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: ['id'],
-          },
+          table: 'compound',
+          fieldExpressions: ['id'],
           foreignKeyFields: ['entered_by'] // disambiguates
         }
       ]
@@ -434,10 +412,8 @@ Deno.test('unwrapped child table collection of table field property', async () =
           {
             collectionName: 'compoundsEntered',
             unwrap: true,
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id'],
             foreignKeyFields: ['entered_by'],
           }
         ],
@@ -474,12 +450,10 @@ Deno.test('unwrapped child table collection of field exression property', async 
           {
             collectionName: 'compoundsEntered',
             unwrap: true,
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: [
-                { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'String' }
-              ]
-            },
+            table: 'compound',
+            fieldExpressions: [
+              { expression: 'lower(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'String' }
+            ],
             foreignKeyFields: ['entered_by'],
           }
         ]
@@ -515,14 +489,12 @@ Deno.test('unwrapped child table collection of field expression property with la
           {
             collectionName: 'compoundsEntered',
             unwrap: true,
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: [
-                { expression: 'lower(display_name)',
-                  jsonProperty: 'lcName',
-                  fieldTypeInGeneratedSource: {'TS': 'string', 'Java': 'String'} }
-              ]
-            },
+            table: 'compound',
+            fieldExpressions: [
+              { expression: 'lower(display_name)',
+                jsonProperty: 'lcName',
+                fieldTypeInGeneratedSource: {'TS': 'string', 'Java': 'String'} }
+            ],
             foreignKeyFields: ['entered_by'],
           }
         ]
@@ -558,18 +530,14 @@ Deno.test('unwrapped child table collection of parent reference property', async
           {
             collectionName: 'drugAnalysts',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              parentTables: [
-                {
-                  referenceName: 'registeredBy',
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id', 'short_name']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            parentTables: [
+              {
+                referenceName: 'registeredBy',
+                table: 'analyst',
+                fieldExpressions: ['id', 'short_name']
+              }
+            ]
           }
         ]
       }
@@ -604,17 +572,13 @@ Deno.test('unwrapped child table collection of inlined parent property', async (
           {
             collectionName: 'drugRegisteringAnalystIds',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              parentTables: [
-                {
-                  tableJson: {
-                    table: 'analyst',
-                    fieldExpressions: ['id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            parentTables: [
+              {
+                table: 'analyst',
+                fieldExpressions: ['id']
+              }
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -650,19 +614,15 @@ Deno.test('unwrapped child collection of child collection property', async () =>
           {
             collectionName: 'drugAdvisories',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              childTables: [
-                {
-                  collectionName: 'advisories',
-                  unwrap: false,
-                  tableJson: {
-                    table: 'advisory',
-                    fieldExpressions: ['id', 'advisory_type_id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisories',
+                unwrap: false,
+                table: 'advisory',
+                fieldExpressions: ['id', 'advisory_type_id']
+              }
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -699,19 +659,15 @@ Deno.test('unwrapped child collection of unwrapped child collection property', a
           {
             collectionName: 'drugAdvisoryTypeIds',
             unwrap: true,
-            tableJson: {
-              table: 'drug',
-              childTables: [
-                {
-                  collectionName: 'advisories',
-                  unwrap: true,
-                  tableJson: {
-                    table: 'advisory',
-                    fieldExpressions: ['advisory_type_id']
-                  }
-                }
-              ]
-            },
+            table: 'drug',
+            childTables: [
+              {
+                collectionName: 'advisories',
+                unwrap: true,
+                table: 'advisory',
+                fieldExpressions: ['advisory_type_id']
+              }
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}

@@ -1,4 +1,4 @@
-import {parseAppArgs, exit, lowerCamelCase} from './util/mod.ts';
+import {parseAppArgs, exit} from './util/mod.ts';
 import {generateRelationsMetadataSource, SourceLanguage} from './mod.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])

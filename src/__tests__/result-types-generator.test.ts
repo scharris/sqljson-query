@@ -97,19 +97,15 @@ Deno.test('types for non-unwrapped child tables are included in results', () => 
       childTables: [
         {
           collectionName: 'compoundsEntered',
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: ['id'],
-          },
+          table: 'compound',
+          fieldExpressions: ['id'],
           foreignKeyFields: ['entered_by']
         },
         {
           collectionName: 'drugs',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            fieldExpressions: ['name'],
-          },
+          table: 'drug',
+          fieldExpressions: ['name'],
         }
       ]
     };
@@ -137,18 +133,14 @@ Deno.test('types for referenced parent tables are generated but not for inlined 
       parentTables: [
         {
           referenceName: 'enteredByAnalyst', // referenced parent
-          tableJson: {
-            table: 'analyst',
-            fieldExpressions: ['id'],
-          },
+          table: 'analyst',
+          fieldExpressions: ['id'],
           viaForeignKeyFields: ['entered_by']
         },
         {
           // referenceName not provided, this is an an inlined parent, should not generate a result type
-          tableJson: {
-            table: 'analyst',
-            fieldExpressions: ['short_name'],
-          },
+          table: 'analyst',
+          fieldExpressions: ['short_name'],
           viaForeignKeyFields: ['approved_by']
         }
       ]
@@ -169,13 +161,11 @@ Deno.test('table field properties obtained directly from inlined parent tables s
       fieldExpressions: ['id', 'name'],
       parentTables: [
         {
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: [
-              { field: 'id', jsonProperty: 'compoundId' },
-              { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-            ]
-          }
+          table: 'compound',
+          fieldExpressions: [
+            { field: 'id', jsonProperty: 'compoundId' },
+            { field: 'display_name', jsonProperty: 'compoundDisplayName' }
+          ],
         }
       ]
     };
@@ -194,25 +184,21 @@ Deno.test('table field properties from an inlined parent and its own inlined par
       parentTables: [
         {
           // No 'referenceName' property, so compound is an inlined parent table here.
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: [
-              { field: 'id', jsonProperty: 'compoundId' },
-              { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-            ],
-            parentTables: [
-              {
-                // No 'referenceName' property so analyst is an inlined parent within the inlined compound parent.
-                tableJson: {
-                  table: 'analyst',
-                  fieldExpressions: [
-                    { field: 'short_name', jsonProperty: 'compoundApprovedByAnalystShortName' }
-                  ],
-                },
-                viaForeignKeyFields: ['approved_by']
-              }
-            ]
-          }
+          table: 'compound',
+          fieldExpressions: [
+            { field: 'id', jsonProperty: 'compoundId' },
+            { field: 'display_name', jsonProperty: 'compoundDisplayName' }
+          ],
+          parentTables: [
+            {
+              // No 'referenceName' property so analyst is an inlined parent within the inlined compound parent.
+              table: 'analyst',
+              fieldExpressions: [
+                { field: 'short_name', jsonProperty: 'compoundApprovedByAnalystShortName' }
+              ],
+              viaForeignKeyFields: ['approved_by']
+            }
+          ]
         }
       ]
     };
@@ -235,23 +221,19 @@ Deno.test('a referenced parent property from an inlined parent should be include
       parentTables: [
         {
           // No 'referenceName' property, so compound is an inlined parent table here.
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: [
-              { field: 'id', jsonProperty: 'compoundId' },
-              { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-            ],
-            parentTables: [
-              {
-                referenceName: 'enteredByAnalyst', // referenced parent
-                tableJson: {
-                  table: 'analyst',
-                  fieldExpressions: ['id', 'short_name'],
-                },
-                viaForeignKeyFields: ['entered_by']
-              },
-            ]
-          }
+          table: 'compound',
+          fieldExpressions: [
+            { field: 'id', jsonProperty: 'compoundId' },
+            { field: 'display_name', jsonProperty: 'compoundDisplayName' }
+          ],
+          parentTables: [
+            {
+              referenceName: 'enteredByAnalyst', // referenced parent
+              table: 'analyst',
+              fieldExpressions: ['id', 'short_name'],
+              viaForeignKeyFields: ['entered_by']
+            },
+          ],
         }
       ]
     };
@@ -276,19 +258,15 @@ Deno.test('non-unwrapped child collection properties should be included in resul
       childTables: [
         {
           collectionName: 'compoundsEntered',
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: ['id', 'cas'],
-          },
-          foreignKeyFields: ['entered_by']
+          table: 'compound',
+          fieldExpressions: ['id', 'cas'],
+          foreignKeyFields: ['entered_by'],
         },
         {
           collectionName: 'drugNames',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            fieldExpressions: ['name'],
-          },
+          table: 'drug',
+          fieldExpressions: ['name'],
         }
       ]
     };
@@ -315,10 +293,8 @@ Deno.test('unwrapped child collection of table field property is represented pro
         {
           collectionName: 'idsOfCompoundsEntered',
           unwrap: true,
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: ['id'],
-          },
+          table: 'compound',
+          fieldExpressions: ['id'],
           foreignKeyFields: ['entered_by']
         }
       ]
@@ -345,12 +321,10 @@ Deno.test('unwrapped child collection of field expression property is represente
         {
           collectionName: 'lowercaseNamesOfCompoundsEntered',
           unwrap: true,
-          tableJson: {
-            table: 'compound',
-            fieldExpressions: [
-              { expression: 'lowercase(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
-            ]
-          },
+          table: 'compound',
+          fieldExpressions: [
+            { expression: 'lowercase(display_name)', jsonProperty: 'lcName', fieldTypeInGeneratedSource: 'string' }
+          ],
           foreignKeyFields: ['entered_by']
         }
       ]
@@ -378,18 +352,14 @@ Deno.test('unwrapped child collection of parent reference property is represente
         {
           collectionName: 'drugAnalysts',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            parentTables: [
-              {
-                referenceName: 'registeredBy',
-                tableJson: {
-                  table: 'analyst',
-                  fieldExpressions: ['id', 'short_name']
-                }
-              }
-            ]
-          },
+          table: 'drug',
+          parentTables: [
+            {
+              referenceName: 'registeredBy',
+              table: 'analyst',
+              fieldExpressions: ['id', 'short_name']
+            }
+          ],
         }
       ]
     };
@@ -416,18 +386,14 @@ Deno.test('unwrapped child collection of inlined parent property is represented 
         {
           collectionName: 'drugRegisteringAnalystIds',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            parentTables: [
-              {
-                // No reference name, 'analyst' parent properties are inlined with those of 'drug'.
-                tableJson: {
-                  table: 'analyst',
-                  fieldExpressions: ['id']
-                }
-              }
-            ]
-          }
+          table: 'drug',
+          parentTables: [
+            {
+              // No reference name, 'analyst' parent properties are inlined with those of 'drug'.
+              table: 'analyst',
+              fieldExpressions: ['id']
+            }
+          ]
         }
       ]
     };
@@ -452,19 +418,15 @@ Deno.test('unwrapped child collection of child collection property is represente
         {
           collectionName: 'drugAdvisories',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            childTables: [
-              {
-                collectionName: 'advisories',
-                unwrap: false,
-                tableJson: {
-                  table: 'advisory',
-                  fieldExpressions: ['id', 'advisory_type_id']
-                }
-              }
-            ]
-          },
+          table: 'drug',
+          childTables: [
+            {
+              collectionName: 'advisories',
+              unwrap: false,
+              table: 'advisory',
+              fieldExpressions: ['id', 'advisory_type_id']
+            }
+          ],
         }
       ]
     };
@@ -491,19 +453,15 @@ Deno.test('unwrapped child collection of unwrapped child collection property is 
         {
           collectionName: 'advisoryTypeIdLists',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            childTables: [
-              {
-                collectionName: 'advisoryTypeIds',
-                unwrap: true,
-                tableJson: {
-                  table: 'advisory',
-                  fieldExpressions: ['advisory_type_id']
-                }
-              }
-            ]
-          }
+          table: 'drug',
+          childTables: [
+            {
+              collectionName: 'advisoryTypeIds',
+              unwrap: true,
+              table: 'advisory',
+              fieldExpressions: ['advisory_type_id']
+            }
+          ]
         }
       ]
     };
@@ -529,10 +487,8 @@ Deno.test('unwrapped child collection with element type containing more than one
         {
           collectionName: 'advisoryTypeIdLists',
           unwrap: true,
-          tableJson: {
-            table: 'drug',
-            fieldExpressions: ['id', 'name']
-          }
+          table: 'drug',
+          fieldExpressions: ['id', 'name']
         }
       ]
     };

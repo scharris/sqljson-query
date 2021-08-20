@@ -26,10 +26,10 @@ function getParamNames(tableJsonSpec: TableJsonSpec): string[]
   const paramNames: string[] = [];
 
   for (const childSpec of tableJsonSpec.childTables || [])
-    paramNames.push(...getParamNames(childSpec.tableJson));
+    paramNames.push(...getParamNames(childSpec));
 
   for (const parentSpec of tableJsonSpec.parentTables || [])
-    paramNames.push(...getParamNames(parentSpec.tableJson));
+    paramNames.push(...getParamNames(parentSpec));
 
   if (tableJsonSpec?.recordCondition?.paramNames != undefined)
     paramNames.push(...tableJsonSpec.recordCondition.paramNames);
