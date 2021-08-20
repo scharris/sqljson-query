@@ -177,7 +177,7 @@ export class QuerySqlGenerator
     for ( const [ix, parentSpec] of (inlineParentSpecs || []).entries() )
     {
       const parentLoc = addLocPart(specLoc,
-        `inlineParentTables entry #${ix+1}, '${parentSpec.tableJson.table}' table`
+        `inlineParentTables entry #${ix+1}, '${parentSpec.table}' table`
       );
       sqlParts.addParts(
         this.inlineParentSqlParts(parentSpec, relId, alias, sqlParts.aliasesInScope, propNameFn, parentLoc)
@@ -200,7 +200,7 @@ export class QuerySqlGenerator
   {
     const q = new SqlParts();
 
-    const fromClauseQuery = this.baseQuery(parentSpec.tableJson, null, true, null, propNameFn, specLoc);
+    const fromClauseQuery = this.baseQuery(parentSpec, null, true, null, propNameFn, specLoc);
 
     const fromClauseQueryAlias = parentSpec.alias || makeNameNotInSet("q", avoidAliases);
     q.aliasesInScope.add(fromClauseQueryAlias);
@@ -245,7 +245,7 @@ export class QuerySqlGenerator
       if ( parentSpec.viaForeignKeyFields != undefined )
         throw new SpecError(specLoc, "Parent with customJoinCondition cannot specify foreignKeyFields.");
 
-      const parentRelId = identifyTable(parentSpec.tableJson.table, this.defaultSchema, this.dbmd, specLoc);
+      const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
       validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, "custom join condition"));
 
       return this.customJoinParentPkCondition(customJoinCond, childAlias);
@@ -253,7 +253,7 @@ export class QuerySqlGenerator
     else
     {
       const childForeignKeyFieldsSet = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields );
-      const parentRelId = identifyTable(parentSpec.tableJson.table, this.defaultSchema, this.dbmd, specLoc);
+      const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
       const fk = this.getForeignKey(childRelId, parentRelId, childForeignKeyFieldsSet, specLoc);
       return new ParentPkCondition(childAlias, fk.foreignKeyComponents);
     }
@@ -293,7 +293,7 @@ export class QuerySqlGenerator
         throw new SpecError(specLoc, "Refrenced parent table cannot specify an alias.");
 
       const parentLoc = addLocPart(specLoc,
-        `referencedParentTables entry #${ix+1}, '${parentSpec.tableJson.table}' table`
+        `referencedParentTables entry #${ix+1}, '${parentSpec.table}' table`
       );
       sqlParts.addParts(
         this.referencedParentSqlParts(parentSpec, relId, alias, propNameFn, parentLoc)
@@ -320,7 +320,7 @@ export class QuerySqlGenerator
         lineCommentReferencedParent(parentSpec) + "\n" +
         "(\n" +
           this.indent(
-            this.jsonObjectRowsSql(parentSpec.tableJson, parentPkCond, null, propNameFn, specLoc)
+            this.jsonObjectRowsSql(parentSpec, parentPkCond, null, propNameFn, specLoc)
           ) + "\n" +
         ")",
       name: quoteIfNeeded(parentSpec.referenceName, this.dbmd.caseSensitivity),
@@ -368,17 +368,15 @@ export class QuerySqlGenerator
     )
     : string
   {
-    const tableSpec = childSpec.tableJson;
-
-    const childRelId = identifyTable(tableSpec.table, this.defaultSchema, this.dbmd, specLoc);
+    const childRelId = identifyTable(childSpec.table, this.defaultSchema, this.dbmd, specLoc);
 
     const pcCond = this.getChildFkCondition(childSpec, childRelId, parentRelId, parentAlias, specLoc);
 
     const unwrapChildValues = valueOr(childSpec.unwrap, false);
-    if ( unwrapChildValues && jsonPropertiesCount(childSpec.tableJson) > 1 )
+    if ( unwrapChildValues && jsonPropertiesCount(childSpec) > 1 )
       throw new SpecError(specLoc, "Unwrapped child collection option is incompatible with multiple field expressions.");
 
-    return this.jsonArrayRowSql(tableSpec, pcCond, unwrapChildValues, childSpec.orderBy, propNameFn, specLoc);
+    return this.jsonArrayRowSql(childSpec, pcCond, unwrapChildValues, childSpec.orderBy, propNameFn, specLoc);
   }
 
   private getChildFkCondition
@@ -725,7 +723,7 @@ function jsonPropertiesCount(tjs: TableJsonSpec): number
     (tjs.childTables?.length || 0) +
     getReferencedParentSpecs(tjs).length +
     getInlineParentSpecs(tjs).reduce(
-      (count, p) => count + jsonPropertiesCount(p.tableJson),
+      (count, p) => count + jsonPropertiesCount(p),
       0
     )
   );
@@ -748,21 +746,20 @@ function lineCommentAggregatedRowObjects(tableSpec: TableJsonSpec): string
 
 function lineCommentChildCollectionSelectExpression(childSpec: ChildSpec): string
 {
-  return `-- records from child table '${childSpec.tableJson.table}' as collection ` +
-         `'${childSpec.collectionName}'`;
+  return `-- records from child table '${childSpec.table}' as collection '${childSpec.collectionName}'`;
 }
 
 function lineCommentJoinToParent(parentSpec: ParentSpec): string
 {
-  return `-- parent table '${parentSpec.tableJson.table}', joined for inlined fields`;
+  return `-- parent table '${parentSpec.table}', joined for inlined fields`;
 }
 
 function lineCommentInlineParentFieldsBegin(parentSpec: ParentSpec): string
 {
-  return `-- field(s) inlined from parent table '${parentSpec.tableJson.table}'`;
+  return `-- field(s) inlined from parent table '${parentSpec.table}'`;
 }
 
 function lineCommentReferencedParent(parentSpec: ReferencedParentSpec): string
 {
-  return `-- parent table '${parentSpec.tableJson.table}' referenced as '${parentSpec.referenceName}'`;
+  return `-- parent table '${parentSpec.table}' referenced as '${parentSpec.referenceName}'`;
 }

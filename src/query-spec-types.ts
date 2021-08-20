@@ -37,11 +37,10 @@ export interface TableFieldExpr
   withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
 }
 
-export interface ParentSpec
+export interface ParentSpec extends TableJsonSpec
 {
   referenceName?: string | undefined;
   customJoinCondition?: CustomJoinCondition;
-  tableJson: TableJsonSpec;
   viaForeignKeyFields?: string[];
   alias?: string | undefined;
 }
@@ -56,10 +55,9 @@ export interface InlineParentSpec extends ParentSpec
   referenceName: undefined;
 }
 
-export interface ChildSpec
+export interface ChildSpec extends TableJsonSpec
 {
   collectionName: string;
-  tableJson: TableJsonSpec;
   foreignKeyFields?: string[];
   customJoinCondition?: CustomJoinCondition;
   filter?: string;

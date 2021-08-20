@@ -190,10 +190,8 @@ test('a non-existent child table causes error', () => {
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'table_which_dne',
-              fieldExpressions: ['id'],
-            }
+            table: 'table_which_dne',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -213,10 +211,8 @@ test('a non-existent parent table causes error', () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'table_which_dne',
-              fieldExpressions: ['id'],
-            }
+            table: 'table_which_dne',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -237,10 +233,8 @@ test('a missing foreign key for a child collection causes error', () => {
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            }
+            table: 'reference',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -260,10 +254,8 @@ test('a missing foreign key to parent table causes error', () => {
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            }
+            table: 'reference',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -284,10 +276,8 @@ test('foreign key fields must be provided when multiple fk constraints exist for
         childTables: [
           {
             collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            }
+            table: 'compound',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -308,10 +298,8 @@ test('providing foreign key fields avoids error when multiple fk constraints exi
         childTables: [
           {
             collectionName: 'compounds', // compounds has multiple fks to analyst (for entered_by and approved_by)
-            tableJson: {
-              table: 'compound',
-              fieldExpressions: ['id'],
-            },
+            table: 'compound',
+            fieldExpressions: ['id'],
             foreignKeyFields: ['entered_by'] // disambiguates
           }
         ]
@@ -333,10 +321,8 @@ test('a custom join condition for a child table may be used when no suitable for
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
@@ -358,10 +344,8 @@ test('a custom join condition for a child table can only utilize fields which ex
         childTables: [
           {
             collectionName: 'references',
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'field_which_dne'}]}
           }
         ]
@@ -382,10 +366,8 @@ test('foreign key fields must be provided when multiple fk constraints exist to 
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id'],
-            }
+            table: 'analyst',
+            fieldExpressions: ['id'],
           }
         ]
       }
@@ -405,10 +387,8 @@ test('providing fk fields avoids error when multiple fk constraints exist with a
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'analyst',
-              fieldExpressions: ['id'],
-            },
+            table: 'analyst',
+            fieldExpressions: ['id'],
             viaForeignKeyFields: ['entered_by'] // disambiguates
           }
         ]
@@ -429,10 +409,8 @@ test('a custom join condition for a parent table may be used when no suitable fo
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'id', parentPrimaryKeyField: 'id'}]}
           }
         ]
@@ -453,10 +431,8 @@ test('a custom join condition for a parent table can only utilize fields which e
         fieldExpressions: ['id'],
         parentTables: [
           {
-            tableJson: {
-              table: 'reference',
-              fieldExpressions: ['id'],
-            },
+            table: 'reference',
+            fieldExpressions: ['id'],
             customJoinCondition: {equatedFields: [{childField: 'field_which_dne', parentPrimaryKeyField: 'id'}]}
           }
         ]
