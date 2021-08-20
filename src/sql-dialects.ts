@@ -92,9 +92,8 @@ export class OracleDialect implements SqlDialect
     return (
       "treat(coalesce(json_arrayagg(" +
         this.getRowObjectExpression(columnNames, srcAlias) +
-        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") + "\n" +
-        "  returning clob" +
-      "), to_clob('[]')) as json)"
+        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") +
+        " returning clob), to_clob('[]')) as json)"
     );
   }
 
@@ -108,9 +107,8 @@ export class OracleDialect implements SqlDialect
   {
     return (
       `treat(coalesce(json_arrayagg(${srcAlias}.${columnName}` +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") + "\n" +
-        "  returning clob" +
-      "), to_clob('[]')) as json)"
+        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") +
+        " returning clob), to_clob('[]')) as json)"
     );
   }
 }

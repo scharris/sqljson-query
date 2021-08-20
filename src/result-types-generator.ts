@@ -205,9 +205,9 @@ export class ResultTypesGenerator
       name: this.getOutputFieldName(tfe, dbField),
       databaseFieldName: dbField.name,
       databaseType: dbField.databaseType,
-      length: dbField.length || null,
-      precision: dbField.precision || null,
-      fractionalDigits: dbField.fractionalDigits || null,
+      length: dbField.length != undefined ? dbField.length : null,
+      precision: dbField.precision != undefined ? dbField.precision : null,
+      fractionalDigits: dbField.fractionalDigits != undefined ? dbField.fractionalDigits : null,
       nullable: dbField.nullable != undefined ? dbField.nullable : null,
       specifiedSourceCodeFieldType: typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null
     };
