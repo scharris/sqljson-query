@@ -1,13 +1,18 @@
 # SQL/JSON-Query
 
 ## Overview
+
 This is a tool to be used as part of an application's build process to generate
 SQL/JSON nested data queries and matching result type declarations.
+
+<img align="right" src="img/diagram-1.svg">
+
+
 As a developer, your job in the process is to supply a file `query-specs.ts`
 which provides a list of query specifications, where each specification describes a
-hierarchy of data to be fetched for a query. From these query specifications and
-a database metadata file (generated from a database via included tool), the tool
-will generate:
+hierarchy of data to be fetched for a query. From these query specifications and a
+database metadata file (generated from a database via included tool), the tool
+generates:
 - SQL/JSON nested data queries for Oracle or Postgres to fetch the data,
 - Result type declarations in TypeScript or Java which match the structure of 
   the generated SQL and to which the query results can be directly deserialized.
@@ -15,15 +20,6 @@ will generate:
   can be used to refer to tables/columns in INSERT/UPDATE/DELETE statements in an
   error-resistant way.
 
-(TODO: diagram)
-```
-    dbmd (auto-generated from db) -> relations metadata (Java, TS)
-     +
-query-specs (supplied by programmer)
-  (build time)
-       ->               SQL files (Postgres or Oracle SQL/JSON)
-       ->               Query result type definitions (Java, TS)
-```
 
 When generating queries, database metadata is used to verify all tables, fields, and
 foreign key relationships used in the queries, failing with an error if any referenced
