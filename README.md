@@ -46,7 +46,7 @@ interface QueryGroupSpec
   querySpecs: QuerySpec[];
 }
 ```
-### Properties
+### QueryGroupSpec Properties
 
 - `defaultSchema`
 
@@ -132,7 +132,7 @@ interface QuerySpec
 }
 ```
 
-### Properties
+### QuerySpec Properties
 
 - `queryName`
 
@@ -238,7 +238,7 @@ interface TableJsonSpec
 }
 ```
 
-### Properties
+### TableJsonSpec Properties
 
 - `table`
 
