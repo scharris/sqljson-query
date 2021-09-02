@@ -1,4 +1,4 @@
-import minimist from 'minimist';
+import {flags} from "../deps.ts";
 
 export function parseArgs
   (
@@ -8,13 +8,13 @@ export function parseArgs
     minPositionalArgs: number,
     maxPositionalArgs: number | null = null
   )
-  : minimist.ParsedArgs | 'help' | string
+  : flags.Args | 'help' | string
 {
   if ( args.length === 1 && args[0] === '--help' )
     return 'help';
 
   let invalidParam = null;
-  const parsedArgs = minimist(args, {
+  const parsedArgs = flags.parse(args, {
     string: [...requiredNamedArgs, ...optionalNamedArgs],
     unknown: (p: string) => {
       if ( p.startsWith('--') ) { invalidParam = p; return false; }
@@ -38,8 +38,8 @@ export function parseArgs
   }
 
   return parsedArgs;
-}
 
+}
 export function parseAppArgs
   (
     requiredNamedArgs: string[],
@@ -47,7 +47,7 @@ export function parseAppArgs
     minPositionalArgs: number,
     maxPositionalArgs: number | null = null
   )
-  : minimist.ParsedArgs | 'help' | string
+  : flags.Args | 'help' | string
 {
-  return parseArgs(process.argv, requiredNamedArgs, optionalNamedArgs, minPositionalArgs, maxPositionalArgs);
+  return parseArgs(Deno.args, requiredNamedArgs, optionalNamedArgs, minPositionalArgs, maxPositionalArgs);
 }

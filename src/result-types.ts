@@ -1,4 +1,4 @@
-import {deepEquals} from './util/objects';
+import {deepEquals} from './util/objects.ts';
 
 export interface ResultType
 {

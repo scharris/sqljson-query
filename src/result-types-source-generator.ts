@@ -1,15 +1,15 @@
-import * as path from 'path';
+import {path} from './deps.ts';
 import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase, readTextFile}
-  from './util/mod';
-import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
+  from './util/mod.ts';
+import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs.ts';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount, resultTypesEqual
-} from './result-types';
-import {QueryReprSqlPath} from './query-repr-sql-path';
-import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options';
-import {DatabaseMetadata} from './database-metadata';
-import {ResultTypesGenerator} from './result-types-generator';
+} from './result-types.ts';
+import {QueryReprSqlPath} from './query-repr-sql-path.ts';
+import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options.ts';
+import {DatabaseMetadata} from './database-metadata.ts';
+import {ResultTypesGenerator} from './result-types-generator.ts';
 
 export class ResultTypesSourceGenerator
 {

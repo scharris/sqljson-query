@@ -1,7 +1,7 @@
-import * as path from 'path';
-import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/mod';
-import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata';
-import {SourceLanguage} from './source-generation-options';
+import {path} from './deps.ts';
+import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/mod.ts';
+import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata.ts';
+import {SourceLanguage} from './source-generation-options.ts';
 
 export async function generateRelationsMetadataSource
   (

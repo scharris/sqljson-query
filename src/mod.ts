@@ -1,4 +1,4 @@
-import * as path from 'path';
+import {path} from './deps.ts';
 import {
   valueOr,
   propertyNameDefaultFunction,
@@ -9,18 +9,18 @@ import {
   writeTextFile,
   readTextFile,
   cwd
-} from './util/mod';
-import {DatabaseMetadata} from './database-metadata';
-import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
-import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
-import {QuerySqlGenerator} from './query-sql-generator';
-import {QueryReprSqlPath} from './query-repr-sql-path';
-import {ResultTypesSourceGenerator} from './result-types-source-generator';
+} from './util/mod.ts';
+import {DatabaseMetadata} from './database-metadata.ts';
+import {SourceGenerationOptions, SourceLanguage} from './source-generation-options.ts';
+import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs.ts';
+import {QuerySqlGenerator} from './query-sql-generator.ts';
+import {QueryReprSqlPath} from './query-repr-sql-path.ts';
+import {ResultTypesSourceGenerator} from './result-types-source-generator.ts';
 
-export * from './source-generation-options';
-export * from './query-specs';
-export * from './result-types';
-export * from './relations-md-source-generator';
+export * from './source-generation-options.ts';
+export * from './query-specs.ts';
+export * from './result-types.ts';
+export * from './relations-md-source-generator.ts';
 
 export async function generateQuerySources
   (

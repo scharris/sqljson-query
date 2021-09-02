@@ -1,16 +1,17 @@
-import {propertyNameDefaultFunction} from '../util/property-names';
+import {assertEquals} from "https://deno.land/std@0.97.0/testing/asserts.ts";
+import {propertyNameDefaultFunction} from '../util/property-names.ts';
 
-test('property name default function should return names unmodified for AS_IN_DB option', () => {
-  expect(propertyNameDefaultFunction('AS_IN_DB')('some_field')).toEqual('some_field');
-  expect(propertyNameDefaultFunction('AS_IN_DB')('SOME_FIELD')).toEqual('SOME_FIELD');
+Deno.test('property name default function should return names unmodified for AS_IN_DB option', () => {
+  assertEquals(propertyNameDefaultFunction('AS_IN_DB')('some_field'), 'some_field');
+  assertEquals(propertyNameDefaultFunction('AS_IN_DB')('SOME_FIELD'), 'SOME_FIELD');
 });
 
-test('property name default function should return camelcase names for CAMELCASED option', () => {
-  expect(propertyNameDefaultFunction('CAMELCASE')('some_field')).toEqual('someField');
-  expect(propertyNameDefaultFunction('CAMELCASE')('Some_field')).toEqual('someField');
+Deno.test('property name default function should return camelcase names for CAMELCASED option', () => {
+  assertEquals(propertyNameDefaultFunction('CAMELCASE')('some_field'), 'someField');
+  assertEquals(propertyNameDefaultFunction('CAMELCASE')('Some_field'), 'someField');
 });
 
-test('property name default function should return camelcase names by default', () => {
-  expect(propertyNameDefaultFunction(undefined)('some_field')).toEqual('someField');
-  expect(propertyNameDefaultFunction(undefined)('Some_field')).toEqual('someField');
+Deno.test('property name default function should return camelcase names by default', () => {
+  assertEquals(propertyNameDefaultFunction(undefined)('some_field'), 'someField');
+  assertEquals(propertyNameDefaultFunction(undefined)('Some_field'), 'someField');
 });

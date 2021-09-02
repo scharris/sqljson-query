@@ -1,5 +1,5 @@
-import { CaseSensitivity, RelId } from '../database-metadata';
-import { unDoubleQuote } from './strings';
+import { CaseSensitivity, RelId } from '../database-metadata.ts';
+import { unDoubleQuote } from './strings.ts';
 
 const quotedStringRegex = /^(["`]).*\1$/;
 

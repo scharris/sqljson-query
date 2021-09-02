@@ -1,6 +1,6 @@
 import {QuerySpec, TableJsonSpec, ReferencedParentSpec, InlineParentSpec}
-  from './query-spec-types';
-export * from './query-spec-types';
+  from './query-spec-types.ts';
+export * from './query-spec-types.ts';
 
 export function getInlineParentSpecs(tableSpec: TableJsonSpec): InlineParentSpec[]
 {

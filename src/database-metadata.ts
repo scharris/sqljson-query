@@ -6,7 +6,7 @@ import {
   relIdDescr,
   splitSchemaAndRelationNames,
   exactUnquotedName
-} from './util/mod';
+} from './util/mod.ts';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties

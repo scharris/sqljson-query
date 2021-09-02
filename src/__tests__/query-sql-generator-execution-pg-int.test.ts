@@ -1,17 +1,20 @@
-import * as path from 'path';
-import {Client} from 'pg';
-import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
-import {QuerySpec} from '../mod';
-import {DatabaseMetadata} from '../database-metadata';
-import {QuerySqlGenerator} from '../query-sql-generator';
-import {getDbClient} from './db/db-client-pg';
+import * as path from 'https://deno.land/std@0.97.0/path/mod.ts';
+import {Client} from "https://deno.land/x/postgres/mod.ts";
+import {assertEquals, assertThrows, assert} from "https://deno.land/std@0.97.0/testing/asserts.ts";
+import {propertyNameDefaultFunction} from '../util/mod.ts';
+import {QuerySpec} from '../mod.ts';
+import {DatabaseMetadata} from '../database-metadata.ts';
+import {QuerySqlGenerator} from '../query-sql-generator.ts';
+import {getDbClient} from './db/db-client-pg.ts';
 
-const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
-const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
+const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
+const dbmdPath = path.join(scriptDir, 'db', 'pg', 'dbmd.json');
+const dbmdStoredProps = JSON.parse(Deno.readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 
-test('query of single table for json object rows results', async () => {
+
+Deno.test('query of single table for json object rows results', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -25,17 +28,17 @@ test('query of single table for json object rows results', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(5);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 5);
 
   const firstJson = res.rows[0].json as any;
   // id and name are not-null fields, so typeof the values should be number and string
-  expect(typeof firstJson['id']).toEqual('number');
-  expect(typeof firstJson['name']).toEqual('string');
+  assertEquals(typeof firstJson['id'], 'number');
+  assertEquals(typeof firstJson['name'], 'string');
   dbClient.end();
 });
 
-test('query of single table for json array row results', async () => {
+Deno.test('query of single table for json array row results', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -49,17 +52,17 @@ test('query of single table for json array row results', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const jsonArray: any[] = res.rows[0].json as any[];
-  expect(jsonArray.length).toBe(5);
+  assertEquals(jsonArray.length, 5);
   // id and name are not-null fields, so typeof the values should be number and string
-  expect(typeof jsonArray[0]['id']).toEqual('number');
-  expect(typeof jsonArray[0]['name']).toEqual('string');
+  assertEquals(typeof jsonArray[0]['id'], 'number');
+  assertEquals(typeof jsonArray[0]['name'], 'string');
   dbClient.end();
 });
 
-test('query of single table for multi column rows results', async () => {
+Deno.test('query of single table for multi column rows results', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -73,16 +76,16 @@ test('query of single table for multi column rows results', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('MULTI_COLUMN_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBeGreaterThan(1);
+  const res = await dbClient.queryObject(sql);
+  assert(res.rows.length > 1);
   const firstRow = res.rows[0];
   // id and name are not-null fields, so typeof the values should be number and string
-  expect(typeof firstRow['id']).toEqual('number');
-  expect(typeof firstRow['name']).toEqual('string');
+  assertEquals(typeof firstRow['id'], 'number');
+  assertEquals(typeof firstRow['name'], 'string');
   dbClient.end();
 });
 
-test('record condition properly restricts results for top level table', async () => {
+Deno.test('record condition properly restricts results for top level table', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -96,15 +99,15 @@ test('record condition properly restricts results for top level table', async ()
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.id).toBe(1);
-  expect(json.name).toEqual('Test Drug 1');
+  assertEquals(json.id, 1);
+  assertEquals(json.name, 'Test Drug 1');
   dbClient.end();
 });
 
-test('table field property names specified by jsonProperty', async () => {
+Deno.test('table field property names specified by jsonProperty', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -127,15 +130,15 @@ test('table field property names specified by jsonProperty', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.drugId).toBe(1);
-  expect(json.drugName).toEqual('Test Drug 1');
+  assertEquals(json.drugId, 1);
+  assertEquals(json.drugName, 'Test Drug 1');
   dbClient.end();
 });
 
-test('table field property names default according to the provided naming function', async () => {
+Deno.test('table field property names default according to the provided naming function', async () => {
   const appendX = (fieldName: string) => fieldName + "X";
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), appendX, 2);
   const querySpec: QuerySpec =
@@ -150,15 +153,15 @@ test('table field property names default according to the provided naming functi
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.idX).toBe(1);
-  expect(json.nameX).toEqual('Test Drug 1');
+  assertEquals(json.idX, 1);
+  assertEquals(json.nameX, 'Test Drug 1');
   dbClient.end();
 });
 
-test('non-unwrapped child table collection', async () => {
+Deno.test('non-unwrapped child table collection', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -179,17 +182,18 @@ test('non-unwrapped child table collection', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(Object.keys(json.compoundsEntered[0]))).toEqual(new Set(['id', 'displayName']));
-  expect(new Set(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`))).toEqual(
+  assertEquals(new Set(Object.keys(json.compoundsEntered[0])), new Set(['id', 'displayName']));
+  assertEquals(
+    new Set(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`)),
     new Set(['2|Test Compound 2', '4|Test Compound 4'])
   );
   dbClient.end();
 });
 
-test('unwrapped child table collection of table field property', async () => {
+Deno.test('unwrapped child table collection of table field property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -211,14 +215,17 @@ test('unwrapped child table collection of table field property', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(json.compoundsEntered)).toEqual(new Set([2,4]));
+  assertEquals(
+    new Set(json.compoundsEntered),
+    new Set([2,4])
+  );
   dbClient.end();
 });
 
-test('unwrapped child table collection of field exression property', async () => {
+Deno.test('unwrapped child table collection of field exression property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -242,14 +249,17 @@ test('unwrapped child table collection of field exression property', async () =>
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(json.compoundsEntered)).toEqual(new Set(['test compound 2', 'test compound 4']));
+  assertEquals(
+    new Set(json.compoundsEntered),
+    new Set(['test compound 2', 'test compound 4'])
+  );
   dbClient.end();
 });
 
-test('unwrapped child table collection of parent reference property', async () => {
+Deno.test('unwrapped child table collection of parent reference property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -265,9 +275,9 @@ test('unwrapped child table collection of parent reference property', async () =
               {
                 referenceName: 'registeredBy',
                 table: 'analyst',
-                fieldExpressions: ['id', 'short_name'],
+                fieldExpressions: ['id', 'short_name']
               }
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -276,17 +286,17 @@ test('unwrapped child table collection of parent reference property', async () =
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.drugAnalysts.length).toBe(1);
+  assertEquals(json.drugAnalysts.length, 1);
   const drugAnalyst: any = json.drugAnalysts[0];
-  expect(drugAnalyst.id).toBe(1);
-  expect(drugAnalyst.shortName).toEqual('jdoe');
+  assertEquals(drugAnalyst.id, 1);
+  assertEquals(drugAnalyst.shortName, 'jdoe');
   dbClient.end();
 });
 
-test('unwrapped child table collection of inlined parent property', async () => {
+Deno.test('unwrapped child table collection of inlined parent property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -303,7 +313,7 @@ test('unwrapped child table collection of inlined parent property', async () => 
                 table: 'analyst',
                 fieldExpressions: ['id']
               }
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -312,14 +322,14 @@ test('unwrapped child table collection of inlined parent property', async () => 
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.drugRegisteringAnalystIds).toEqual([1]);
+  assertEquals(json.drugRegisteringAnalystIds, [1]);
   dbClient.end();
 });
 
-test('unwrapped child collection of child collection property', async () => {
+Deno.test('unwrapped child collection of child collection property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -338,7 +348,7 @@ test('unwrapped child collection of child collection property', async () => {
                 table: 'advisory',
                 fieldExpressions: ['id', 'advisory_type_id']
               }
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -347,20 +357,21 @@ test('unwrapped child collection of child collection property', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.drugAdvisories.length).toBe(1);
+  assertEquals(json.drugAdvisories.length, 1);
   const advisories = json.drugAdvisories[0];
-  expect(advisories.length).toBe(3);
-  expect(new Set(Object.keys(advisories[0]))).toEqual(new Set(['id', 'advisoryTypeId']));
-  expect(new Set(advisories.map((a: any) => `${a.id}|${a.advisoryTypeId}`))).toEqual(
+  assertEquals(advisories.length, 3);
+  assertEquals(new Set(Object.keys(advisories[0])), new Set(['id', 'advisoryTypeId']));
+  assertEquals(
+    new Set(advisories.map((a: any) => `${a.id}|${a.advisoryTypeId}`)),
     new Set(['101|1',  '102|2', '123|3'])
   );
   dbClient.end();
 });
 
-test('unwrapped child collection of unwrapped child collection property', async () => {
+Deno.test('unwrapped child collection of unwrapped child collection property', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -377,9 +388,9 @@ test('unwrapped child collection of unwrapped child collection property', async 
                 collectionName: 'advisories',
                 unwrap: true,
                 table: 'advisory',
-                fieldExpressions: ['advisory_type_id'],
+                fieldExpressions: ['advisory_type_id']
               }
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -388,16 +399,16 @@ test('unwrapped child collection of unwrapped child collection property', async 
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.drugAdvisoryTypeIds.length).toBe(1);
+  assertEquals(json.drugAdvisoryTypeIds.length, 1);
   const advisoryTypeIds = json.drugAdvisoryTypeIds[0];
-  expect(new Set(advisoryTypeIds)).toEqual(new Set([1,2,3]));
+  assertEquals(new Set(advisoryTypeIds), new Set([1,2,3]));
   dbClient.end();
 });
 
-test('unwrapped child collection with element type containing more than one property should cause error', () => {
+Deno.test('unwrapped child collection with element type containing more than one property should cause error', () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -415,12 +426,10 @@ test('unwrapped child collection with element type containing more than one prop
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(
-    /incompatible with multiple field expressions/i
-  );
+  assertThrows(() => sqlGen.generateSqls(querySpec), Error, 'incompatible with multiple field expressions');
 });
 
-test('order-by specification determines ordering in a child table collection', async () => {
+Deno.test('order-by specification determines ordering in a child table collection', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -442,16 +451,17 @@ test('order-by specification determines ordering in a child table collection', a
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`)).toEqual(
+  assertEquals(
+    json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`),
     ['4|Test Compound 4', '2|Test Compound 2']
   );
   dbClient.end();
 });
 
-test('referenced parent table', async () => {
+Deno.test('referenced parent table', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -473,16 +483,16 @@ test('referenced parent table', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(Object.keys(json.enteredByAnalyst))).toEqual(new Set(['id', 'shortName']));
-  expect(json.enteredByAnalyst.id).toBe(2);
-  expect(json.enteredByAnalyst.shortName).toEqual('sch');
+  assertEquals(new Set(Object.keys(json.enteredByAnalyst)), new Set(['id', 'shortName']));
+  assertEquals(json.enteredByAnalyst.id, 2);
+  assertEquals(json.enteredByAnalyst.shortName, 'sch');
   dbClient.end();
 });
 
-test('table field properties from inline parent tables', async () => {
+Deno.test('table field properties from inline parent tables', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -506,17 +516,17 @@ test('table field properties from inline parent tables', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(Object.keys(json))).toEqual(new Set(['id', 'analystId', 'analystShortName']));
-  expect(json.id).toBe(1);
-  expect(json.analystId).toBe(2);
-  expect(json.analystShortName).toEqual('sch');
+  assertEquals(new Set(Object.keys(json)), new Set(['id', 'analystId', 'analystShortName']));
+  assertEquals(json.id, 1);
+  assertEquals(json.analystId, 2);
+  assertEquals(json.analystShortName, 'sch');
   dbClient.end();
 });
 
-test('table field properties from an inlined parent and its own inlined parent', async () => {
+Deno.test('table field properties from an inlined parent and its own inlined parent', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -528,8 +538,8 @@ test('table field properties from an inlined parent and its own inlined parent',
           {
             table: 'compound',
             fieldExpressions: [
-              {field: 'id', jsonProperty: 'compoundId'},
-              {field: 'display_name', jsonProperty: 'compoundDisplayName'}
+              { field: 'id', jsonProperty: 'compoundId' },
+              { field: 'display_name', jsonProperty: 'compoundDisplayName' }
             ],
             parentTables: [
               {
@@ -539,7 +549,7 @@ test('table field properties from an inlined parent and its own inlined parent',
                 ],
                 viaForeignKeyFields: ['approved_by']
               }
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -548,23 +558,23 @@ test('table field properties from an inlined parent and its own inlined parent',
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(Object.keys(json))).toEqual(new Set([
+  assertEquals(new Set(Object.keys(json)), new Set([
     'id', 'name', // from top-level table
     'compoundId', 'compoundDisplayName', // from inlined compound parent
     'compoundApprovedBy' // from inlined analyst parent of compound
   ]));
-  expect(json.id).toBe(1);
-  expect(json.name).toEqual('Test Drug 1');
-  expect(json.compoundId).toBe(1);
-  expect(json.compoundDisplayName).toEqual('Test Compound 1');
-  expect(json.compoundApprovedBy).toEqual('jdoe');
+  assertEquals(json.id, 1);
+  assertEquals(json.name, 'Test Drug 1');
+  assertEquals(json.compoundId, 1);
+  assertEquals(json.compoundDisplayName, 'Test Compound 1');
+  assertEquals(json.compoundApprovedBy, 'jdoe');
   dbClient.end();
 });
 
-test('referenced parent property from an inlined parent', async () => {
+Deno.test('referenced parent property from an inlined parent', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
     {
@@ -582,7 +592,7 @@ test('referenced parent property from an inlined parent', async () => {
                 fieldExpressions: ['id', 'short_name'],
                 viaForeignKeyFields: ['entered_by']
               },
-            ],
+            ]
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -591,17 +601,17 @@ test('referenced parent property from an inlined parent', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
   const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
+  const res = await dbClient.queryObject(sql);
+  assertEquals(res.rows.length, 1);
   const json = res.rows[0].json as any;
-  expect(new Set(Object.keys(json))).toEqual(new Set([
+  assertEquals(new Set(Object.keys(json)), new Set([
     'id', 'name', // from top-level "drug" table
     'enteredByAnalyst' // from analyst parent of inlined parent table "compound"
   ]));
-  expect(json.id).toBe(1);
-  expect(json.name).toEqual('Test Drug 1');
-  expect(new Set(Object.keys(json.enteredByAnalyst))).toEqual(new Set(['id', 'shortName']));
-  expect(json.enteredByAnalyst.id).toBe(2);
-  expect(json.enteredByAnalyst.shortName).toEqual('sch');
+  assertEquals(json.id, 1);
+  assertEquals(json.name, 'Test Drug 1');
+  assertEquals(new Set(Object.keys(json.enteredByAnalyst)), new Set(['id', 'shortName']));
+  assertEquals(json.enteredByAnalyst.id, 2);
+  assertEquals(json.enteredByAnalyst.shortName, 'sch');
   dbClient.end();
 });

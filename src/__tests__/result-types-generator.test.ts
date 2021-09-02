@@ -1,17 +1,19 @@
-import * as path from 'path';
-import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
-import {TableJsonSpec} from '../query-specs';
-import {DatabaseMetadata} from '../database-metadata';
-import {ResultTypesGenerator} from '../result-types-generator';
-import {propertiesCount} from '../result-types';
+import * as path from 'https://deno.land/std@0.97.0/path/mod.ts';
+import {assertEquals, assertThrows} from "https://deno.land/std@0.97.0/testing/asserts.ts";
+import {propertyNameDefaultFunction} from '../util/mod.ts';
+import {TableJsonSpec} from '../query-specs.ts';
+import {DatabaseMetadata} from '../database-metadata.ts';
+import {ResultTypesGenerator} from '../result-types-generator.ts';
+import {propertiesCount} from '../result-types.ts';
 
-const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
-const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
+const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
+const dbmdPath = path.join(scriptDir, 'db', 'pg', 'dbmd.json');
+const dbmdStoredProps = JSON.parse(Deno.readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const resTypesGen = new ResultTypesGenerator(dbmd, 'drugs', ccPropNameFn);
 
-test('the table referenced in a table json spec must exist in database metadata', () => {
+Deno.test('the table referenced in a table json spec must exist in database metadata', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'table_dne',
@@ -24,10 +26,10 @@ test('the table referenced in a table json spec must exist in database metadata'
       ]
     };
 
-  expect(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query')).toThrowError(/table_dne/);
+  assertThrows(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query'), Error, 'table_dne');
 });
 
-test('fields referenced in spec must exist in database metadata', () => {
+Deno.test('fields referenced in spec must exist in database metadata', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -40,10 +42,10 @@ test('fields referenced in spec must exist in database metadata', () => {
       ]
     };
 
-  expect(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query')).toThrowError(/field_dne/);
+  assertThrows(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query'), Error, 'field_dne');
 });
 
-test('a single result type is generated for a table spec with no parent/child specs', () => {
+Deno.test('a single result type is generated for a table spec with no parent/child specs', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -51,10 +53,10 @@ test('a single result type is generated for a table spec with no parent/child sp
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
 });
 
-test('table field property names should be as specified by jsonProperty where provided', () => {
+Deno.test('table field property names should be as specified by jsonProperty where provided', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -71,13 +73,11 @@ test('table field property names should be as specified by jsonProperty where pr
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
-  expect(resTypes[0].tableFieldProperties.map(p => p.name)).toEqual(
-    ['drugName', 'compoundIdentifier']
-  );
+  assertEquals(resTypes.length, 1);
+  assertEquals(resTypes[0].tableFieldProperties.map(p => p.name), ['drugName', 'compoundIdentifier']);
 });
 
-test('table field property names should default according to the provided naming function', () => {
+Deno.test('table field property names should default according to the provided naming function', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -85,13 +85,11 @@ test('table field property names should default according to the provided naming
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
-  expect(resTypes[0].tableFieldProperties.map(p => p.name)).toEqual(
-    ['name', 'compoundId']
-  );
+  assertEquals(resTypes.length, 1);
+  assertEquals(resTypes[0].tableFieldProperties.map(p => p.name), ['name', 'compoundId']);
 });
 
-test('types for non-unwrapped child tables are included in results', () => {
+Deno.test('types for non-unwrapped child tables are included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
@@ -113,21 +111,21 @@ test('types for non-unwrapped child tables are included in results', () => {
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
 
   const analystType = resTypes[0];
-  expect(analystType.childCollectionProperties.length).toBe(2);
+  assertEquals(analystType.childCollectionProperties.length, 2);
 
   const compoundType = analystType.childCollectionProperties[0].elResultType;
-  expect(compoundType.tableFieldProperties.map(p => p.name)).toEqual(['id']);
+  assertEquals(compoundType.tableFieldProperties.map(p => p.name), ['id']);
 
   // The unwrapped drug type is referenced from the child collection property, but
   // is not listed among types to be generated.
   const drugType = analystType.childCollectionProperties[1].elResultType;
-  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(['name']);
+  assertEquals(drugType.tableFieldProperties.map(p => p.name), ['name']);
 });
 
-test('types for referenced parent tables are generated but not for inlined parents', () => {
+Deno.test('types for referenced parent tables are generated but not for inlined parents', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -149,14 +147,14 @@ test('types for referenced parent tables are generated but not for inlined paren
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
   const compoundType = resTypes[0];
-  expect(compoundType.parentReferenceProperties.length).toBe(1);
+  assertEquals(compoundType.parentReferenceProperties.length, 1);
   const analystRef = compoundType.parentReferenceProperties[0];
-  expect(analystRef.refResultType.tableFieldProperties.map(p => p.name)).toEqual(['id']);
+  assertEquals(analystRef.refResultType.tableFieldProperties.map(p => p.name), ['id']);
 });
 
-test('table field properties obtained directly from inlined parent tables should be included in results', () => {
+Deno.test('table field properties obtained directly from inlined parent tables should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -167,20 +165,18 @@ test('table field properties obtained directly from inlined parent tables should
           fieldExpressions: [
             { field: 'id', jsonProperty: 'compoundId' },
             { field: 'display_name', jsonProperty: 'compoundDisplayName' }
-          ],
+          ]
         }
       ]
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
   const drugType = resTypes[0];
-  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(
-    ['id', 'name', 'compoundId', 'compoundDisplayName']
-  );
+  assertEquals(drugType.tableFieldProperties.map(p => p.name), ['id', 'name', 'compoundId', 'compoundDisplayName']);
 });
 
-test('table field properties from an inlined parent and its own inlined parent should be included in results', () => {
+Deno.test('table field properties from an inlined parent and its own inlined parent should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -208,18 +204,16 @@ test('table field properties from an inlined parent and its own inlined parent s
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
   const drugType = resTypes[0];
-  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(
-    [
-      'id', 'name', // from the top-level table, 'drug'
-      'compoundId', 'compoundDisplayName', // from the inlined parent table 'compound'
-      'compoundApprovedByAnalystShortName' // from 'analyst' inlined into 'compound', inlined into 'drug' (from parent of parent of drug)
-    ]
-  );
+  assertEquals(drugType.tableFieldProperties.map(p => p.name), [
+    'id', 'name', // from the top-level table, 'drug'
+    'compoundId', 'compoundDisplayName', // from the inlined parent table 'compound'
+    'compoundApprovedByAnalystShortName' // from 'analyst' inlined into 'compound', inlined into 'drug' (from parent of parent of drug)
+  ]);
 });
 
-test('a referenced parent property from an inlined parent should be included in results', () => {
+Deno.test('a referenced parent property from an inlined parent should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'drug',
@@ -239,24 +233,24 @@ test('a referenced parent property from an inlined parent should be included in 
               fieldExpressions: ['id', 'short_name'],
               viaForeignKeyFields: ['entered_by']
             },
-          ],
+          ]
         }
       ]
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
   const drugType = resTypes[0];
-  expect(drugType.parentReferenceProperties.map(p => p.name)).toEqual(
+  assertEquals(drugType.parentReferenceProperties.map(p => p.name),
     ['enteredByAnalyst'] // referenced parent property within inlined 'compound'
   );
   const analystType = drugType.parentReferenceProperties[0].refResultType;
-  expect(analystType.tableFieldProperties.map(p => p.name)).toEqual(
+  assertEquals(analystType.tableFieldProperties.map(p => p.name),
     ['id', 'shortName']
   );
 });
 
-test('non-unwrapped child collection properties should be included in results', () => {
+Deno.test('non-unwrapped child collection properties should be included in results', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
@@ -266,7 +260,7 @@ test('non-unwrapped child collection properties should be included in results', 
           collectionName: 'compoundsEntered',
           table: 'compound',
           fieldExpressions: ['id', 'cas'],
-          foreignKeyFields: ['entered_by'],
+          foreignKeyFields: ['entered_by']
         },
         {
           collectionName: 'drugNames',
@@ -278,20 +272,20 @@ test('non-unwrapped child collection properties should be included in results', 
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
 
   const analystType = resTypes[0];
-  expect(analystType.childCollectionProperties.map(p => p.name)).toEqual(['compoundsEntered', 'drugNames']);
+  assertEquals(analystType.childCollectionProperties.map(p => p.name), ['compoundsEntered', 'drugNames']);
 
   const compoundType = analystType.childCollectionProperties[0].elResultType;
-  expect(compoundType.tableFieldProperties.map(p => p.name)).toEqual(['id', 'cas']);
+  assertEquals(compoundType.tableFieldProperties.map(p => p.name), ['id', 'cas']);
 
   // Unwrapped type is reachable through the collection property, though not listed in types to be generated.
   const drugType = analystType.childCollectionProperties[1].elResultType;
-  expect(drugType.tableFieldProperties.map(p => p.name)).toEqual(['name']);
+  assertEquals(drugType.tableFieldProperties.map(p => p.name), ['name']);
 });
 
-test('unwrapped child collection of table field property is represented properly', () => {
+Deno.test('unwrapped child collection of table field property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
@@ -307,19 +301,19 @@ test('unwrapped child collection of table field property is represented properly
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
 
   const analystType = resTypes[0];
-  expect(analystType.childCollectionProperties.length).toBe(1);
+  assertEquals(analystType.childCollectionProperties.length, 1);
   const childCollProp = analystType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('idsOfCompoundsEntered');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.tableFieldProperties.length).toBe(1);
-  expect(childCollProp.elResultType.tableFieldProperties[0].databaseFieldName).toBe('id');
+  assertEquals(childCollProp.name, 'idsOfCompoundsEntered');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.tableFieldProperties.length, 1);
+  assertEquals(childCollProp.elResultType.tableFieldProperties[0].databaseFieldName, 'id');
 });
 
-test('unwrapped child collection of field expression property is represented properly', () => {
+Deno.test('unwrapped child collection of field expression property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'analyst',
@@ -337,20 +331,20 @@ test('unwrapped child collection of field expression property is represented pro
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
 
   const analystType = resTypes[0];
-  expect(analystType.childCollectionProperties.length).toBe(1);
+  assertEquals(analystType.childCollectionProperties.length, 1);
   const childCollProp = analystType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('lowercaseNamesOfCompoundsEntered');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.tableExpressionProperty.length).toBe(1);
-  expect(childCollProp.elResultType.tableExpressionProperty[0].name).toBe('lcName');
-  expect(childCollProp.elResultType.tableExpressionProperty[0].specifiedSourceCodeFieldType).toBe('string');
+  assertEquals(childCollProp.name, 'lowercaseNamesOfCompoundsEntered');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.tableExpressionProperty.length, 1);
+  assertEquals(childCollProp.elResultType.tableExpressionProperty[0].name, 'lcName');
+  assertEquals(childCollProp.elResultType.tableExpressionProperty[0].specifiedSourceCodeFieldType, 'string');
 });
 
-test('unwrapped child collection of parent reference property is represented properly', () => {
+Deno.test('unwrapped child collection of parent reference property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -365,26 +359,26 @@ test('unwrapped child collection of parent reference property is represented pro
               table: 'analyst',
               fieldExpressions: ['id', 'short_name']
             }
-          ],
+          ]
         }
       ]
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
 
   const compoundType = resTypes[0];
-  expect(compoundType.childCollectionProperties.length).toBe(1);
+  assertEquals(compoundType.childCollectionProperties.length, 1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('drugAnalysts');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.parentReferenceProperties.length).toBe(1);
-  expect(childCollProp.elResultType.parentReferenceProperties[0].name).toBe('registeredBy');
-  expect(childCollProp.elResultType.parentReferenceProperties[0].refResultType.tableFieldProperties.length).toBe(2);
+  assertEquals(childCollProp.name, 'drugAnalysts');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.parentReferenceProperties.length, 1);
+  assertEquals(childCollProp.elResultType.parentReferenceProperties[0].name, 'registeredBy');
+  assertEquals(childCollProp.elResultType.parentReferenceProperties[0].refResultType.tableFieldProperties.length, 2);
 });
 
-test('unwrapped child collection of inlined parent property is represented properly', () => {
+Deno.test('unwrapped child collection of inlined parent property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -405,18 +399,18 @@ test('unwrapped child collection of inlined parent property is represented prope
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
   const compoundType = resTypes[0];
-  expect(compoundType.childCollectionProperties.length).toBe(1);
+  assertEquals(compoundType.childCollectionProperties.length, 1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('drugRegisteringAnalystIds');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.tableFieldProperties.length).toBe(1);
-  expect(childCollProp.elResultType.tableFieldProperties[0].name).toBe('id');
+  assertEquals(childCollProp.name, 'drugRegisteringAnalystIds');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.tableFieldProperties.length, 1);
+  assertEquals(childCollProp.elResultType.tableFieldProperties[0].name, 'id');
 });
 
-test('unwrapped child collection of child collection property is represented properly', () => {
+Deno.test('unwrapped child collection of child collection property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -432,26 +426,26 @@ test('unwrapped child collection of child collection property is represented pro
               table: 'advisory',
               fieldExpressions: ['id', 'advisory_type_id']
             }
-          ],
+          ]
         }
       ]
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(2);
+  assertEquals(resTypes.length, 2);
   const compoundType = resTypes[0];
-  expect(compoundType.childCollectionProperties.length).toBe(1);
+  assertEquals(compoundType.childCollectionProperties.length, 1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('drugAdvisories');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties.length).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties.length).toBe(2);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name).toBe('id');
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[1].name).toBe('advisoryTypeId');
+  assertEquals(childCollProp.name, 'drugAdvisories');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.childCollectionProperties.length, 1);
+  assertEquals(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties.length, 2);
+  assertEquals(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name, 'id');
+  assertEquals(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[1].name, 'advisoryTypeId');
 });
 
-test('unwrapped child collection of unwrapped child collection property is represented properly', () => {
+Deno.test('unwrapped child collection of unwrapped child collection property is represented properly', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -473,19 +467,19 @@ test('unwrapped child collection of unwrapped child collection property is repre
     };
 
   const resTypes = resTypesGen.generateResultTypes(tableJsonSpec, 'test query');
-  expect(resTypes.length).toBe(1);
+  assertEquals(resTypes.length, 1);
   const compoundType = resTypes[0];
-  expect(compoundType.childCollectionProperties.length).toBe(1);
+  assertEquals(compoundType.childCollectionProperties.length, 1);
   const childCollProp = compoundType.childCollectionProperties[0];
-  expect(childCollProp.name).toBe('advisoryTypeIdLists');
-  expect(childCollProp.elResultType.unwrapped).toBe(true);
-  expect(propertiesCount(childCollProp.elResultType)).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties.length).toBe(1);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.unwrapped).toBe(true);
-  expect(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name).toBe('advisoryTypeId');
+  assertEquals(childCollProp.name, 'advisoryTypeIdLists');
+  assertEquals(childCollProp.elResultType.unwrapped, true);
+  assertEquals(propertiesCount(childCollProp.elResultType), 1);
+  assertEquals(childCollProp.elResultType.childCollectionProperties.length, 1);
+  assertEquals(childCollProp.elResultType.childCollectionProperties[0].elResultType.unwrapped, true);
+  assertEquals(childCollProp.elResultType.childCollectionProperties[0].elResultType.tableFieldProperties[0].name, 'advisoryTypeId');
 });
 
-test('unwrapped child collection with element type containing more than one property should cause error', () => {
+Deno.test('unwrapped child collection with element type containing more than one property should cause error', () => {
   const tableJsonSpec: TableJsonSpec =
     {
       table: 'compound',
@@ -499,7 +493,7 @@ test('unwrapped child collection with element type containing more than one prop
       ]
     };
 
-  expect(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query')).toThrowError(
-    /unwrapped child .* exactly one property/i
+  assertThrows(() => resTypesGen.generateResultTypes(tableJsonSpec, 'test query'), Error,
+    'Unwrapped child collection elements must have exactly one property'
   );
 });

@@ -1,5 +1,5 @@
-import {parseAppArgs, exit} from './util/mod';
-import {generateRelationsMetadataSource, SourceLanguage} from './mod';
+import {parseAppArgs, exit} from './util/mod.ts';
+import {generateRelationsMetadataSource, SourceLanguage} from './mod.ts';
 
 function printUsage(to: 'stderr' | 'stdout', reqdNamedParams: string[])
 {
