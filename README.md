@@ -34,8 +34,9 @@ in TypeScript.
 
 ## Query Group Specification
 
-Queries to be generated are contained in a `QueryGroupSpec` structure, which allows
-setting some options that apply to all the queries.
+The structure that you supply to the query generator, usually in a file called `query-specs.ts`,
+must conform to the `QueryGroupSpec` interface. This structure contains the queries to be
+generated and also allows setting some options that apply to all the queries.
 
 ```typescript
 interface QueryGroupSpec
