@@ -376,7 +376,8 @@ function childCollectionPropertyType
   switch (srcLang)
   {
     case 'TS': return withNullability(p.nullable, `${collElType}[]`, 'TS');
-    case 'Java': return withNullability(p.nullable, `List<${collElType}>`, 'Java');
+    case 'Java':
+      return withNullability(p.nullable, `List<${toJavaReferenceType(collElType)}>`, 'Java');
     default: return missingCase(srcLang);
   }
 }
@@ -489,8 +490,11 @@ function toJavaReferenceType(typeName: string): string
     case 'int': return 'Integer';
     case 'long': return 'Long';
     case 'double': return 'Double';
+    case 'float': return 'Float';
     case 'boolean': return 'Boolean';
     case 'char': return 'Character';
+    case 'short': return 'Short';
+    case 'byte': return 'Byte';
     default: return typeName;
   }
 }
