@@ -17,7 +17,7 @@ import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources} from '../mod';
 import {getDbClient} from './db/db-handle';
-import {ChildProcess, spawn, spawnSync} from 'child_process';
+import {spawnSync} from 'child_process';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -778,8 +778,8 @@ async function compileAndRunTest
     { cwd: tmpDir, env: process.env, encoding: 'utf8' }
   );
 
-  expect(cp.error).toBeUndefined();
-  expect(cp.stderr || '').toEqual('');
+  expect(cp.status).toBe(0);
+  expect(cp.stdout || '').toContain('[INFO] BUILD SUCCESS');
 }
 
 function testWithResultTypes(resTypesSrc: string, testSrc: string): Promise<void>
