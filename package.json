@@ -24,6 +24,7 @@
     "gen-qspecs-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/query-specs.schema.json tsconfig.json QueryGroupSpec",
     "gen-dbmd-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/dbmd.schema.json tsconfig.json DatabaseMetadataStoredProperties",
     "gen-json-schemas": "mkdirp lib/schemas && npm run gen-qspecs-json-schema && npm run gen-dbmd-json-schema",
+    "gen-doc-diagrams": "dot -Tsvg img/diagram-1.graphviz -o img/diagram-1.svg",
     "build": "npm run clean && tsc && npm run gen-json-schemas",
     "test": "jest",
     "clean": "rimraf lib"

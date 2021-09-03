@@ -6,6 +6,7 @@ mkShell {
     nodePackages.typescript
     openjdk11
     maven
+    graphviz-nox
   ];
 
   shellHook = ''

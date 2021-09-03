@@ -1,0 +1,16 @@
+digraph Diagram1 {
+  {
+    qs [label="Query Specifications\n(query-specs.ts)" shape=note style=filled fillcolor=yellow]
+    dbmd [label="Database Metadata\n(dbmd.json)" shape=note]
+    mdf [label="dbmd fetcher" shape=invhouse style=filled fillcolor=lightblue]
+    db [label="Database" shape=cylinder style=filled fillcolor=yellow]
+    rd [label="Result Types\n(Java/TypeScript)" ]
+    sjq [label="Query Generator" shape=invhouse height=1.2 style=filled fillcolor=lightblue]
+    sql [label="SQL files"]
+  }
+  db -> mdf -> dbmd
+  qs -> sjq
+  dbmd -> sjq
+  sjq -> sql
+  sjq -> rd
+}
