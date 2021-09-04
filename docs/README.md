@@ -112,6 +112,7 @@ which contains a nearly ready-to-go form of the tool.
 TODO: Just link to a tutorial that defines a schema, shows fragments from ER diagram, and builds
 various queries to include the tables shown in the ER diagram fragments.
 
+
 ## The Queries Specification - `QueryGroupSpec`
 
 The structure that you supply to the query generator should conform to the `QueryGroupSpec`
