@@ -5,7 +5,7 @@
 This is a tool to be used as part of an application's build process to generate
 SQL/JSON nested data queries and matching result type declarations.
 
-<img align="right" src="img/diagram-1.svg">
+<img align="right" src="img/diagram-1.dot.svg">
 
 
 As a developer, your job in the process is to supply a file `query-specs.ts`
@@ -201,8 +201,8 @@ interface QuerySpec
 
 - `orderBy`
 
-  This optional property is a SQL expression controlling the ordering of the results
-  from the top-level table in the query.
+  This property is a SQL expression controlling the ordering of the results from the top-level
+  table in the query.
 
 
 - `forUpdate`
@@ -293,7 +293,7 @@ interface TableJsonSpec
   - Field Expressions Example
     ```typescript
       fieldExpressions: [
-         'account_num',  // equiv to { field: 'account_num', jsonProperty: 'accountNum' } under default CAMELCASE property naming
+         'account_num',  // equiv to { field: 'account_num', jsonProperty: 'accountNum' } for default CAMELCASE property naming
          {field: 'id', jsonProperty: 'accountId'}, // specify custom property name
          {expression: 'select name from state where code = $$.state_code', fieldTypeInGeneratedSource: 'String'}
       ]
@@ -320,9 +320,9 @@ interface TableJsonSpec
 
 - `recordCondition`
 
-  The optional `recordCondition` member can hold an arbitrary SQL predicate (suitable for inclusion
-  in a SQL `WHERE` clause) to filter records in the subject table of the `TableJsonSpec` as named in
-  `table`. The record condition should conform to the `RecordCondition` interface.
+  The `recordCondition` member contains an arbitrary SQL predicate, suitable for inclusion
+  in a SQL `WHERE` clause, to filter records in the subject table of the `TableJsonSpec` as
+  named in `table`. The record condition should conform to the `RecordCondition` interface.
 
   ```typescript
   interface RecordCondition
@@ -354,10 +354,10 @@ interface TableJsonSpec
     
 ## <a id="parent-spec"></a>Parent Table Specification
 
-Parent table specifications appear in the `parentTables` member of the `TableJsonSpec`, where they
+Parent table specifications appear in the `parentTables` member of a `TableJsonSpec`, where they
 describe the contributions from parent tables of the table named in `table` to the JSON output.
 The contribution from a single parent table is described by interface `ParentSpec` which derives from
-`TableJsonSpec`. The subtype adds a few additional members to describe the join, which are only
+`TableJsonSpec`. The subtype adds a few optional members to describe the join, which are only
 occasionally necessary, and also adds a member controlling whether the fields from the parent
 should be included *inline* with the child table's own field expressions, or else wrapped via a
 single object reference property.
@@ -431,7 +431,14 @@ parent tables that should be equated to form the join condition:
 
 ## <a id="child-spec"></a>Child Table Specification
 
-TODO
+Child table specifications appear in the `childTables` member of a `TableJsonSpec`. They describe
+the collection properties which are contributed to the JSON output from child tables of the parent
+table named in `table`. The contribution from a single child table is described by interface
+`ChildSpec` which derives from `TableJsonSpec`. The subtype adds a collection name property and
+additional optional properties to describe the join between parent and child, which are only
+occasionally necessary. It also adds members controlling filtering and ordering, and whether
+child tables exporting only a single property should have those property values "unwrapped"
+in the collection instead of being wrapped in JSON objects.
 
 
 ```typescript
@@ -440,11 +447,23 @@ interface ChildSpec extends TableJsonSpec
   collectionName: string;
   foreignKeyFields?: string[];
   customJoinCondition?: CustomJoinCondition;
-  filter?: string;
   unwrap?: boolean;
+  filter?: string;
   orderBy?: string;
 }
 ```
+
+- The `collectionName` member is required, it determines the name of the collection property
+holding the child record content within the parent JSON output.
+
+
+- The `foreignKeyFields` property determines the foreign key fields in the child table which
+should be used to join to the parent. A foreign key constraint on this set of fields targeting
+the proper parent table must be present in the database metadata or an error is reported. If
+only one foreign key constraint exists between the child and parent, it is not necessary to
+specify this property; it is intended to disambiguate when multiple foreign keys between the
+child and parent are defined.
+
 
 - The `customJoinCondition` allows matching via fields that do not have a foreign key constraint
 defined in the database (metadata). The structure is a list of field pairs between the child and
@@ -462,7 +481,6 @@ parent tables that should be equated to form the join condition:
     parentPrimaryKeyField: string;
   }
   ```
-  
   For example:
   ```typescript
     {
@@ -480,8 +498,77 @@ parent tables that should be equated to form the join condition:
     }
   ```
 
+- The `unwrap` property only applies for the case that the `ChildSpec` only exposes a single property,
+whether from fields of the child table itself or from child or parent tables. In that case you may choose
+to *unwrap* the property values by specifying `unwrap: true` to prevent the values from being wrapped in a JSON
+object (which would normally represent the child record itself) within the collection property.
 
-TODO: Explain how to use a child table with inline parent to represent data from a many-many relationship.
+
+- The `filter` property, if specified, should be a boolean expression suitable for inclusion
+in a SQL `WHERE` condition. If provided then only child records for which the expression
+evaluates to true will be included in the collection.
+
+
+- The `orderBy` property, if specified, should  be a SQL expression by which the child records
+will be sorted before they are projected into the JSON collection. This expression can be
+anything that is suitable for a SQL order by clause.
+
+
+
+## <a id="many-many"></a>Representing Many to Many Relationships
+
+So far it's been described how to bring in information from parent tables reached via a
+many-to-one or -zero/one relationship, and from child tables via a one-to-many relationship.
+But we haven't yet described how to include data from a many-to-many relationship.
+
+In fact we don't need any new constructs to handle the many-to-many case. We start by including
+the intermediate/intersection table as a child table collection within our initial table which 
+represents one side of the relationship. Then within that child table specification we include
+whatever parts we want from the intersection table's other parent as an "inlined" parent
+specification, by not specifying `referenceName` in the `ParentSpec`.
+
+### Many-Many Relationship Example
+
+As an example let's say that we have a table `drug` which has a many-many relationship to
+`reference` representing published literature references about the drug. An intermediate
+table `drug_reference` establishes the many-to-many relationship. Within the JSON output
+for our drug table, we'd like to include a collection of literature references, and to also
+have their priorities from the intermediate table.
+
+
+<img src="img/drug-references.svg">
+
+We accomplish this with the following specification:
+```typescript
+const drugsQuery: QuerySpec = {
+  queryName: 'drugs query',
+  tableJson: {
+    table: "drug",
+    fieldExpressions: ["id", "name"], 
+    childTables: [
+      {
+        collectionName: "prioritizedReferences",
+        table: "drug_reference",        // The intermediate/intersection table.
+        fieldExpressions: ["priority"], // Include any properties wanted from intermediate table here.
+        parentTables: [
+          {
+            // No "referenceName" property is given, so contents are "inlined" into the intermediate table.
+            table: "reference",         // The "other" entity in the many-many relationship
+            fieldExpressions: ["publication"]
+          }
+        ],
+        orderBy: "priority asc" // Sort the intermediate table records by priority, ascending.
+      }
+     ]
+  }
+}
+```
+
+Basically, we include the intermediate/intersection table `drug_reference` as we would do with any
+child table, and then we include the `reference` table as a parent within the intermediate table
+without specifying a `referenceName` property, so that's its contents are inlined with those
+properties from the intermediate table itself, if any are specified (here we included the `priority`
+column from the intermediate table).
 
 
 ## Setup

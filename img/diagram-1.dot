@@ -1,4 +1,4 @@
-digraph Diagram1 {
+digraph  Diagram1 {
   {
     qs [label="Query Specifications\n(query-specs.ts)" shape=note style=filled fillcolor=yellow]
     dbmd [label="Database Metadata\n(dbmd.json)" shape=note]
@@ -13,4 +13,18 @@ digraph Diagram1 {
   dbmd -> sjq
   sjq -> sql
   sjq -> rd
+
+  { rank = sink;
+    space [shape="rectangle" fixedsize=true  label="source" color="none"]
+    node [margin=0 fontcolor=blue fontsize=10  style=filled]
+    Legend [shape=none, label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="5" CELLPADDING="4">
+     <TR>
+      <TD color="white" bgcolor="yellow">provided by developer</TD>
+      <TD color="white"  bgcolor="lightblue">provided by the tool</TD>
+      <TD bgcolor="white">output</TD>
+     </TR>
+    </TABLE>
+   >];
+  }
 }
