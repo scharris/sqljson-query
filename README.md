@@ -59,10 +59,10 @@ which contains a nearly ready-to-go form of the tool.
   Add a script or manually-triggered step to your build process to perform the following whenever
   database metadata needs to be updated to reflect changes in the database:
   ```
-  mvn -f query-gen/dbmd/pom.xml compile exec:java "-DjdbcProps=<jdbc-props-file>" "-Ddb=<pg|ora>"
+  mvn -f query-gen/dbmd/pom.xml compile exec:java "-DjdbcProps=<props>" "-Ddb=<pg|ora>"
   ```
   
-  Here `<jdbc-props-file>` is the path to a properties file with JDBC connection information for
+  Here `<props>` is the path to a properties file with JDBC connection information for
   the database to be examined. The expected format of the jdbc properties file is:
   ```
   jdbc.driverClassName=...
