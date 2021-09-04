@@ -15,16 +15,15 @@ digraph  Diagram1 {
   sjq -> rd
 
   { rank = sink;
-    space [shape="rectangle" fixedsize=true  label="source" color="none"]
-    node [margin=0 fontcolor=blue fontsize=10  style=filled]
+    node [margin=0 fontsize=12 style=filled]
     Legend [shape=none, label=<
-    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="5" CELLPADDING="4">
-     <TR>
-      <TD color="white" bgcolor="yellow">provided by developer</TD>
-      <TD color="white"  bgcolor="lightblue">included with SQL/JSON Query</TD>
-      <TD bgcolor="white">output</TD>
-     </TR>
-    </TABLE>
+    <table border="0" cellborder="1" cellspacing="5" cellpadding="4">
+     <tr>
+      <td bgcolor="yellow">provided by developer</td>
+      <td bgcolor="lightblue">included with SQL/JSON Query</td>
+      <td bgcolor="white">output</td>
+     </tr>
+    </table>
    >];
   }
 }
