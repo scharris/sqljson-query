@@ -21,7 +21,7 @@ digraph  Diagram1 {
     <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="5" CELLPADDING="4">
      <TR>
       <TD color="white" bgcolor="yellow">provided by developer</TD>
-      <TD color="white"  bgcolor="lightblue">provided by the tool</TD>
+      <TD color="white"  bgcolor="lightblue">included with SQL/JSON Query</TD>
       <TD bgcolor="white">output</TD>
      </TR>
     </TABLE>

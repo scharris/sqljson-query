@@ -5,20 +5,20 @@
 This is a tool to be used as part of an application's build process to generate
 SQL/JSON nested data queries and matching result type declarations.
 
-<img align="right" src="img/diagram-1.dot.svg">
+<img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
 
 As a developer, your job in the process is to supply a file `query-specs.ts`
 which provides a list of query specifications, where each specification describes a
 hierarchy of data to be fetched for a query. From these query specifications and a
-database metadata file (generated from a database via included tool), the tool
+database metadata file (generated from a database via included tool), SQL/JSON Query 
 generates:
-- SQL/JSON nested data queries for Oracle or Postgres to fetch the data,
+- SQL/JSON nested data queries for Oracle or Postgres to fetch the data
 - Result type declarations in TypeScript or Java which match the structure of 
-  the generated SQL and to which the query results can be directly deserialized.
+  the generated SQL and to which the query results can be directly deserialized
 - Column-level metadata for all relations (tables/views) in TypeScript or Java, which
   can be used to refer to tables/columns in INSERT/UPDATE/DELETE statements in an
-  error-resistant way.
+  error-resistant way
 
 
 When generating queries, database metadata is used to verify all tables, fields, and
@@ -32,11 +32,92 @@ executed by any preferred means, and deserialized to the generated result types 
 any library suitable for the purpose, such as Jackson in Java, or via `JSON.parse()`
 in TypeScript.
 
-## Query Group Specification
+## Setup
 
-The structure that you supply to the query generator, usually in a file called `query-specs.ts`,
-must conform to the `QueryGroupSpec` interface. This structure contains the queries to be
-generated and also allows setting some options that apply to all the queries.
+The easiest way to enable query generation via SQL/JSON Query is to clone the 
+`sqljson-query-dropin` project from
+[the sqljson-query-dropin repo](https://github.com/scharris/sqljson-query-dropin),
+which contains a nearly ready-to-go form of the tool.
+
+- Clone the dropin repository
+
+  ```git clone https://github.com/scharris/sqljson-query-dropin query-gen```
+
+  Here we've installed the tool in a directory named `query-gen` for definiteness, but
+  you can name and position the folder however you want.
+
+
+- Next, install dependencies needed by the tool in the `query-gen folder`:
+
+  ```cd query-gen; npm i```
+
+  This step only needs to be performed once to install npm dependencies.
+
+
+- Generate database metadata
+  
+  Add a script or manually-triggered step to your build process to perform the following whenever
+  database metadata needs to be updated to reflect changes in the database:
+  ```
+  mvn -f query-gen/dbmd/pom.xml compile exec:java "-DjdbcProps=<jdbc-props-file>" "-Ddb=<pg|ora>"
+  ```
+  
+  Here `<jdbc-props-file>` is the path to a properties file with JDBC connection information for
+  the database to be examined. The expected format of the jdbc properties file is:
+  ```
+  jdbc.driverClassName=...
+  jdbc.url=...
+  jdbc.username=...
+  jdbc.password=...
+  ```
+  
+  The above command will produce output file `query-gen/dbmd/dbmd.json` containing the database
+  metadata, which is where the tool expects to find the metadata while generating queries. On
+  first run of metadata generation, examine this file to make sure that the expected tables have
+  been found by the metadata generator.
+  
+  To remove unwanted tables from database metadata generation, add an additional property
+  definition `-Ddbmd.table.pattern=<regex>` to the `mvn` command to only include relations
+  whose name matches the given regular expression. The pattern defaults to `^[^$].*`.
+
+
+- Define application queries in `query-gen/queries/query-specs.ts`
+
+  Edit the `query-specs.ts` file in `query-gen/queries` to define application queries.
+  The details of how to write query specifications are described below. Any tables, views
+  and fields used in the queries must exist in the database metadata, so database metadata
+  should be generated before proceeding to query generation.
+
+
+- Generate SQL and result types:
+
+  To generate SQL and matching Java result types:
+  
+  ```
+  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --javaBaseDir=../src/generated/lib -javaQueriesPkg=gen.queries -javaRelMdsPkg=gen.relmds # --javaResultTypesHeader=...
+  ```
+
+  To generate SQL and matching TypeScript result types:
+  
+  ```
+  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --tsQueriesDir=../src/generated/lib --tsRelMdsDir=../src/generated/lib --tsTypesHeader=queries/result-types-header-ts
+  ```
+
+  The java/tsTypesHeader parameters are not required, but can be used in case additional imports
+  or comments are wanted at the top of the generated query result type files.
+
+
+## Tutorial
+
+TODO: Just link to a tutorial that defines a schema, shows fragments from ER diagram, and builds
+various queries to include the tables shown in the ER diagram fragments.
+
+## The Queries Specification - `QueryGroupSpec`
+
+The structure that you supply to the query generator should conform to the `QueryGroupSpec`
+interface, and it is usually defined in a file called `query-specs.ts`. This structure contains
+speciciations for the queries to be generated and allows setting some options that apply to all
+of the queries.
 
 ```typescript
 interface QueryGroupSpec
@@ -100,6 +181,7 @@ object in file `<query-gen-folder>/queries/query-specs.ts`, and export it from t
 as `queryGroupSpec`.
 
 ```typescript
+// (file query-specs.ts)
 export const queryGroupSpec: QueryGroupSpec = {
    defaultSchema: "foos",
    generateUnqualifiedNamesForSchemas: ["foos"],
@@ -293,11 +375,13 @@ interface TableJsonSpec
   - Field Expressions Example
     ```typescript
       fieldExpressions: [
-         'account_num',  // equiv to { field: 'account_num', jsonProperty: 'accountNum' } for default CAMELCASE property naming
-         {field: 'id', jsonProperty: 'accountId'}, // specify custom property name
-         {expression: 'select name from state where code = $$.state_code', fieldTypeInGeneratedSource: 'String'}
+         'account_num',  // (1) equiv to { field: 'account_num', jsonProperty: 'accountNum' } for default CAMELCASE property naming
+         {field: 'id', jsonProperty: 'accountId'}, // (2) specify custom property name
+         {expression: 'select name from state where code = $$.state_code', fieldTypeInGeneratedSource: 'String'} // (3)
       ]
     ```
+    The above example shows the three forms used to express field expressions: (1) table-field short form,
+    (2) table-field full form, (3) general expression.
 
 - `parentTables`
 
@@ -315,7 +399,9 @@ interface TableJsonSpec
   Each item of the `childTables` member of `TableJsonSpec` describes a property to be added to the
   parent JSON to hold a collection of records from a single child table. Each element of the array is
   a `TableJsonSpec`, with additional options particular to the child/parent relationship.
-  See the [Child Table Specification](#child-spec) section below for details.
+  See the [Child Table Specification](#child-spec) section below for details on specifying child
+  collections, and [Representing Many to Many Relationships](#many-many) for usage of child
+  specifications in many-many relationships.
 
 
 - `recordCondition`
@@ -350,8 +436,8 @@ interface TableJsonSpec
   - The `withTableAlias` member controls the text that will be expanded to the subject table alias in
     the SQL expression in the `sql` property. Defaults to `$$`. Usually unqualified field names are
     unambiguous so no table alias is necessary.
-    
-    
+
+
 ## <a id="parent-spec"></a>Parent Table Specification
 
 Parent table specifications appear in the `parentTables` member of a `TableJsonSpec`, where they
@@ -483,7 +569,9 @@ parent tables that should be equated to form the join condition:
   ```
   For example:
   ```typescript
-    {
+  const barsQuery: QuerySpec = {
+    queryName: 'bars query',
+    tableJson: {
       table: 'bar',
       // ...
       childTables: [
@@ -496,6 +584,7 @@ parent tables that should be equated to form the join condition:
         }
       ]
     }
+  }
   ```
 
 - The `unwrap` property only applies for the case that the `ChildSpec` only exposes a single property,
@@ -530,13 +619,14 @@ specification, by not specifying `referenceName` in the `ParentSpec`.
 ### Many-Many Relationship Example
 
 As an example let's say that we have a table `drug` which has a many-many relationship to
-`reference` representing published literature references about the drug. An intermediate
-table `drug_reference` establishes the many-to-many relationship. Within the JSON output
-for our drug table, we'd like to include a collection of literature references, and to also
-have their priorities from the intermediate table.
+a table `reference` representing published literature references about the drug. An
+intermediate table `drug_reference` establishes the many-to-many relationship. Within the
+JSON output for our drug table, we'd like to include a collection of literature references,
+and to also have their priorities from the intermediate table.
 
 
-<img src="img/drug-references.svg" style="width: 100%; height: 210px; margin-left:30px;">
+<img src="img/drug-references.svg" style="width: 100%; height: 210px; margin-left:30px;"
+     alt="drug references diagram" >
 
 We accomplish this with the following specification:
 ```typescript
@@ -552,7 +642,7 @@ const drugsQuery: QuerySpec = {
         fieldExpressions: ["priority"], // Include any properties wanted from intermediate table here.
         parentTables: [
           {
-            // No "referenceName" property is given, so contents are "inlined" into the intermediate table.
+            // No "referenceName" property is given, so contents are "inlined" into the intermediate table output.
             table: "reference",         // The "other" entity in the many-many relationship
             fieldExpressions: ["publication"]
           }
@@ -564,12 +654,9 @@ const drugsQuery: QuerySpec = {
 }
 ```
 
-Basically, we include the intermediate/intersection table `drug_reference` as we would do with any
-child table, and then we include the `reference` table as a parent within the intermediate table
-without specifying a `referenceName` property, so its contents are inlined with those properties
-from the intermediate table itself, if any are specified (here we included the `priority`
-column from the intermediate table).
-
-
-## Setup
-Refer to sqljson-query-dropin project docs, or copy them here.
+In summary, we included the intermediate/intersection table `drug_reference` as we would do
+with any child table. And then we included the `reference` table as a parent within the
+intermediate table but without specifying a `referenceName` property, so its contents are
+inlined with those properties (if any) from the intermediate table itself. Here we included
+the `priority` column from the intermediate table, but often we may not incude any properties
+from the intermediate table itself.
