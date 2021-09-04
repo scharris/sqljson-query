@@ -536,7 +536,7 @@ for our drug table, we'd like to include a collection of literature references, 
 have their priorities from the intermediate table.
 
 
-<img src="img/drug-references.svg">
+<img src="img/drug-references.svg" style="width: 100%; height: 210px; margin-left:30px;">
 
 We accomplish this with the following specification:
 ```typescript
@@ -566,8 +566,8 @@ const drugsQuery: QuerySpec = {
 
 Basically, we include the intermediate/intersection table `drug_reference` as we would do with any
 child table, and then we include the `reference` table as a parent within the intermediate table
-without specifying a `referenceName` property, so that's its contents are inlined with those
-properties from the intermediate table itself, if any are specified (here we included the `priority`
+without specifying a `referenceName` property, so its contents are inlined with those properties
+from the intermediate table itself, if any are specified (here we included the `priority`
 column from the intermediate table).
 
 
