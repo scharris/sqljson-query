@@ -111,9 +111,9 @@ which contains a nearly ready-to-go form of the tool.
 
 ## Tutorial
 
-TODO: Just link to a tutorial that defines a schema, shows fragments from ER diagram, and builds
-various queries to include the tables shown in the ER diagram fragments.
-
+[A tutorial](tutorial.md) is available which builds a working example for an example database schema.
+It is recommended to review the tutorial before consulting the detailed query specifications
+documentation.
 
 ## Query Specifications
 

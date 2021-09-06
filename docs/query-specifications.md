@@ -4,7 +4,7 @@
 
 The structure that you supply to the query generator should conform to the `QueryGroupSpec`
 interface, and it is usually defined in a file called `query-specs.ts`. This structure contains
-speciciations for the queries to be generated and allows setting some options that apply to all
+specifications for the queries to be generated and allows setting some options that apply to all
 of the queries.
 
 ```typescript
@@ -85,8 +85,8 @@ export const queryGroupSpec: QueryGroupSpec = {
 A query specification describes a single query as a hierarchy of data to be fetched. It usually
 defines the generation of a single SQL file, but may specify multiple `resultRepresenations` in
 which case multiple SQL files will be generated for the query. In all cases it yields at most
-one TypeScript module and Java class representing result types for the query. A query specification
-is described via the `QuerySpec` interface.
+one TypeScript module or Java class representing the result types for the query. A query
+specification is described via the `QuerySpec` interface.
 
 ```typescript
 interface QuerySpec
@@ -133,20 +133,19 @@ interface QuerySpec
   in database result sets. Any subset of the following variants may be chosen.
 
   * `JSON_OBJECT_ROWS`(**default**): The result set will consist of multiple rows, with one row
-  per result row from the top table in the hierarchy of results. Each row consists of exactly
-  one column, which contains the JSON object representation of the hierarchy of data for the
-  top-level table row and its related data from related tables.
+  per result row from the top table. Each row consists of exactly one column, which contains the
+  JSON object representation of the hierarchy of data for the top-level table row and its related
+  data from related tables.
 
-  * `JSON_ARRAY_ROW`: In this result style the query will yield only a single row, which consists
-  of only one column. The entire result set in this case is represented as a single JSON array
-  value, the elements of which are JSON objects representing the result rows from the top table
-  and data related to the row from the related tables.
+  * `JSON_ARRAY_ROW`: In this result style the query will yield only a single row having a single
+  column. The entire result set in this case is represented as a single JSON array value in that
+  single result cell, the elements of which are JSON objects representing the result rows from the
+  top table and data related to the row from the related tables.
 
-  * `MULTI_COLUMN_ROWS`: The result set will consist of multiple rows, with one row per
-  result row from the top table in the hierarchy of results. Top level rows are presented in
-  multi-column form as in the top level table itself. The column values themselves may be
-  either database types coming directly from a table or JSON objects representing data
-  collected from related tables.
+  * `MULTI_COLUMN_ROWS`: The result set will consist of multiple rows, with one row per result row
+  from the top table. Top level rows are presented in multi-column form as in the top level table
+  itself. The column values themselves may be either database types coming directly from a table
+  or JSON objects representing data collected from related tables.
 
 
 - `generateResultTypes`
