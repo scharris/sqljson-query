@@ -278,7 +278,7 @@ interface TableJsonSpec
   an *inline* parent table, whose fields are merged into the child table's, or else a *referenced* parent
   table whose row value is included as a JSON object via a property in the child. Additional members are
   provided for controlling how the parent table is joined with the child table.
-  See the [Parent Table Specification](#parent-spec) section below for details.
+  See the [Parent Table Specification](#parent-table-specification) section below for details.
 
 
 - `childTables`
@@ -286,9 +286,9 @@ interface TableJsonSpec
   Each item of the `childTables` member of `TableJsonSpec` describes a property to be added to the
   parent JSON to hold a collection of records from a single child table. Each element of the array is
   a `TableJsonSpec`, with additional options particular to the child/parent relationship.
-  See the [Child Table Specification](#child-spec) section below for details on specifying child
-  collections, and [Representing Many to Many Relationships](#many-many) for usage of child
-  specifications in many-many relationships.
+  See the [Child Table Specification](#child-table-specification) section below for details on specifying child
+  collections, and [Many to Many Relationships section](#including-data-from-many-to-many-relationships) for
+  usage of child specifications in many-many relationships.
 
 
 - `recordCondition`
@@ -325,10 +325,12 @@ interface TableJsonSpec
     unambiguous so no table alias is necessary.
 
 
-## <a id="parent-spec"></a>Parent Table Specification
+## Parent Table Specification
 
-Parent table specifications appear in the `parentTables` member of a `TableJsonSpec`, where they
-describe the contributions from parent tables of the table named in `table` to the JSON output.
+Parent table specifications appear in the `parentTables` member of any `TableJsonSpec` &mdash;
+meaning either in the top level `tableJson`, or within an item in `parentTables` or `childTables`
+properties at some level of nesting under `tableJson`. A parent table specification describes the
+contributions to the JSON output from a table that is a parent of the table named in `table`.
 The contribution from a single parent table is described by interface `ParentSpec` which derives from
 `TableJsonSpec`. The subtype adds a few optional members to describe the join, which are only
 occasionally necessary, and also adds a member controlling whether the fields from the parent
@@ -402,16 +404,17 @@ parent tables that should be equated to form the join condition:
       ]
   ```
 
-## <a id="child-spec"></a>Child Table Specification
+## Child Table Specification
 
-Child table specifications appear in the `childTables` member of a `TableJsonSpec`. They describe
-the collection properties which are contributed to the JSON output from child tables of the parent
-table named in `table`. The contribution from a single child table is described by interface
-`ChildSpec` which derives from `TableJsonSpec`. The subtype adds a collection name property and
-additional optional properties to describe the join between parent and child, which are only
-occasionally necessary. It also adds members controlling filtering and ordering, and whether
-child tables exporting only a single property should have those property values "unwrapped"
-in the collection instead of being wrapped in JSON objects.
+Child table specifications appear in the `childTables` member of any `TableJsonSpec` &mdash;
+meaning either in the top level `tableJson`, or within an item in `parentTables` or `childTables`
+properties at some level of nesting under `tableJson`. They describe the collection properties
+which are contributed to the JSON output from child tables of the parent table named in `table`.
+The contribution from a single child table is described by interface `ChildSpec` which derives
+from `TableJsonSpec`. The subtype adds a collection name property and additional optional properties
+to describe the join between parent and child, which are only occasionally necessary. It also adds
+members controlling filtering and ordering, and whether child tables exporting only a single property
+should have those property values "unwrapped" in the collection instead of being wrapped in JSON objects.
 
 
 ```typescript
@@ -491,7 +494,7 @@ anything that is suitable for a SQL order by clause.
 
 
 
-## <a id="many-many"></a>Representing Many to Many Relationships
+## Including Data from Many to Many Relationships
 
 So far it's been described how to bring in information from parent tables reached via a
 many-to-one or -zero/one relationship, and from child tables via a one-to-many relationship.

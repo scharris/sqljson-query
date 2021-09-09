@@ -17,14 +17,15 @@ The Maven project simply executes this query with a default for `relPat` and sav
 ## Project Directory Setup
 
 Let's create a directory for our query generation experiments.
-```
+```console
 mkdir sjq-example
 cd sjq-example
 ```
 
 Now we will install the query-generator by cloning the "sqljson-query-dropin" repository, and
 initialize it via `npm`:
-```
+
+```console
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
 
 (cd query-gen && npm i)
@@ -35,181 +36,15 @@ so long as commands below are adjusted accordingly.
 
 ## Database Setup
 
-Next we'll setup a small Postgres database for our example. We'll assume a Postgres server is
-installed on the local machine and listening on localhost port 5432.
-
-Create the Postgres database and user using your Postgres admin user login:
-```
-# ( "psql -U postgres template1" or similar admin login )
-create user drugs with password 'drugs';
-create database drugs owner drugs;
-\q
-```
-
-Logging in as the new Postgres user `drugs` to the database created above, and create the database objects:
-```sql
-# ( psql -U drugs )
-
-create table analyst (
-  id int not null constraint analyst_pk primary key,
-  short_name varchar(50) not null
-);
-
-create table compound
-(
-  id int not null constraint compound_pk primary key,
-  display_name varchar(50),
-  smiles varchar(2000),
-  cas varchar(50),
-  entered_by int not null constraint compound_enteredby_analyst_fk references analyst,
-  approved_by int constraint compound_approvedby_analyst_fk references analyst
-);
-
-create table drug
-(
-  id int not null constraint drug_pk primary key,
-  name varchar(500) not null constraint drug_name_un unique,
-  compound_id int not null constraint drug_compound_fk references compound,
-  mesh_id varchar(7) constraint drug_meshid_un unique,
-  cid int,
-  category_code varchar(1) not null,
-  descr varchar(500),
-  registered timestamp with time zone,
-  registered_by int not null constraint drug_analyst_fk references analyst
-);
-
-create index drug_compoundid_ix on drug (compound_id);
-
-create table reference
-(
-  id int not null constraint reference_pk primary key,
-  publication varchar(2000) not null
-);
-
-create table drug_reference
-(
-  drug_id int not null constraint drug_reference_drug_fk references drug,
-  reference_id int not null constraint drug_reference_reference_fk references reference,
-  priority int,
-  constraint drug_reference_pk primary key (drug_id, reference_id)
-);
-
-create index drug_reference_referenceid_ix on drug_reference (reference_id);
-
-create table authority
-(
-  id int not null constraint authority_pk primary key,
-  name varchar(200) not null constraint authority_name_un unique,
-  description varchar(2000),
-  weight int default 0
-);
-
-create table advisory_type
-(
-  id int not null constraint advisory_type_pk primary key,
-  name varchar(50) not null constraint advisory_type_name_un unique,
-  authority_id int not null constraint advisory_type_authority_fk references authority
-);
-
-create table advisory
-(
-  id int not null constraint advisory_pk primary key,
-  drug_id int not null constraint advisory_drug_fk references drug,
-  advisory_type_id int not null constraint advisory_advisory_type_fk references advisory_type,
-  text varchar(2000) not null
-);
-
-create index advisory_advtype_ix on advisory (advisory_type_id);
-create index advisory_drug_ix on advisory (drug_id);
-```
-
-Continuing as Postgres user `drugs` in the database of the same name, populate the tables with test data:
-```sql
-# ( psql -U drugs )
-
-insert into analyst values(1, 'jdoe');
-insert into analyst values(2, 'sch');
-
-insert into authority(id, name, description, weight) values(1, 'FDA', 'Food and Drug Administration', 100);
-insert into authority(id, name, description, weight) values(2, 'Anonymous', 'Various People with Opinions', 0);
-
-insert into advisory_type(id, name, authority_id) values(1, 'Boxed Warning', 1);
-insert into advisory_type(id, name, authority_id) values(2, 'Caution', 1);
-insert into advisory_type(id, name, authority_id) values(3, 'Rumor', 2);
-
-insert into compound(id, display_name, cas, entered_by, approved_by)
-  select n, 'Test Compound ' || n , '5'||n||n||n||n||'-'||n||n, mod(n,2)+1, mod(n+1,2) + 1
-  from generate_series(1,5) n
-;
-
-insert into drug(id, name, compound_id, category_code, descr, mesh_id, cid, registered_by)
-  select
-    n,
-    'Test Drug ' || n,
-    n,
-    case when mod(n, 2) = 0 then 'A' else 'B' end category_code,
-    'This is drug number ' || n || '.',
-    'MESH' || n,
-    n * 99,
-    mod(n+1,2) + 1
-  from generate_series(1,5) n
-;
-
-insert into reference(id, publication)
- select 100 * n + 1, 'Publication 1 about drug # ' || n
- from generate_series(1,5) n
-;
-insert into reference(id, publication)
- select 100*n+ 2, 'Publication 2 about drug # ' || n
- from generate_series(1,5) n
-;
-insert into reference(id, publication)
- select 100*n + 3, 'Publication 3 about drug # ' || n
- from generate_series(1,5) n
-;
-
-insert into drug_reference (drug_id, reference_id, priority) select n, 100*n + 1, n
- from generate_series(1,5) n
-;
-insert into drug_reference (drug_id, reference_id, priority)
- select n, 100*n + 2, n
- from generate_series(1,5) n
-;
-insert into drug_reference (drug_id, reference_id, priority)
- select n, 100*n + 3, n
- from generate_series(1,5) n
-;
-
-insert into advisory(id, drug_id, advisory_type_id, text)
- select 100*n+1, n, 1, 'Advisory concerning drug ' || n
- from generate_series(1,5) n
-;
-insert into advisory(id, drug_id, advisory_type_id, text)
- select 100*n+2, n, 2, 'Caution concerning drug ' || n
- from generate_series(1,5) n
-;
-insert into advisory(id, drug_id, advisory_type_id, text)
- select 123*n, n, 3, 'Heard this might be bad -anon' || n
- from generate_series(1,5) n
-;
-```
-
-To complete the database setup, create properties file `jdbc.props` to hold our connection information:
-```shell
-cat > db/jdbc.props << EOF
-jdbc.driverClassName=org.postgresql.Driver
-jdbc.url=jdbc:postgresql://localhost:5432/drugs
-jdbc.username=drugs
-jdbc.password=drugs
-EOF
-```
+Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres database for
+use in this tutorial.
 
 ## Generate Database Metadata
 
 Now that the database is created and SQL/JSON-Query installed, we can generate our database metadata
 via the following Maven command:
 
-```shell
+```console
 mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=jdbc.props -Ddb=pg
 ```
 
@@ -262,15 +97,18 @@ export const queryGroupSpec: QueryGroupSpec = {
 
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower definition
 represents the total set of queries and is the only export for the module. It contains the list of queries to
-generate in `querySpecs`, which is just `drugsQuery1` at present. It also specifies some options that apply
-to all queries such as the default schema name to be assumed for unqualified tables.
+generate in `querySpecs`, which is just `drugsQuery1` at present. It also specifies some options that apply to
+all queries such as the default schema name to be assumed for unqualified tables.
 
-In `drugsQuery1` we've defined a simple query based on just a single table. It's given a name via `queryName` which
-is used to determine the names of the generated SQL files and TypeScript/Java source files. The rest of the query
-specification lies in the `tableJson` property, which describes how to form JSON output for a given "top" table and
-related tables.
+<img align="right" src="img/drug.svg" alt="drug table" width="150" height="170">
+
+In `drugsQuery1` we've defined a simple query based on just a single table, `drug`. It's given a name via
+`queryName` which is used to determine the names of the generated SQL files and TypeScript/Java source files.
+The rest of the query specification lies in the `tableJson` property, which describes how to form JSON output
+for a given "top" table and whatever related tables it may want to include in its output.
 
 Let's briefly go over the properties of the `tableJson` object, since it's the centerpiece of our query.
+
 ```typescript
 tableJson: {
   table: 'drug',
@@ -285,7 +123,7 @@ tableJson: {
 }
 ```
 
-- The `table` property specifies the top (and here the only) table in this JSON output, which is table "drug".
+- The `table` property specifies the top (and here the only) table in this JSON output, which is table `drug`.
 
 
 - The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL predicate,
@@ -321,18 +159,24 @@ forms here, which cover all possibilities:
   though it is usually not necessary. Any occurrences of `$$` will be replaced with the alias generated for the
   current table by the query generator.
 
-So that describes our first query on the `drug` table. Now let's generate the SQL and TypeScript sources for it.
+The `tableJson` object must conform to the `TableJsonSpec` interface, which is described in more detail in the
+[TableJsonSpec](query-specifications.md#table-json-specification) documentation. This structure is one of the most
+important structures to understand, because it is also the base interface for describing contributions from related
+parent and child tables to the JSON output.
 
-But first we need to make source directories to hold our generated sources:
-```
+So that describes our first query on the `drug` table. Before we generate the SQL and TypeScript sources for it,
+let's make source directories to hold our generated sources:
+```console
 mkdir -p src/sql src/ts
 ```
-Then we can generate the SQL and TypeScript sources for our query as follows:
-```shell
+
+Now we can generate the SQL and TypeScript sources as follows:
+
+```console
 npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
 ```
-If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something
-like the following:
+
+If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something like:
 ```sql
 select
   -- row object for table 'drug'
@@ -362,7 +206,7 @@ see output like the following:
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
 
-Also a TypeScript module was generated, at `src/ts/drugs-query-1.ts`. It looks like:
+Also a TypeScript module was generated, at `src/ts/drugs-query-1.ts` with contents similar to:
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
 export const sqlResource = "drugs-query-1.sql";
@@ -382,23 +226,24 @@ This TypeScript module defines an interface `Drug` which matches the form of the
 query results. It also defines a constant for the parameter name as a convenience/safety feature, and
 lets you know the corresponding SQL file that was generated as well.
 
-## Query with Parent Table
+## Adding a Parent Table
 
-The single-table query above lacks information about the primary compound found in each drug,
-so let's make a new query adding this information from the `compound` table. The `compound` table
-is a parent table of our top table `drug`.
+<img align="right" src="img/drug-compound.svg" alt="drug compound relationship" width="350" height="170">
 
-<img src="img/drug-compound.svg" alt="drug compound relationship" width="350" height="170">
+The single-table query above lacks information about the compound found in each drug (we're assuming
+a drug can only have one such compound in  this example schema). So let's make a new query adding this
+information from the `compound` table. The `compound` table is a parent table of our top table `drug`.
 
-TODO: ER diagram here.
+We add references to parent tables via the optional property `parentTables` within our `tableJson` object.
+Each entry in `parentTables` is itself a structure like that in `tableJson` &mdash; in other words it is a
+[TableJsonSpec](query-specifications.md#table-json-specification). It also supports a few additional
+properties to control the join mechanism between parent and child. See the
+[Parent Table Specification](query-specifications.md#parent-table-specification) documentation for full details.
 
-
-TODO
-
-Add reference property for parent table compound.
+Now let's proceed to make a copy of our previous query and assign it to `drugsQuery2`, with a new parent tables
+section added as follows:
 
 ```typescript
-// Add compound parent table.
 const drugsQuery2: QuerySpec = {
    queryName: 'drugs query 2',
    tableJson: {
@@ -408,7 +253,7 @@ const drugsQuery2: QuerySpec = {
          { field: 'name', jsonProperty: 'drugName' },
          'category_code',
       ],
-      // (Added) >>>
+      // (Added) -->
       parentTables: [
          {
             referenceName: 'primaryCompound',
@@ -419,15 +264,78 @@ const drugsQuery2: QuerySpec = {
             ],
          }
       ],
-     // <<< (Added)
+     // <-- (Added)
    }
 };
 ```
 
-Add additional information about the compound via compound's own parent tables.
+Here we've added `parentTables` array property with a single entry representing the `compound` table.
+The majority of the contents of this parent entry should be familiar, with `table` specifying the parent
+table name, and `fieldExpressions` controlling which fields to include in its JSON output.
+
+The only new property here is `referenceName`, which gives a name for the property within the child `drug`
+JSON object that references the parent `compound` JSON object. The `referenceName` property is *optional*:
+if it is omitted, then the fields from `compound` would be included as properties *inlined* among the
+fields/expressions coming directly from the child table `drug` - i.e. without a wrapping object property.
+Examples of inlined parent table fields are included in some of the examples below. 
+
+Don't forget to add `drugsQuery2` to the query group representing the queries to be generated:
 
 ```typescript
-// Add employee entered-by/approved-by information from parent 'analyst' tables of compound.
+export const queryGroupSpec: QueryGroupSpec = {
+   // ...
+   querySpecs: [
+      drugsQuery1,
+      drugsQuery2, // <-- (added)
+   ]
+};
+```
+
+Now let's again generate the SQL and TypeScript sources with the same command as before:
+
+```console
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+```
+
+You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added a new
+subquery projecting a `json_build_object()` expression from within the `SELECT` clause of what was our original
+drugs query. You will also find the additional `Compound` results structure defined in the corresponding result
+types definition module at `src/ts/drugs-query-2.ts`:
+
+```typescript
+export interface Compound
+{
+  compoundId: number;
+  compoundDisplayName: string | null;
+}
+```
+
+If we run the query (with 'A' for parameter `catCode`), we'll see results like:
+```json lines
+{"drugName": "Test Drug 2", "categoryCode": "A", "primaryCompound": {"compoundId": 2, "compoundDisplayName": "Test Compound 2"}}
+{"drugName": "Test Drug 4", "categoryCode": "A", "primaryCompound": {"compoundId": 4, "compoundDisplayName": "Test Compound 4"}}
+```
+We see our compound information has been added in property `primaryCompound` as expected.
+
+## Adding Parent Tables via Explicit Foreign Keys
+
+<img align="right" src="img/drug-compound-analyst.svg" alt="drug table" width="350" height="300">
+
+We've got basic information from the `compound` table in our results now, but `compound` itself references interesting
+information in its *own* parent table, `analyst`, which we'd also like to include in our results. As mentioned earlier,
+a parent (or child) entry such as our `parentCompound` entry in `parentTables` can have its own parent or child table
+entries, so we can just nest a `parentTables` property there to pull in information from `analyst`.
+
+The only wrinkle in this plan is that there are *two* ways that table `compound` references table `analyst`, via two
+different foreign keys: one for the data-entering analyst, and another for the approving analyst. So we just have to
+be specific about the foreign key to use when pulling in analyst information. We'll assume that we want information
+for both analysts wherever available (though including just one or the other would be fine as well but would need the
+same disambiguation to be provided).
+
+Add a new query by copying the previous one and adding a *nested* `parentTables` property within the `primaryCompound`
+entry:
+
+```typescript
 const drugsQuery3: QuerySpec = {
    queryName: 'drugs query 3',
    tableJson: {
@@ -435,7 +343,7 @@ const drugsQuery3: QuerySpec = {
       recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
       fieldExpressions: [
          { field: 'name', jsonProperty: 'drugName' },
-         'category_code', // short for { field: 'category_code', jsonProperty: 'categoryCode' }
+         'category_code',
       ],
       parentTables: [
          {
@@ -445,14 +353,14 @@ const drugsQuery3: QuerySpec = {
                { field: 'id', jsonProperty: 'compoundId' },
                { field: 'display_name', jsonProperty: 'compoundDisplayName' },
             ],
-            // + Add entered by and approved by fields "inline" via two different joins to analyst table
+            // (Added) -->
             parentTables: [
                {
                   table: 'analyst',
                   fieldExpressions: [
                      { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
                   ],
-                  viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+                  viaForeignKeyFields: ['entered_by'] // <- select one of two foreign keys to analyst
                },
                {
                   table: 'analyst',
@@ -462,15 +370,78 @@ const drugsQuery3: QuerySpec = {
                   viaForeignKeyFields: ['approved_by'] // <- select one of two foreign keys to analyst
                }
             ]
+            // <-- (Added)
          }
       ],
    }
 };
 ```
 
-Add advisories collection from child table "advisory".
+Now we've added two potentially different analyst names within the `primaryCompound` objects, while guiding the query
+generator to use the appropriate foreign key for each by specifying the foreign key fields in `viaForeignKeyFields`
+for each parent instance. Specifying the foreign key fields like this is always necessary whenever more than one
+foreign key constraint exists between the two tables in the direction in context.
+
+### Inlined Parent Fields
+
+Also note that we did not specify a `referenceName` for either of the `analyst` parent table entries, which means
+that the field expressions (just the analyst name in this case) will be included inline among the fields from
+`compound`. When just pulling a field or two from a parent, it's often more convenient to dispense with a wrapping
+object around the field(s) to avoid unnecessary nesting.
+
+
+Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources as before:
+
+```console
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+```
+
+Our SQL has gotten more complex as expected, and in the result type declaration module we see that our two analyst
+fields have been added to the `Compound` result interface:
+
 ```typescript
-// Add advisories child collection.
+export interface Compound
+{
+  compoundId: number;
+  compoundDisplayName: string | null;
+  enteredByAnalyst: string;
+  approvedByAnalyst: string | null;
+}
+```
+
+Note that nullability has been correctly inferred for the fields, based both on the field nullability in the parent
+table (`short_name` being non-nullable in this case), but also on the nullability of the referencing foreign key
+(only non-nullable for the entering analyst).
+
+Running our generated query in `src/sql/drugs-query-3.sql` with 'A' for `catCode`, we see the following output which
+contains our two analysts with each compound:
+
+```json lines
+{"drugName": "Test Drug 2", ..., "primaryCompound": {"compoundId": 2, "enteredByAnalyst": "jdoe", "approvedByAnalyst": "sch", ...}
+{"drugName": "Test Drug 4", ..., "primaryCompound": {"compoundId": 4, "enteredByAnalyst": "jdoe", "approvedByAnalyst": "sch", ...}}
+```
+
+That covers the main points for obtaining data from parent tables. For more information see the
+[Parent Table Specification](query-specifications.md#parent-table-specification) documentation.
+
+## Adding a Child Collection
+
+<img align="right" src="img/drug-advisory.svg" alt="drug and advisory tables" width="150" height="380">
+
+Next we'll add a collection of related advisories for the drugs. The `advisory` table is a child table of table
+`drug` as seen in the diagram. We want a collection property which collects for each drug the list of related
+advisories. Child table collection properties are described in the optional property `childTables` within the
+`tableJson`. Each entry in `childTables` can specify any of the properties allowed in `tableJson` as described above,
+to control the translation of the child table's content to JSON (in other words it is a
+[TableJsonSpec](query-specifications.md#table-json-specification)). It also allows a few additional properties: a
+`collectionName` property to name the collection member, and a few optional properties related to customizing or
+disambiguating the join between parent and child, which are needed only infrequently.
+See the [Child Table Specification](query-specifications.md#child-table-specification) documentation for full details.
+
+To add the advisories data, add a new query based on the previous one which adds a new `childTables` section within
+`tableJson` as follows:
+
+```typescript
 const drugsQuery4: QuerySpec = {
    queryName: 'drugs query 4',
    tableJson: {
@@ -494,19 +465,19 @@ const drugsQuery4: QuerySpec = {
                   fieldExpressions: [
                      { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
                   ],
-                  viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+                  viaForeignKeyFields: ['entered_by']
                },
                {
                   table: 'analyst',
                   fieldExpressions: [
                      { field: 'short_name', jsonProperty: 'approvedByAnalyst' }
                   ],
-                  viaForeignKeyFields: ['approved_by'] // <- select one of two foreign keys to analyst
+                  viaForeignKeyFields: ['approved_by']
                }
             ]
          }
       ],
-      // + Add advisories child collection.
+      // (Added) -->
       childTables: [
          {
             collectionName: 'advisories',
@@ -516,14 +487,19 @@ const drugsQuery4: QuerySpec = {
                { field: 'text', jsonProperty: 'advisoryText' },
             ]
          }
-      ]
+      ],
+      // <-- (Added)
    }
 };
 ```
 
-// Add information to each advisory via advisory's parent and grandparent.
+TODO
+
+
+
+TODO: Add information to each advisory via advisory's parent and grandparent.
+
 ```typescript
-// + Add advisory type and authority information via advisory parent and grandparent.
 const drugsQuery5: QuerySpec = {
    queryName: 'drugs query 5',
    tableJson: {
@@ -531,7 +507,7 @@ const drugsQuery5: QuerySpec = {
       recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
       fieldExpressions: [
          { field: 'name', jsonProperty: 'drugName' },
-         'category_code', // short for { field: 'category_code', jsonProperty: 'categoryCode' }
+         'category_code',
       ],
       parentTables: [
          {
@@ -547,14 +523,14 @@ const drugsQuery5: QuerySpec = {
                   fieldExpressions: [
                      { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
                   ],
-                  viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+                  viaForeignKeyFields: ['entered_by']
                },
                {
                   table: 'analyst',
                   fieldExpressions: [
                      { field: 'short_name', jsonProperty: 'approvedByAnalyst' }
                   ],
-                  viaForeignKeyFields: ['approved_by'] // <- select one of two foreign keys to analyst
+                  viaForeignKeyFields: ['approved_by']
                }
             ]
          }
@@ -567,7 +543,7 @@ const drugsQuery5: QuerySpec = {
                'advisory_type_id',
                { field: 'text', jsonProperty: 'advisoryText' },
             ],
-            // + Add advisory type and authority information via advisory parent and grandparent.
+            // (Added) -->
             parentTables: [
                {
                   table: 'advisory_type',
@@ -580,14 +556,16 @@ const drugsQuery5: QuerySpec = {
                   ]
                }
             ]
+            // <-- (Added)
          }
       ]
    }
 };
 ```
 
+TODO: Add references from far side of a many-many relationship.
+
 ```typescript
-// Add references from far side of a many-many relationship.
 const drugsQuery6: QuerySpec = {
    queryName: 'drugs query 6',
    tableJson: {
@@ -595,7 +573,7 @@ const drugsQuery6: QuerySpec = {
       recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
       fieldExpressions: [
          { field: 'name', jsonProperty: 'drugName' },
-         'category_code', // short for { field: 'category_code', jsonProperty: 'categoryCode' }
+         'category_code',
       ],
       parentTables: [
          {
@@ -631,7 +609,6 @@ const drugsQuery6: QuerySpec = {
                'advisory_type_id',
                { field: 'text', jsonProperty: 'advisoryText' },
             ],
-            // + Add advisory type and authority information via advisory parent and grandparent.
             parentTables: [
                {
                   table: 'advisory_type',
@@ -645,7 +622,7 @@ const drugsQuery6: QuerySpec = {
                }
             ]
          },
-         // + Add items from far side of a many-many relationship.
+         // (Added) -->
          {
             collectionName: 'prioritizedReferences',
             table: 'drug_reference',
@@ -658,6 +635,7 @@ const drugsQuery6: QuerySpec = {
             ],
             orderBy: 'priority asc'
          }
+         // <-- (Added)
       ]
    }
 };
