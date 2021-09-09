@@ -22,8 +22,8 @@ mkdir sjq-example
 cd sjq-example
 ```
 
-Add a subdirectory containing the query-generator itself by cloning the "sqljson-query-dropin" repository, and
-then install its dependencies via `npm`:
+Now we will install the query-generator by cloning the "sqljson-query-dropin" repository, and
+initialize it via `npm`:
 ```
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
 
@@ -38,7 +38,7 @@ so long as commands below are adjusted accordingly.
 Next we'll setup a small Postgres database for our example. We'll assume a Postgres server is
 installed on the local machine and listening on localhost port 5432.
 
-First create the Postgres database and user using your Postgres admin user login:
+Create the Postgres database and user using your Postgres admin user login:
 ```
 # ( "psql -U postgres template1" or similar admin login )
 create user drugs with password 'drugs';
@@ -46,7 +46,7 @@ create database drugs owner drugs;
 \q
 ```
 
-Logging in now as the new Postgres user `drugs`, create the schema objects:
+Logging in as the new Postgres user `drugs` to the database created above, and create the database objects:
 ```sql
 # ( psql -U drugs )
 
@@ -123,7 +123,7 @@ create index advisory_advtype_ix on advisory (advisory_type_id);
 create index advisory_drug_ix on advisory (drug_id);
 ```
 
-And still as Postgres user `drugs`, populate the tables with our test data:
+Continuing as Postgres user `drugs` in the database of the same name, populate the tables with test data:
 ```sql
 # ( psql -U drugs )
 
@@ -194,8 +194,7 @@ insert into advisory(id, drug_id, advisory_type_id, text)
 ;
 ```
 
-To complete the database setup, create properties file `jdbc.props` to hold the connection information
-for our database:
+To complete the database setup, create properties file `jdbc.props` to hold our connection information:
 ```shell
 cat > db/jdbc.props << EOF
 jdbc.driverClassName=org.postgresql.Driver
@@ -215,20 +214,21 @@ mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=jdbc.props -Ddb=pg
 ```
 
 As noted above, it's also easy to generate the database metadata without relying on Maven or Java, if you
-will execute the
+will just execute the
 [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-for your database type and save the resulting json value to `query-gen/dbmd/dbmd.json`. The query has one
-parameter `relPat` which is a regular expression for table names to be included, for which you can pass '.*' or
-adjust it as required.
+for your database type (Oracle or Postgres) and save the resulting json value to file
+`query-gen/dbmd/dbmd.json`. The query has one parameter `relPat` which is a regular expression for table
+names to be included, for which you can pass '.*' or adjust it as required.
 
 The metadata is generated at `query-gen/dbmd/dbmd.json`, which is where it's expected to be for the
 query generator. It's good to glance at its contents when you're getting started just to make sure
-it's finding the tables and views you expect it to.
+that the tool found the tables and views you expected it to.
 
 ## Query Generation
 
-We're now ready to write our query specifications and to generate the SQL and result types sources from these.
+We're now ready to write our query specifications and to generate the SQL and result types sources from them.
 
+## Single-Table Query
 We're expected to define our queries in file `query-gen/queries/query-specs.ts`. Create the file in a text editor
 with the following initial contents:
 
@@ -261,47 +261,69 @@ export const queryGroupSpec: QueryGroupSpec = {
 ``` 
 
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower definition
-represents the total set of queries which is the export for the module, containing the list of queries to
-generate in `querySpecs` (just `drugsQuery1` at present but we will add more below), and some options that apply
-to all queries.
+represents the total set of queries and is the only export for the module. It contains the list of queries to
+generate in `querySpecs`, which is just `drugsQuery1` at present. It also specifies some options that apply
+to all queries such as the default schema name to be assumed for unqualified tables.
 
 In `drugsQuery1` we've defined a simple query based on just a single table. It's given a name via `queryName` which
-is used to determine the generated SQL and TypeScript/Java source file names to be generated. The rest of the query
-specification lies in the `tableJson` property, which describes how to form JSON output for a given "top" table and,
-in general, possibly related tables.
+is used to determine the names of the generated SQL files and TypeScript/Java source files. The rest of the query
+specification lies in the `tableJson` property, which describes how to form JSON output for a given "top" table and
+related tables.
 
-The `table` property specifies the top (and here the only) table in this JSON output, which is table "drug".
+Let's briefly go over the properties of the `tableJson` object, since it's the centerpiece of our query.
+```typescript
+tableJson: {
+  table: 'drug',
+  recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
+  fieldExpressions: [
+    { field: 'name', jsonProperty: 'drugName' },
+    'category_code', // short for: { field: 'category_code', jsonProperty: 'categoryCode' }
+    { expression: '$$.cid + 1000',
+      jsonProperty: 'cidPlus1000',
+      fieldTypeInGeneratedSource: {TS: 'number | null', Java: '@Nullable Long'} },
+  ],
+}
+```
 
-The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL predicate,
-basically anything suitable for a WHERE clause.
+- The `table` property specifies the top (and here the only) table in this JSON output, which is table "drug".
 
-Finally, the `fieldExpressions` property lists the fields and expressions involving the table fields which should 
-be included as properties in the JSON objects representing the table rows. The field expressions take three forms
-here, which cover all possibilities:
-- The first item shows the general form for a simple table field:
-  ```{ field: 'name', jsonProperty: 'drugName' }```
-  In this case the source database table field and desired JSON property name are both given explicitly.
-- The second form ('category_code') is simply a string which is the database field name, in which case the JSON
-property name is automatically set to the camelcase form of the given name ('categoryCode'), because of our choice
-of "propertyNameDefault: 'CAMELCASE'" in the query group spec (another option is 'AS_IN_DB', leaving property
-names defaulting to the database field name without modification).
-- The third and final entry is a general expression involving database fields:
-  ```
-  { expression: '$$.cid + 1000',
-    jsonProperty: 'cidPlus1000',
-    fieldTypeInGeneratedSource: {TS: 'number | null', Java: '@Nullable Long'} }
-  ```
-In this case `expression` is provided instead of `field` (these two are mutually exclusive), and the `jsonProperty`
-and `fieldTypeInGeneratedSource` properties are required for expressions, to tell the tool how to name the
-expression and what type its values should be given in result types. Notice that the result types are given by
-source language. With this form you should be able to include any kind of expression that you could include in a
-SQL `SELECT` clause. The syntax `$$` shown in the example expression can be used to qualify the table's fields,
-though it is usually not necessary. Any occurrences of `$$` will be replaced with the alias generated for the
-current table by the query generator.
 
-So that describes the query, let's generate the SQL and TypeScript sources for it.
+- The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL predicate,
+basically anything suitable for a WHERE clause. Here we're restricting results by `category_code` value, and using
+a SQL parameter named `catCode` as part of the predicate expression. You can use whatever notation is needed
+by your SQL execution runtime to indicate parameters.  The `paramNames` property is not required, but if it is
+provided then a constant will be defined in the TypeScript or Java source code for each parameter entered here
+with value equal to the parameter name, to help catch errors involving using wrong parameter names.
 
-First let's make source directories to hold our generated sources:
+
+- Finally, the `fieldExpressions` property lists the fields and expressions involving the fields from `table` which
+to be included as properties in the JSON objects representing the table rows. The field expressions take three
+forms here, which cover all possibilities:
+
+  - The first item shows the general form for a simple table field:
+    ```{ field: 'name', jsonProperty: 'drugName' }```. In this case the source database table field and desired
+    JSON property name are both given explicitly.
+  - The second form ('category_code') is simply a string which is the database field name, in which case the JSON
+  property name is automatically set to the camelcase form of the given name ('categoryCode'), because of our choice
+  of "propertyNameDefault: 'CAMELCASE'" in the query group specification. Another option is 'AS_IN_DB', leaving
+  property names defaulting to the database field name without modification.
+  - The third and final entry is a general expression involving database fields:
+    ```
+    { expression: '$$.cid + 1000',
+      jsonProperty: 'cidPlus1000',
+      fieldTypeInGeneratedSource: {TS: 'number | null', Java: '@Nullable Long'} }
+    ```
+  In this case `expression` is provided instead of `field` (these two are mutually exclusive), and the `jsonProperty`
+  and `fieldTypeInGeneratedSource` properties are *required* for expressions, to tell the tool how to name the
+  expression and what type its values should be given in result types. Notice that the result types are given by
+  source language. With this form you should be able to include any kind of expression that could be included in a
+  SQL `SELECT` clause. The syntax `$$` shown in the example expression can be used to qualify the table's fields,
+  though it is usually not necessary. Any occurrences of `$$` will be replaced with the alias generated for the
+  current table by the query generator.
+
+So that describes our first query on the `drug` table. Now let's generate the SQL and TypeScript sources for it.
+
+But first we need to make source directories to hold our generated sources:
 ```
 mkdir -p src/sql src/ts
 ```
@@ -360,6 +382,17 @@ This TypeScript module defines an interface `Drug` which matches the form of the
 query results. It also defines a constant for the parameter name as a convenience/safety feature, and
 lets you know the corresponding SQL file that was generated as well.
 
+## Query with Parent Table
+
+The single-table query above lacks information about the primary compound found in each drug,
+so let's make a new query adding this information from the `compound` table. The `compound` table
+is a parent table of our top table `drug`.
+
+<img src="img/drug-compound.svg" alt="drug compound relationship" width="350" height="170">
+
+TODO: ER diagram here.
+
+
 TODO
 
 Add reference property for parent table compound.
@@ -375,7 +408,7 @@ const drugsQuery2: QuerySpec = {
          { field: 'name', jsonProperty: 'drugName' },
          'category_code',
       ],
-      // + Add reference to compound parent table record via property "primaryCompound".
+      // (Added) >>>
       parentTables: [
          {
             referenceName: 'primaryCompound',
@@ -386,6 +419,7 @@ const drugsQuery2: QuerySpec = {
             ],
          }
       ],
+     // <<< (Added)
    }
 };
 ```
