@@ -234,7 +234,7 @@ lets you know the corresponding SQL file that was generated as well.
 
 ## Adding Parent Tables
 
-<img align="right" src="img/drug-parents.svg" alt="drug compound relationship" width="350" height="170">
+<img align="right" src="img/drug-parents.svg" alt="drug compound relationship" width="640" height="350">
 
 The single-table query above lacks information about the compound found in each drug (we're assuming
 a drug can only have one such compound in  this example schema). So let's make a new query adding this
