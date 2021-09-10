@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CAUTION: Do not modify this file unless you know what you are doing.
+ Unexpected results may occur if the code is changed deliberately.
+-->
+<dbmodel pgmodeler-ver="0.9.4-alpha1" use-changelog="false" last-position="0,0" last-zoom="1" max-obj-count="10"
+	 default-schema="public" default-owner="postgres"
+	 layers="Default layer,drug_compound,drug,drug_compound_analyst,drug_advisory,drug_advisory_advisory_type_authority"
+	 active-layers="0"
+	 layer-name-colors="#000000,#000000,#000000,#000000,#000000,#000000"
+	 layer-rect-colors="#b4b4b4,#bdf2f3,#456572,#1aaa22,#1ee41e,#5e27a7"
+	 show-layer-names="false" show-layer-rects="false">
+<role name="steve"
+ superuser="true"
+ createdb="true"
+ replication="true"
+ createrole="true"
+ inherit="true"
+ login="true"
+ bypassrls="true"
+ encrypted="true"
+ password="********"
+ sql-disabled="true">
+</role>
+
+<role name="rxnorm1 createdb rxnorm1 --owner rxnorm1"
+ inherit="true"
+ login="true"
+ encrypted="true"
+ password="********">
+</role>
+
+<role name="pestols"
+ inherit="true"
+ login="true"
+ encrypted="true"
+ password="********">
+</role>
+
+<role name="rxnorm"
+ inherit="true"
+ login="true"
+ encrypted="true"
+ password="********">
+</role>
+
+<role name="drugs2"
+ inherit="true"
+ login="true"
+ encrypted="true"
+ password="********">
+</role>
+
+<role name="drugs"
+ inherit="true"
+ login="true"
+ encrypted="true"
+ password="********">
+</role>
+
+<database name="drugs" encoding="UTF8" lc-collate="en_US.UTF-8" lc-ctype="en_US.UTF-8" is-template="false" allow-conns="true">
+	<role name="drugs"/>
+	<tablespace name="pg_default"/>
+</database>
+
+<schema name="public" layers="0" rect-visible="true" fill-color="#e1e1e1" sql-disabled="true">
+</schema>
+
+<table name="analyst" layers="0,3" collapse-mode="2" max-obj-count="2" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="120" y="240"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="short_name" not-null="true">
+		<type name="character varying" length="50"/>
+	</column>
+	<constraint name="analyst_pk" type="pk-constr" table="public.analyst">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="compound" layers="0,3" collapse-mode="2" max-obj-count="7" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="120" y="40"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="display_name">
+		<type name="character varying" length="50"/>
+	</column>
+	<column name="smiles">
+		<type name="character varying" length="2000"/>
+	</column>
+	<column name="cas">
+		<type name="character varying" length="50"/>
+	</column>
+	<column name="entered_by" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="approved_by">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="compound_pk" type="pk-constr" table="public.compound">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="drug" layers="0,5" collapse-mode="2" max-obj-count="10" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="360" y="20"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="name" not-null="true">
+		<type name="character varying" length="500"/>
+	</column>
+	<column name="compound_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="mesh_id">
+		<type name="character varying" length="7"/>
+	</column>
+	<column name="cid">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="category_code" not-null="true">
+		<type name="character varying" length="1"/>
+	</column>
+	<column name="descr">
+		<type name="character varying" length="500"/>
+	</column>
+	<column name="registered">
+		<type name="timestamp with time zone" length="0" with-timezone="true"/>
+	</column>
+	<column name="registered_by" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="drug_pk" type="pk-constr" table="public.drug">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="drug_name_un" type="uq-constr" table="public.drug">
+		<columns names="name" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="drug_meshid_un" type="uq-constr" table="public.drug">
+		<columns names="mesh_id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<index name="drug_compoundid_ix" table="public.drug"
+	 concurrent="false" unique="false" fast-update="false" buffering="false"
+	 index-type="btree" factor="90">
+		<idxelement use-sorting="false">
+			<column name="compound_id"/>
+		</idxelement>
+</index>
+
+<table name="reference" layers="0" collapse-mode="2" max-obj-count="2" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="740" y="140"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="publication" not-null="true">
+		<type name="character varying" length="2000"/>
+	</column>
+	<constraint name="reference_pk" type="pk-constr" table="public.reference">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="drug_reference" layers="0" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="560" y="120"/>
+	<column name="drug_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="reference_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="priority">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="drug_reference_pk" type="pk-constr" table="public.drug_reference">
+		<columns names="drug_id,reference_id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<index name="drug_reference_referenceid_ix" table="public.drug_reference"
+	 concurrent="false" unique="false" fast-update="false" buffering="false"
+	 index-type="btree" factor="90">
+		<idxelement use-sorting="false">
+			<column name="reference_id"/>
+		</idxelement>
+</index>
+
+<table name="authority" layers="0,5" collapse-mode="2" max-obj-count="4" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="0" y="340"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="name" not-null="true">
+		<type name="character varying" length="200"/>
+	</column>
+	<column name="description">
+		<type name="character varying" length="2000"/>
+	</column>
+	<column name="weight" default-value="0">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="authority_pk" type="pk-constr" table="public.authority">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="authority_name_un" type="uq-constr" table="public.authority">
+		<columns names="name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="advisory_type" layers="0,5" collapse-mode="2" max-obj-count="3" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="180" y="360"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="name" not-null="true">
+		<type name="character varying" length="50"/>
+	</column>
+	<column name="authority_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<constraint name="advisory_type_pk" type="pk-constr" table="public.advisory_type">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+	<constraint name="advisory_type_name_un" type="uq-constr" table="public.advisory_type">
+		<columns names="name" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<table name="advisory" layers="0,5" collapse-mode="2" max-obj-count="4" z-value="0">
+	<schema name="public"/>
+	<role name="drugs"/>
+	<position x="360" y="300"/>
+	<column name="id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="drug_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="advisory_type_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="text" not-null="true">
+		<type name="character varying" length="2000"/>
+	</column>
+	<constraint name="advisory_pk" type="pk-constr" table="public.advisory">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<index name="advisory_advtype_ix" table="public.advisory"
+	 concurrent="false" unique="false" fast-update="false" buffering="false"
+	 index-type="btree" factor="90">
+		<idxelement use-sorting="false">
+			<column name="advisory_type_id"/>
+		</idxelement>
+</index>
+
+<index name="advisory_drug_ix" table="public.advisory"
+	 concurrent="false" unique="false" fast-update="false" buffering="false"
+	 index-type="btree" factor="90">
+		<idxelement use-sorting="false">
+			<column name="drug_id"/>
+		</idxelement>
+</index>
+
+<constraint name="compound_enteredby_analyst_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.analyst" table="public.compound">
+	<columns names="entered_by" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="compound_approvedby_analyst_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.analyst" table="public.compound">
+	<columns names="approved_by" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="drug_compound_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.compound" table="public.drug">
+	<columns names="compound_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="drug_analyst_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.analyst" table="public.drug">
+	<columns names="registered_by" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="drug_reference_drug_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.drug" table="public.drug_reference">
+	<columns names="drug_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="drug_reference_reference_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.reference" table="public.drug_reference">
+	<columns names="reference_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="advisory_type_authority_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.authority" table="public.advisory_type">
+	<columns names="authority_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="advisory_drug_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.drug" table="public.advisory">
+	<columns names="drug_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="advisory_advisory_type_fk" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.advisory_type" table="public.advisory">
+	<columns names="advisory_type_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<relationship name="rel_compound_analyst" type="relfk" layers="0,3"
+	 custom-color="#6296f2"
+	 src-table="public.compound"
+	 dst-table="public.analyst" reference-fk="compound_enteredby_analyst_fk"
+	 src-required="false" dst-required="true">
+	<label ref-type="name-label">
+		<position x="52.2658" y="0.192736"/>
+	</label>
+</relationship>
+
+<relationship name="rel_compound_analyst1" type="relfk" layers="0,3"
+	 custom-color="#71eca8"
+	 src-table="public.compound"
+	 dst-table="public.analyst" reference-fk="compound_approvedby_analyst_fk"
+	 src-required="false" dst-required="false"/>
+
+<relationship name="rel_drug_compound" type="relfk" layers="0,3"
+	 custom-color="#fb5b92"
+	 src-table="public.drug"
+	 dst-table="public.compound" reference-fk="drug_compound_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_drug_analyst" type="relfk" layers="0"
+	 custom-color="#d63a2c"
+	 src-table="public.drug"
+	 dst-table="public.analyst" reference-fk="drug_analyst_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_drug_reference_drug" type="relfk" layers="0"
+	 custom-color="#593260"
+	 src-table="public.drug_reference"
+	 dst-table="public.drug" reference-fk="drug_reference_drug_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_drug_reference_reference" type="relfk" layers="0"
+	 custom-color="#ad394e"
+	 src-table="public.drug_reference"
+	 dst-table="public.reference" reference-fk="drug_reference_reference_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_advisory_type_authority" type="relfk" layers="0,5"
+	 custom-color="#f19c96"
+	 src-table="public.advisory_type"
+	 dst-table="public.authority" reference-fk="advisory_type_authority_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_advisory_drug" type="relfk" layers="0,5"
+	 custom-color="#569a61"
+	 src-table="public.advisory"
+	 dst-table="public.drug" reference-fk="advisory_drug_fk"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_advisory_advisory_type" type="relfk" layers="0,5"
+	 custom-color="#bd6a4e"
+	 src-table="public.advisory"
+	 dst-table="public.advisory_type" reference-fk="advisory_advisory_type_fk"
+	 src-required="false" dst-required="true"/>
+
+<permission>
+	<object name="public" type="schema"/>
+	<roles names="steve"/>
+	<privileges create="true" usage="true"/>
+</permission>
+<permission>
+	<object name="public" type="schema"/>
+	<privileges create="true" usage="true"/>
+</permission>
+</dbmodel>
