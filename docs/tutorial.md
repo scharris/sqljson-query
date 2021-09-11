@@ -207,7 +207,7 @@ from (
 
 If we try executing the query in psql, supplying the value 'A' for parameter `catCode`, we should 
 see output like the following:
-```
+```json lines
 {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
