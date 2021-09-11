@@ -1021,7 +1021,7 @@ export interface DrugReference
 }
 ```
 
-When run, the SQL generates result records like the following chosen from the results:
+When run, the SQL query results in values like the following from one of the result rows:
 
 ```json
 {
