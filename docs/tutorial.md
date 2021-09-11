@@ -713,7 +713,7 @@ drugs data. We will include within each drug a collection of the drug's referenc
 priority of each reference particular to the drug from the intermediate table. We'll also sort the
 references collections by priority.
 
-Make a modified copy of the previous query and assign to `drugsQuery6` as follows:
+Make a modified copy of the previous query and assign to `drugsQuery6`, which will be our final query, as follows:
 
 ### Final Query
 
