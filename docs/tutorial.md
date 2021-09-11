@@ -207,7 +207,7 @@ from (
 
 If we try executing the query in psql, supplying the value 'A' for parameter `catCode`, we should 
 see output like the following:
-```
+```json lines
 {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
@@ -599,6 +599,7 @@ object wrapper.
 
 <hr>
 <hr>
+<hr>
 
 Make a modified copy of the previous query and assign it to `drugsQuery5` as follows, to add information from
 `advisory_type` and `authority` within each `advisory`:
@@ -698,8 +699,8 @@ advisory entry.
 
 ## Including Data from Many-Many Relationships
 
-There's been a lot of discussion above of handling relationships to parent tables (many to one), and to
-child tables (one to many), but nothing yet about how to include data through many-to-many relationships.
+We've discussed above the handling of relationships with parent tables (many to one), and with child tables
+(one to many), but nothing yet about how to include data through many-to-many relationships.
 
 <img align="right" src="img/drug-references.svg" alt="drug table" width="510" height="210">
 
@@ -712,7 +713,9 @@ drugs data. We will include within each drug a collection of the drug's referenc
 priority of each reference particular to the drug from the intermediate table. We'll also sort the
 references collections by priority.
 
-Make a modified copy of the previous query and assign to `drugsQuery6` as follows:
+Make a modified copy of the previous query and assign to `drugsQuery6`, which will be our final query, as follows:
+
+### Final Query
 
 ```typescript
 const drugsQuery6: QuerySpec = {
@@ -816,14 +819,14 @@ npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDi
 
 ## Final Query Review
 
-Let's review what's been accomplished with the final query specification above, `drugsQuery6`. 
+Let's review what's been accomplished with the [final query specification](#final-query) above. 
 
 The query includes data from each of the following related tables using all of the foreign keys shown:
 
 <img src="img/drug-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
-From the query specification above, a SQL query (`src/sql/drugs-query-6.sql`) is generated to fetch the
-results from the above tables:
+From the query specification above, a SQL query is generated at `src/sql/drugs-query-6.sql`, which includes
+data from all of the above tables:
 
 ```sql
 select
@@ -1018,7 +1021,7 @@ export interface DrugReference
 }
 ```
 
-When run, the SQL generates result records like the following chosen from the results:
+When run, the SQL query results in values like the following from one of the result rows:
 
 ```json
 {
