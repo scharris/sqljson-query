@@ -818,7 +818,7 @@ npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDi
 
 ## Final Query Review
 
-Let's review what's been accomplished with the [final query specification](final-query) above. 
+Let's review what's been accomplished with the [final query specification](#final-query) above. 
 
 The query includes data from each of the following related tables using all of the foreign keys shown:
 
