@@ -699,8 +699,8 @@ advisory entry.
 
 ## Including Data from Many-Many Relationships
 
-There's been a lot of discussion above of handling relationships to parent tables (many to one), and to
-child tables (one to many), but nothing yet about how to include data through many-to-many relationships.
+We've discussed above the handling of relationships with parent tables (many to one), and with child tables
+(one to many), but nothing yet about how to include data through many-to-many relationships.
 
 <img align="right" src="img/drug-references.svg" alt="drug table" width="510" height="210">
 
