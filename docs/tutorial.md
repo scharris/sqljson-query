@@ -599,6 +599,7 @@ object wrapper.
 
 <hr>
 <hr>
+<hr>
 
 Make a modified copy of the previous query and assign it to `drugsQuery5` as follows, to add information from
 `advisory_type` and `authority` within each `advisory`:
@@ -824,8 +825,8 @@ The query includes data from each of the following related tables using all of t
 
 <img src="img/drug-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
-From the query specification above, a SQL query (`src/sql/drugs-query-6.sql`) is generated to fetch the
-results from the above tables:
+From the query specification above, a SQL query is generated at `src/sql/drugs-query-6.sql`, which includes
+data from all of the above tables:
 
 ```sql
 select
