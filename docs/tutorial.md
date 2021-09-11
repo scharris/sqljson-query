@@ -714,6 +714,8 @@ references collections by priority.
 
 Make a modified copy of the previous query and assign to `drugsQuery6` as follows:
 
+### Final Query
+
 ```typescript
 const drugsQuery6: QuerySpec = {
    queryName: 'drugs query 6',
@@ -816,7 +818,7 @@ npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDi
 
 ## Final Query Review
 
-Let's review what's been accomplished with the final query specification above, `drugsQuery6`. 
+Let's review what's been accomplished with the [final query specification](final-query) above. 
 
 The query includes data from each of the following related tables using all of the foreign keys shown:
 
