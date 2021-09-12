@@ -14,12 +14,9 @@ hierarchy of data to be fetched for a query. From these query specifications and
 database metadata file (generated from a database via included tool), SQL/JSON-Query 
 generates:
 - SQL/JSON nested data queries for Oracle or Postgres to fetch the data
-- Result type declarations in TypeScript or Java which match the structure of 
-  the generated SQL and to which the query results can be directly deserialized
-- Column-level metadata for all relations (tables/views) in TypeScript or Java, which
-  can be used to refer to tables/columns in INSERT/UPDATE/DELETE statements in an
-  error-resistant way
-
+- Result type declarations in TypeScript or Java, defining the structure of the objects
+  appearing in result sets for the generated SQL, and to which the query results can be
+  directly deserialized
 
 When generating queries, database metadata is used to verify all tables, fields, and
 foreign key relationships used in the queries, failing with an error if any referenced
@@ -31,6 +28,262 @@ needed to use the generated SQL queries and generated result types. The SQL can 
 executed by any preferred means, and deserialized to the generated result types using
 any library suitable for the purpose, such as Jackson in Java, or via `JSON.parse()`
 in TypeScript.
+
+## Example Inputs and Outputs
+
+For the database diagrammed below containing clinical drug data, we would first use the tool to generate database
+metadata. Generally we would only generate database metadata initially, and then again whenever the database has
+changes that we want to incorporate into our queries.
+ 
+<img src="img/drug-almost-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
+
+Next we supply specifications for our queries. A query specification describes how to form JSON output for
+each table and how related table data is nested via parent/child table relationships. These are expressed in
+TypeScript and they are checked at query-generation time (= app build-time usually) against the database
+metadata, to ensure validity of all references to database objects, including implicit uses of foreign keys
+in any parent/child relationships. 
+
+In this example we supply a specification for a single drugs query:
+```typescript
+const drugAdvisoriesReferencesQuery: QuerySpec = {
+  queryName: 'drug advisories references query',
+  tableJson: {
+    table: 'drug',
+    recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
+    fieldExpressions: [
+      { field: 'name', jsonProperty: 'drugName' },
+      'category_code',
+    ],
+    parentTables: [
+      {
+        referenceName: 'primaryCompound',
+        table: 'compound',
+        fieldExpressions: [
+          { field: 'id', jsonProperty: 'compoundId' },
+          { field: 'display_name', jsonProperty: 'compoundDisplayName' },
+        ],
+        parentTables: [
+          {
+            table: 'analyst',
+            fieldExpressions: [
+              { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
+            ],
+            viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+          },
+        ]
+      },
+    ],
+    childTables: [
+      {
+        collectionName: 'advisories',
+        table: 'advisory',
+        fieldExpressions: [
+          'advisory_type_id',
+          { field: 'text', jsonProperty: 'advisoryText' },
+        ],
+        parentTables: [
+          {
+            table: 'advisory_type',
+            fieldExpressions: [ { field: 'name', jsonProperty: 'advisoryTypeName' } ],
+            parentTables: [
+              {
+                table: 'authority',
+                fieldExpressions: [ { field: 'name', jsonProperty: 'advisoryTypeAuthorityName' } ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        collectionName: 'prioritizedReferences',
+        table: 'drug_reference',
+        fieldExpressions: [ 'priority' ],
+        parentTables: [
+          {
+            table: "reference",
+            fieldExpressions: [ 'publication' ]
+          }
+        ],
+        orderBy: 'priority asc'
+      }
+    ]
+  }
+};
+```
+
+From the above query specification and database metadata, the tool then produces the following outputs,
+for each supplied query specification:
+
+1) A SQL Query utilizing SQL/JSON operators, or your database's nearest equivalent, to fetch
+   in JSON form the nested data described in the query specification:
+```sql
+select
+  -- row object for table 'drug'
+  jsonb_build_object(
+    'drugName', q."drugName",
+    'categoryCode', q."categoryCode",
+    'primaryCompound', q."primaryCompound",
+    'advisories', q.advisories,
+    'prioritizedReferences', q."prioritizedReferences"
+  ) json
+from (
+  -- base query for table 'drug'
+  select
+    d.name "drugName",
+    d.category_code "categoryCode",
+    -- parent table 'compound' referenced as 'primaryCompound'
+    (
+      select
+        -- row object for table 'compound'
+        jsonb_build_object(
+          'compoundId', q."compoundId",
+          'compoundDisplayName', q."compoundDisplayName",
+          'enteredByAnalyst', q."enteredByAnalyst"
+        ) json
+      from (
+        -- base query for table 'compound'
+        select
+          c.id "compoundId",
+          c.display_name "compoundDisplayName",
+          -- field(s) inlined from parent table 'analyst'
+          q."enteredByAnalyst" "enteredByAnalyst"
+        from
+          compound c
+          -- parent table 'analyst', joined for inlined fields
+          left join (
+            select
+              a.id "_id",
+              a.short_name "enteredByAnalyst"
+            from
+              analyst a
+          ) q on c.entered_by = q."_id"
+        where (
+          d.compound_id = c.id
+        )
+      ) q
+    ) "primaryCompound",
+    -- records from child table 'advisory' as collection 'advisories'
+    (
+      select
+        -- aggregated row objects for table 'advisory'
+        coalesce(jsonb_agg(jsonb_build_object(
+          'advisoryTypeId', q."advisoryTypeId",
+          'advisoryText', q."advisoryText",
+          'advisoryTypeName', q."advisoryTypeName",
+          'advisoryTypeAuthorityName', q."advisoryTypeAuthorityName"
+        )),'[]'::jsonb) json
+      from (
+        -- base query for table 'advisory'
+        select
+          a.advisory_type_id "advisoryTypeId",
+          a.text "advisoryText",
+          -- field(s) inlined from parent table 'advisory_type'
+          q."advisoryTypeName" "advisoryTypeName",
+          q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
+        from
+          advisory a
+          -- parent table 'advisory_type', joined for inlined fields
+          left join (
+            select
+              at.id "_id",
+              at.name "advisoryTypeName",
+              -- field(s) inlined from parent table 'authority'
+              q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
+            from
+              advisory_type at
+              -- parent table 'authority', joined for inlined fields
+              left join (
+                select
+                  a.id "_id",
+                  a.name "advisoryTypeAuthorityName"
+                from
+                  authority a
+              ) q on at.authority_id = q."_id"
+          ) q on a.advisory_type_id = q."_id"
+        where (
+          a.drug_id = d.id
+        )
+      ) q
+    ) as advisories,
+    -- records from child table 'drug_reference' as collection 'prioritizedReferences'
+    (
+      select
+        -- aggregated row objects for table 'drug_reference'
+        coalesce(jsonb_agg(jsonb_build_object(
+          'priority', q.priority,
+          'publication', q.publication
+        ) order by priority asc),'[]'::jsonb) json
+      from (
+        -- base query for table 'drug_reference'
+        select
+          dr.priority as priority,
+          -- field(s) inlined from parent table 'reference'
+          q.publication as publication
+        from
+          drug_reference dr
+          -- parent table 'reference', joined for inlined fields
+          left join (
+            select
+              r.id "_id",
+              r.publication as publication
+            from
+              reference r
+          ) q on dr.reference_id = q."_id"
+        where (
+          dr.drug_id = d.id
+        )
+      ) q
+    ) "prioritizedReferences"
+  from
+    drug d
+  where (
+    (category_code = :catCode)
+  )
+) q
+```
+
+2) A TypeScript or Java source code file which declares the result types for the objects appearing in the query
+   results of the generated SQL above:
+```typescript
+// The types defined in this file correspond to results of the following generated SQL queries.
+export const sqlResource = "drug-advisories-references-query.sql";
+
+// query parameters
+export const catCodeParam = 'catCode';
+
+// Below are types representing the result data for the generated query, with top-level type first.
+export interface Drug
+{
+  drugName: string;
+  categoryCode: string;
+  primaryCompound: Compound;
+  advisories: Advisory[];
+  prioritizedReferences: DrugReference[];
+}
+
+export interface Compound
+{
+  compoundId: number;
+  compoundDisplayName: string | null;
+  enteredByAnalyst: string;
+}
+
+export interface Advisory
+{
+  advisoryTypeId: number;
+  advisoryText: string;
+  advisoryTypeName: string;
+  advisoryTypeAuthorityName: string;
+}
+
+export interface DrugReference
+{
+  priority: number | null;
+  publication: string;
+}
+```
+
+To build and execute queries like the above against an actual example database, see [the tutorial](tutorial.md).
 
 ## Setup
 
