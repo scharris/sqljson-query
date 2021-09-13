@@ -1,0 +1,5 @@
+digraph  Diagram1 {
+  {
+    qs [label="Query Specifications\n(query-specs.ts)" shape=note style=filled fillcolor=yellow]
+  }
+}

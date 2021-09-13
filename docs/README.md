@@ -2,18 +2,19 @@
 
 ## Overview
 
-This is a tool to be used as part of an application's build process to generate
-SQL/JSON nested data queries and matching result type declarations.
+This is a source generation tool to be used to generate SQL nested data queries, which
+utilize SQL/JSON operators to gather results in JSON format, as well as matching type
+declarations for the query results in TypeScript or Java.
 
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
-
 
 As a developer, your job in the process is to supply a file `query-specs.ts`
 which provides a list of query specifications, where each specification describes a
 hierarchy of data to be fetched for a query. From these query specifications and a
 database metadata file (generated from a database via included tool), SQL/JSON-Query 
 generates:
-- SQL/JSON nested data queries for Oracle or Postgres to fetch the data
+- SQL queries compliant with the SQL/JSON standard (or the closest approximation supported by
+  the database) for fetching nested data, for Oracle or Postgres databases
 - Result type declarations in TypeScript or Java, defining the structure of the objects
   appearing in result sets for the generated SQL, and to which the query results can be
   directly deserialized
@@ -31,19 +32,25 @@ in TypeScript.
 
 ## Example Inputs and Outputs
 
-For the database diagrammed below containing clinical drug data, we would first use the tool to generate database
-metadata. Generally we would only generate database metadata initially, and then again whenever the database has
-changes that we want to incorporate into our queries.
- 
+For the database diagrammed below, containing information about clinical drugs, we would first use the tool
+to generate database metadata. Generally we would only generate database metadata initially, and then again
+whenever the database has changes that we want to incorporate into our queries.
+
+### Inputs
+<img align="right" src="img/db-box.dot.svg" alt="database diagram">
 <img src="img/drug-almost-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
+
+<img align="right" src="img/query-spec-box.dot.svg" alt="query-specification">
 
 Next we supply specifications for our queries. A query specification describes how to form JSON output for
 each table and how related table data is nested via parent/child table relationships. These are expressed in
-TypeScript and they are checked at query-generation time (= app build-time usually) against the database
-metadata, to ensure validity of all references to database objects, including implicit uses of foreign keys
-in any parent/child relationships. 
+TypeScript and they are checked at query-generation time (during the app build, usually) against the database
+metadata. This checking ensures validity of all references to database objects, including implicit reliance
+on foreign keys in parent/child relationships. 
 
-In this example we supply a specification for a single drugs query:
+In this example we supply a specification for a single drugs query, which fetches data from all tables in the
+diagram above:
+
 ```typescript
 const drugAdvisoriesReferencesQuery: QuerySpec = {
   queryName: 'drug advisories references query',
@@ -111,11 +118,13 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
 };
 ```
 
-From the above query specification and database metadata, the tool then produces the following outputs,
-for each supplied query specification:
+### Outputs
+The tool produces the following outputs:
 
-1) A SQL Query utilizing SQL/JSON operators, or your database's nearest equivalent, to fetch
-   in JSON form the nested data described in the query specification:
+1) <img align="right" src="img/sql-output-oval.dot.svg" alt="SQL files"> SQL files are generated and written
+to a specified output directory, for each query specification that was supplied. The SQL utilizes ISO standard
+SQL/JSON operators or their closest equivalent for the chosen type of database:
+
 ```sql
 select
   -- row object for table 'drug'
@@ -242,8 +251,11 @@ from (
 ) q
 ```
 
-2) A TypeScript or Java source code file which declares the result types for the objects appearing in the query
-   results of the generated SQL above:
+2) <img align="right" src="img/result-types-oval.dot.svg" alt="result types"> A TypeScript or Java source code file
+   is generated for each query, which declares the result types for the objects appearing in the query results of
+   the generated SQL for the query. The JSON value from each result row can be directly deserialized to the first
+   result type declared in this file.
+
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
 export const sqlResource = "drug-advisories-references-query.sql";
@@ -283,7 +295,8 @@ export interface DrugReference
 }
 ```
 
-To build and execute queries like the above against an actual example database, see [the tutorial](tutorial.md).
+For a step-by-step guide to setting up the tool and progressively building and executing queries like the above
+against an actual example database, see [the tutorial](tutorial.md).
 
 ## Setup
 

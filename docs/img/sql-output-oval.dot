@@ -1,0 +1,5 @@
+digraph  Diagram1 {
+  {
+    sql [label="SQL files"]
+  }
+}

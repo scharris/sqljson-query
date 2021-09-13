@@ -1,0 +1,5 @@
+digraph  Diagram1 {
+  {
+    rd [label="Result Types\n(Java/TypeScript)" ]
+  }
+}
