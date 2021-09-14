@@ -1,7 +1,7 @@
 FROM mysql:8
 
-COPY create-schema-objects.sql /docker-entrypoint-initdb.d/01-schema-objects.sql
-COPY create-test-data.sql /docker-entrypoint-initdb.d/02-test-data.sql
+COPY sql/create-schema-objects.sql /docker-entrypoint-initdb.d/01-schema-objects.sql
+COPY sql/create-test-data.sql /docker-entrypoint-initdb.d/02-test-data.sql
 RUN chmod a+r /docker-entrypoint-initdb.d/*
 
 ENV MYSQL_ROOT_PASSWORD=drugs

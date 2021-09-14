@@ -2,7 +2,7 @@ import {indentLines, unDoubleQuote} from './util/mod';
 import {DatabaseMetadata} from './database-metadata';
 
 
-type DbmsType = 'PG' | 'ORA' | 'ISO';
+type DbmsType = 'PG' | 'ORA' | 'MYSQL' | 'ISO';
 
 export interface SqlDialect
 {
@@ -113,6 +113,64 @@ export class OracleDialect implements SqlDialect
   }
 }
 
+export class MySQLDialect implements SqlDialect
+{
+  constructor(private indentSpaces: number) {}
+
+  getRowObjectExpression
+    (
+      columnNames: string[],
+      srcAlias: string
+    )
+    : string
+  {
+    const objectFieldDecls =
+      columnNames
+      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
+      .join(",\n");
+
+    return (
+      "json_object(\n" +
+        indentLines(objectFieldDecls, this.indentSpaces) + "\n" +
+      ")"
+    );
+  }
+
+  getAggregatedRowObjectsExpression
+    (
+      columnNames: string[],
+      orderBy: string | null | undefined,
+      srcAlias: string
+    )
+    : string
+  {
+    if ( orderBy != null  )
+      throw new Error(`MySQL dialect does not support ordering in aggregate functions currently.`);
+
+    return (
+      "cast(coalesce(json_arrayagg(" +
+        this.getRowObjectExpression(columnNames, srcAlias) +
+      "), json_type('[]')) as json)"
+    );
+  }
+
+  getAggregatedColumnValuesExpression
+    (
+      columnName: string,
+      orderBy: string | null | undefined,
+      srcAlias: string
+    )
+    : string
+  {
+    if ( orderBy != null  )
+      throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
+
+    return (
+      `cast(coalesce(json_arrayagg(${srcAlias}.${columnName}), json_type('[]')) as json)`
+    );
+  }
+}
+
 export function getSqlDialect(dbmd: DatabaseMetadata, indentSpaces: number): SqlDialect
 {
   const dbmsType: DbmsType = getDbmsType(dbmd.dbmsName);
@@ -120,6 +178,7 @@ export function getSqlDialect(dbmd: DatabaseMetadata, indentSpaces: number): Sql
   {
     case 'PG': return new PostgresDialect(indentSpaces);
     case 'ORA': return new OracleDialect(indentSpaces);
+    case 'MYSQL': return new MySQLDialect(indentSpaces);
     default: throw new Error(`dbms type ${dbmsType} is currently not supported`);
   }
 }
@@ -129,5 +188,6 @@ function getDbmsType(dbmsName: string): DbmsType
   const dbmsLower = dbmsName.toLowerCase();
   if ( dbmsLower.startsWith("postgres") ) return 'PG';
   else if ( dbmsLower.startsWith("oracle") ) return 'ORA';
+  else if ( dbmsLower === "mysql" ) return 'MYSQL';
   else return 'ISO';
 }
