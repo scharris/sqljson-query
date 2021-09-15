@@ -48,6 +48,8 @@ via the following Maven command:
 mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=jdbc.props -Ddb=pg
 ```
 
+
+
 As noted above, it's also easy to generate the database metadata without relying on Maven or Java, if you
 will just execute the
 [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)

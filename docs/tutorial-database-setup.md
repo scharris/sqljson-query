@@ -161,7 +161,7 @@ insert into advisory(id, drug_id, advisory_type_id, text)
 
 To complete the database setup, create properties file `jdbc.props` to hold our connection information:
 ```shell
-cat > db/jdbc.props << EOF
+cat > jdbc.props << EOF
 jdbc.driverClassName=org.postgresql.Driver
 jdbc.url=jdbc:postgresql://localhost:5432/drugs
 jdbc.username=drugs

@@ -217,8 +217,8 @@ interface TableJsonSpec
   described below. The table name may appear unqualified if a `defaultSchema` has been specified
   for the enclosing `QueryGroupSpec`. The table name may be entered with quotes in which case it
   will be used in quoted form exactly as entered in query generation, or without quotes in which
-  case the database's default name case folding will be applied automatically (to uppercase for
-  Oracle and lowercase for Postgres). 
+  case the database's default name case folding if any will be applied automatically (to uppercase
+  for Oracle, lowercase for Postgres, no folding for MySQL). 
 
 
 - `fieldExpressions`

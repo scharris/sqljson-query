@@ -126,8 +126,8 @@ export class MySQLDialect implements SqlDialect
   {
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
-      .join(",\n");
+      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.\`${unDoubleQuote(colName)}\``)
+      .join(',\n');
 
     return (
       "json_object(\n" +
@@ -166,7 +166,7 @@ export class MySQLDialect implements SqlDialect
       throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
-      `cast(coalesce(json_arrayagg(${srcAlias}.${columnName}), json_type('[]')) as json)`
+      `cast(coalesce(json_arrayagg(${srcAlias}.\`${unDoubleQuote(columnName)}\`), json_type('[]')) as json)`
     );
   }
 }

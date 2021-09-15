@@ -14,7 +14,7 @@ hierarchy of data to be fetched for a query. From these query specifications and
 database metadata file (generated from a database via included tool), SQL/JSON-Query 
 generates:
 - SQL queries compliant with the SQL/JSON standard (or the closest approximation supported by
-  the database) for fetching nested data, for Oracle or Postgres databases
+  the database) for fetching nested data, for PostgreSQL, MySQL and Oracle databases
 - Result type declarations in TypeScript or Java, defining the structure of the objects
   appearing in result sets for the generated SQL, and to which the query results can be
   directly deserialized
@@ -22,7 +22,7 @@ generates:
 When generating queries, database metadata is used to verify all tables, fields, and
 foreign key relationships used in the queries, failing with an error if any referenced
 database items are not found in database metadata. A self-contained tool to fetch this
-database metadata for Oracle and PostgresSQL databases is included.
+database metadata for PostgresSQL, MySQL, and Oracle databases is included.
 
 The query generation work is all done at build time, and there is no run-time component
 needed to use the generated SQL queries and generated result types. The SQL can be
