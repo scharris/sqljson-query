@@ -1,5 +1,5 @@
 import {
-  makeMap, mapSet, caseNormalizeName, quoteIfNeeded, valueOr, propertyNameDefaultFunction, indentLines,
+  makeMap, mapSet, caseNormalizeName, valueOr, propertyNameDefaultFunction, indentLines,
   lowerCaseInitials, makeNameNotInSet, replaceAll
 } from './util/mod';
 import {
@@ -16,7 +16,7 @@ export class QuerySqlGenerator
   private readonly sqlDialect: SqlDialect;
   private readonly unqualifiedNamesSchemas: Set<string>; // Can use unqualified database object names in these schemas.
 
-  private static readonly HIDDEN_PK_PREFIX = "_";
+  private static readonly HIDDEN_PK_PREFIX = '_';
   private static readonly DEFAULT_RESULT_REPRS: ResultRepr[] = ['JSON_OBJECT_ROWS'];
 
   constructor
@@ -57,7 +57,7 @@ export class QuerySqlGenerator
     const tjs = querySpec.tableJson;
     const specLoc = { queryName: querySpec.queryName }; // for error reporting
     if ( querySpec.forUpdate && resultRepr !== 'MULTI_COLUMN_ROWS' )
-      throw specError(querySpec, "for update clause", "FOR UPDATE only allowed with MULTI_COLUMN_ROWS results");
+      throw specError(querySpec, 'for update clause', 'FOR UPDATE only allowed with MULTI_COLUMN_ROWS results');
 
     switch ( resultRepr )
     {
@@ -67,9 +67,9 @@ export class QuerySqlGenerator
         return this.jsonArrayRowSql(tjs, null, false, querySpec.orderBy, propNameFn, specLoc);
       case 'MULTI_COLUMN_ROWS':
         return this.baseQuery(tjs, null, false, querySpec.orderBy, propNameFn, specLoc).sql
-          + (querySpec.forUpdate ? "\nfor update" : "");
+          + (querySpec.forUpdate ? '\nfor update' : '');
       default:
-        throw specError(querySpec, "resultRepresentations", "Result representation is not valid.");
+        throw specError(querySpec, 'resultRepresentations', 'Result representation is not valid.');
     }
   }
 
@@ -88,7 +88,7 @@ export class QuerySqlGenerator
 
     const relId = identifyTable(tableSpec.table, this.defaultSchema, this.dbmd, specLoc);
     const alias = q.makeNewAliasFor(relId.name);
-    q.fromEntries.push(this.minimalRelIdentifier(relId) + " " + alias);
+    q.fromEntries.push(`${this.minimalRelIdentifier(relId)} ${alias}`);
 
     if ( parentChildCond )
       q.aliasesInScope.add(parentChildCond.otherTableAlias());
@@ -135,8 +135,8 @@ export class QuerySqlGenerator
   private hiddenPkSelectEntries(relId: RelId, alias: string): SelectEntry[]
   {
     return this.dbmd.getPrimaryKeyFieldNames(relId).map(pkFieldName => {
-      const pkFieldDbName = quoteIfNeeded(pkFieldName, this.dbmd.caseSensitivity);
-      const pkFieldOutputName = quoteIfNeeded(QuerySqlGenerator.HIDDEN_PK_PREFIX + pkFieldName, this.dbmd.caseSensitivity);
+      const pkFieldDbName = this.sqlDialect.quoteNameIfNeeded(pkFieldName);
+      const pkFieldOutputName = this.sqlDialect.quoteNameIfNeeded(QuerySqlGenerator.HIDDEN_PK_PREFIX + pkFieldName);
       return {valueExpr: `${alias}.${pkFieldDbName}`, name: pkFieldOutputName, source: 'HIDDEN_PK'};
     });
   }
@@ -156,7 +156,7 @@ export class QuerySqlGenerator
       return [];
     else return tableSpec.fieldExpressions.map((tfe,ix) => {
       const loc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tableSpec.table}`);
-      const name = quoteIfNeeded(jsonPropertyName(tfe, propNameFn, loc), this.dbmd.caseSensitivity);
+      const name = this.sqlDialect.quoteNameIfNeeded(jsonPropertyName(tfe, propNameFn, loc));
       return { valueExpr: tableFieldExpressionSql(tfe, alias, loc), name, source: 'NATIVE_FIELD' };
     });
   }
@@ -202,7 +202,7 @@ export class QuerySqlGenerator
 
     const fromClauseQuery = this.baseQuery(parentSpec, null, true, null, propNameFn, specLoc);
 
-    const fromClauseQueryAlias = parentSpec.alias || makeNameNotInSet("q", avoidAliases);
+    const fromClauseQueryAlias = parentSpec.alias || makeNameNotInSet('q', avoidAliases);
     q.aliasesInScope.add(fromClauseQueryAlias);
 
     for ( const [i, parentColumnName] of fromClauseQuery.resultColumnNames.entries() )
@@ -220,10 +220,10 @@ export class QuerySqlGenerator
           .asEquationConditionOn(fromClauseQueryAlias, this.dbmd, QuerySqlGenerator.HIDDEN_PK_PREFIX);
 
     q.fromEntries.push(
-      lineCommentJoinToParent(parentSpec) + "\n" +
-      "left join (\n" +
+      lineCommentJoinToParent(parentSpec) + '\n' +
+      'left join (\n' +
          this.indent(fromClauseQuery.sql) +
-      ") " + fromClauseQueryAlias + " on " + joinCond
+      ') ' + fromClauseQueryAlias + ' on ' + joinCond
     );
 
     return q;
@@ -243,10 +243,10 @@ export class QuerySqlGenerator
     if ( customJoinCond != undefined )
     {
       if ( parentSpec.viaForeignKeyFields != undefined )
-        throw new SpecError(specLoc, "Parent with customJoinCondition cannot specify foreignKeyFields.");
+        throw new SpecError(specLoc, 'Parent with customJoinCondition cannot specify foreignKeyFields.');
 
       const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
-      validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, "custom join condition"));
+      validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, 'custom join condition'));
 
       return this.customJoinParentPkCondition(customJoinCond, childAlias);
     }
@@ -255,7 +255,7 @@ export class QuerySqlGenerator
       const childForeignKeyFieldsSet = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields );
       const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
       const fk = this.getForeignKey(childRelId, parentRelId, childForeignKeyFieldsSet, specLoc);
-      return new ParentPkCondition(childAlias, fk.foreignKeyComponents);
+      return new ParentPkCondition(childAlias, fk.foreignKeyComponents, this.sqlDialect);
     }
   }
 
@@ -272,7 +272,7 @@ export class QuerySqlGenerator
         primaryKeyFieldName: this.dbNormd(eqfs.parentPrimaryKeyField)
       }));
 
-    return new ParentPkCondition(childAlias, virtualFkComps);
+    return new ParentPkCondition(childAlias, virtualFkComps, this.sqlDialect);
   }
 
   private referencedParentsSqlParts
@@ -290,7 +290,7 @@ export class QuerySqlGenerator
     for ( const [ix, parentSpec] of refdParentSpecs.entries() )
     {
       if ( parentSpec.hasOwnProperty('alias') )
-        throw new SpecError(specLoc, "Refrenced parent table cannot specify an alias.");
+        throw new SpecError(specLoc, 'Refrenced parent table cannot specify an alias.');
 
       const parentLoc = addLocPart(specLoc,
         `referencedParentTables entry #${ix+1}, '${parentSpec.table}' table`
@@ -317,13 +317,13 @@ export class QuerySqlGenerator
 
     const selectEntries: SelectEntry[] = [{
       valueExpr:
-        lineCommentReferencedParent(parentSpec) + "\n" +
-        "(\n" +
+        lineCommentReferencedParent(parentSpec) + '\n' +
+        '(\n' +
           this.indent(
             this.jsonObjectRowsSql(parentSpec, parentPkCond, null, propNameFn, specLoc)
-          ) + "\n" +
-        ")",
-      name: quoteIfNeeded(parentSpec.referenceName, this.dbmd.caseSensitivity),
+          ) + '\n' +
+        ')',
+      name: this.sqlDialect.quoteNameIfNeeded(parentSpec.referenceName),
       source: 'PARENT_REFERENCE'
     }];
 
@@ -346,13 +346,13 @@ export class QuerySqlGenerator
       const childLoc = addLocPart(specLoc, `child collection '${childCollSpec.collectionName}'`);
       return {
         valueExpr:
-          lineCommentChildCollectionSelectExpression(childCollSpec) + "\n" +
-          "(\n" +
+          lineCommentChildCollectionSelectExpression(childCollSpec) + '\n' +
+          '(\n' +
             this.indent(
               this.childCollectionQuery(childCollSpec, relId, alias, propNameFn, childLoc)
-            ) + "\n" +
-          ")",
-        name: quoteIfNeeded(childCollSpec.collectionName, this.dbmd.caseSensitivity),
+            ) + '\n' +
+          ')',
+        name: this.sqlDialect.quoteNameIfNeeded(childCollSpec.collectionName),
         source: 'CHILD_COLLECTION'
       };
    });
@@ -374,7 +374,7 @@ export class QuerySqlGenerator
 
     const unwrapChildValues = valueOr(childSpec.unwrap, false);
     if ( unwrapChildValues && jsonPropertiesCount(childSpec) > 1 )
-      throw new SpecError(specLoc, "Unwrapped child collection option is incompatible with multiple field expressions.");
+      throw new SpecError(specLoc, 'Unwrapped child collection option is incompatible with multiple field expressions.');
 
     return this.jsonArrayRowSql(childSpec, pcCond, unwrapChildValues, childSpec.orderBy, propNameFn, specLoc);
   }
@@ -394,15 +394,15 @@ export class QuerySqlGenerator
     if ( customJoinCond != undefined ) // custom join condition specified
     {
       if ( childCollectionSpec.foreignKeyFields )
-        throw new SpecError(specLoc, "Child collection that specifies customJoinCondition cannot specify foreignKeyFields.");
-      validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, "custom join condition"));
+        throw new SpecError(specLoc, 'Child collection that specifies customJoinCondition cannot specify foreignKeyFields.');
+      validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, 'custom join condition'));
       return this.customJoinChildFkCondition(customJoinCond, parentAlias);
     }
     else // foreign key join condition
     {
       const fkFields = childCollectionSpec.foreignKeyFields && new Set(childCollectionSpec.foreignKeyFields);
       const fk = this.getForeignKey(childRelId, parentRelId, fkFields, specLoc);
-      return new ChildFkCondition(parentAlias, fk.foreignKeyComponents);
+      return new ChildFkCondition(parentAlias, fk.foreignKeyComponents, this.sqlDialect);
     }
   }
 
@@ -419,7 +419,7 @@ export class QuerySqlGenerator
         primaryKeyFieldName: this.dbNormd(eqfs.parentPrimaryKeyField)
       }));
 
-    return new ChildFkCondition(parentAlias, virtualFkComps);
+    return new ChildFkCondition(parentAlias, virtualFkComps, this.sqlDialect);
   }
 
   /// Make query SQL having a single row and column result, with the result value
@@ -439,20 +439,20 @@ export class QuerySqlGenerator
     const baseQuery = this.baseQuery(tableSpec, parentChildCond, false, null, propNameFn, specLoc);
 
     if ( unwrap && baseQuery.resultColumnNames.length != 1 )
-      throw new SpecError(specLoc, "Unwrapped child collections cannot have multiple field expressions.");
+      throw new SpecError(specLoc, 'Unwrapped child collections cannot have multiple field expressions.');
 
     return (
-      "select\n" +
-        this.indent(lineCommentAggregatedRowObjects(tableSpec)) + "\n" +
+      'select\n' +
+        this.indent(lineCommentAggregatedRowObjects(tableSpec)) + '\n' +
         this.indent(
           (unwrap
-            ? this.sqlDialect.getAggregatedColumnValuesExpression(baseQuery.resultColumnNames[0], orderBy, "q")
-            : this.sqlDialect.getAggregatedRowObjectsExpression(baseQuery.resultColumnNames, orderBy, "q"))
-          ) + " json\n" +
-      "from (\n" +
-        this.indent(lineCommentBaseTableQuery(tableSpec)) + "\n" +
+            ? this.sqlDialect.getAggregatedColumnValuesExpression(baseQuery.resultColumnNames[0], orderBy, 'q')
+            : this.sqlDialect.getAggregatedRowObjectsExpression(baseQuery.resultColumnNames, orderBy, 'q'))
+          ) + ' json\n' +
+      'from (\n' +
+        this.indent(lineCommentBaseTableQuery(tableSpec)) + '\n' +
         this.indent(baseQuery.sql) +
-      ") q"
+      ') q'
     );
   }
 
@@ -472,14 +472,14 @@ export class QuerySqlGenerator
     const baseQuery = this.baseQuery(tjSpec, parentChildCond, false, null, propNameFn, specLoc);
 
     return (
-      "select\n" +
-        this.indent(lineCommentTableRowObject(tjSpec)) + "\n" +
-        this.indent(this.sqlDialect.getRowObjectExpression(baseQuery.resultColumnNames, "q")) + " json\n" +
-      "from (\n" +
-        this.indent(lineCommentBaseTableQuery(tjSpec)) + "\n" +
+      'select\n' +
+        this.indent(lineCommentTableRowObject(tjSpec)) + '\n' +
+        this.indent(this.sqlDialect.getRowObjectExpression(baseQuery.resultColumnNames, 'q')) + ' json\n' +
+      'from (\n' +
+        this.indent(lineCommentBaseTableQuery(tjSpec)) + '\n' +
         this.indent(baseQuery.sql) +
-      ") q" +
-      (orderBy != null ? "\norder by " + orderBy.replace(/\$\$/g, "q") : "")
+      ') q' +
+      (orderBy != null ? '\norder by ' + orderBy.replace(/\$\$/g, 'q') : '')
     );
   }
 
@@ -497,7 +497,7 @@ export class QuerySqlGenerator
     if ( fk == null )
       throw new SpecError(specLoc, `No foreign key found from ${childRelId.name} to ${parentRelId.name} via ` +
         (foreignKeyFields != undefined ? `foreign keys [${Array.from(foreignKeyFields)}]`
-         : "implicit foreign key fields") + ".");
+         : 'implicit foreign key fields') + '.');
 
     return fk;
   }
@@ -548,21 +548,22 @@ class ParentPkCondition implements ParentChildCondition
   constructor
   (
     readonly childAlias: string,
-    readonly matchedFields: ForeignKeyComponent[]
+    readonly matchedFields: ForeignKeyComponent[],
+    readonly sqlDialect:SqlDialect
   )
   { }
 
   otherTableAlias(): string { return this.childAlias; }
 
-  asEquationConditionOn(parentAlias: string, dbmd: DatabaseMetadata, parentPkPrefix: string = ""): string
+  asEquationConditionOn(parentAlias: string, dbmd: DatabaseMetadata, parentPkPrefix: string = ''): string
   {
     return (
       this.matchedFields.map(mf =>
-        `${this.childAlias}.${quoteIfNeeded(mf.foreignKeyFieldName, dbmd.caseSensitivity)}` +
-        " = " +
-        `${parentAlias}.${quoteIfNeeded(parentPkPrefix + mf.primaryKeyFieldName, dbmd.caseSensitivity)}`
+        `${this.childAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.foreignKeyFieldName)}` +
+        ' = ' +
+        `${parentAlias}.${this.sqlDialect.quoteNameIfNeeded(parentPkPrefix + mf.primaryKeyFieldName)}`
       )
-      .join(" and ")
+      .join(' and ')
     );
   }
 }
@@ -572,7 +573,8 @@ class ChildFkCondition implements ParentChildCondition
   constructor
   (
     readonly parentAlias: string,
-    readonly matchedFields: ForeignKeyComponent[]
+    readonly matchedFields: ForeignKeyComponent[],
+    readonly sqlDialect:SqlDialect
   )
   { }
 
@@ -582,11 +584,11 @@ class ChildFkCondition implements ParentChildCondition
   {
     return (
       this.matchedFields.map(mf =>
-        `${childAlias}.${quoteIfNeeded(mf.foreignKeyFieldName, dbmd.caseSensitivity)}` +
-        " = " +
-        `${this.parentAlias}.${quoteIfNeeded(mf.primaryKeyFieldName, dbmd.caseSensitivity)}`
+        `${childAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.foreignKeyFieldName)}` +
+        ' = ' +
+        `${this.parentAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.primaryKeyFieldName)}`
       )
-      .join(" and ")
+      .join(' and ')
     );
   }
 }
@@ -615,7 +617,7 @@ class SqlParts
 
   makeNewAliasFor(dbObjectName: string): string
   {
-    const alias = makeNameNotInSet(lowerCaseInitials(dbObjectName, "_"), this.aliasesInScope);
+    const alias = makeNameNotInSet(lowerCaseInitials(dbObjectName, '_'), this.aliasesInScope);
     this.aliasesInScope.add(alias);
     return alias;
   }
@@ -624,21 +626,21 @@ class SqlParts
   {
     function makeSelectClauseEntrySql(sce: SelectEntry): string
     {
-      const exprNameSep = sce.name.startsWith("\"") ? " " : " as ";
-      return (sce.comment != null ? sce.comment + "\n" : "") +
+      const exprNameSep = sce.name.startsWith('"') || sce.name.startsWith('`') ? ' ' : ' as ';
+      return (sce.comment != null ? sce.comment + '\n' : '') +
         sce.valueExpr + exprNameSep + sce.name;
     }
 
     return (
-      "select\n" +
-        indentLines(this.selectEntries.map(makeSelectClauseEntrySql).join(",\n"), indentSpaces) + "\n" +
-      "from\n" +
-        indentLines(this.fromEntries.join("\n"), indentSpaces) + "\n" +
-      (this.whereEntries.length === 0 ? "":
-      "where (\n" +
-        indentLines(this.whereEntries.join(" and\n"), indentSpaces) + "\n" +
-      ")\n") +
-      (this.orderBy ? "order by " + this.orderBy + "\n": "")
+      'select\n' +
+        indentLines(this.selectEntries.map(makeSelectClauseEntrySql).join(',\n'), indentSpaces) + '\n' +
+      'from\n' +
+        indentLines(this.fromEntries.join('\n'), indentSpaces) + '\n' +
+      (this.whereEntries.length === 0 ? '':
+      'where (\n' +
+        indentLines(this.whereEntries.join(' and\n'), indentSpaces) + '\n' +
+      ')\n') +
+      (this.orderBy ? 'order by ' + this.orderBy + '\n': '')
     );
   }
 }
@@ -654,7 +656,7 @@ interface SelectEntry
 type SelectEntrySource = 'NATIVE_FIELD' | 'INLINE_PARENT' | 'PARENT_REFERENCE' | 'CHILD_COLLECTION' | 'HIDDEN_PK';
 
 
-const DEFAULT_TABLE_ALIAS_VAR = "$$";
+const DEFAULT_TABLE_ALIAS_VAR = '$$';
 
 function jsonPropertyName
   (
@@ -671,7 +673,7 @@ function jsonPropertyName
   else
   {
     if ( !tfe.expression )
-      throw new SpecError(specLoc, "'field' or 'expression' must be provided");
+      throw new SpecError(specLoc, `'field' or 'expression' must be provided`);
     if ( !tfe.jsonProperty )
       throw new SpecError(specLoc, `Json property name is required for expression field ${tfe.expression}.`);
     return tfe.jsonProperty;
@@ -693,7 +695,7 @@ function tableFieldExpressionSql
   else // general expression
   {
     if ( !tableFieldExpr.expression )
-      throw new SpecError(specLoc, "'field' or 'expression' must be provided");
+      throw new SpecError(specLoc, `'field' or 'expression' must be provided`);
     const tableAliasVarInExpr = tableFieldExpr.withTableAliasAs || DEFAULT_TABLE_ALIAS_VAR;
     return replaceAll(tableFieldExpr.expression, tableAliasVarInExpr, tableAlias);
   }

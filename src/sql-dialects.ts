@@ -1,7 +1,6 @@
 import {indentLines, unDoubleQuote} from './util/mod';
 import {DatabaseMetadata} from './database-metadata';
 
-
 type DbmsType = 'PG' | 'ORA' | 'MYSQL' | 'ISO';
 
 export interface SqlDialect
@@ -11,10 +10,15 @@ export interface SqlDialect
   getAggregatedRowObjectsExpression(colNames: string[], orderBy: string | null | undefined, srcAlias: string): string;
 
   getAggregatedColumnValuesExpression(colName: string, orderBy: string | null | undefined, srcAlias: string): string;
+
+  quoteNameIfNeeded(name: string): string;
 }
 
 export class PostgresDialect implements SqlDialect
 {
+  readonly quotedStringRegex = /^".*"$/;
+  readonly lowercaseNameRegex = /^[a-z_]+$/;
+
   constructor(private indentSpaces: number) {}
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
@@ -22,12 +26,12 @@ export class PostgresDialect implements SqlDialect
     const objectFieldDecls =
       columnNames
       .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
-      .join(",\n");
+      .join(',\n');
 
     return (
-      "jsonb_build_object(\n" +
-        indentLines(objectFieldDecls, this.indentSpaces) + "\n" +
-      ")"
+      'jsonb_build_object(\n' +
+        indentLines(objectFieldDecls, this.indentSpaces) + '\n' +
+      ')'
     );
   }
 
@@ -40,10 +44,10 @@ export class PostgresDialect implements SqlDialect
     : string
   {
     return (
-      "coalesce(jsonb_agg(" +
+      'coalesce(jsonb_agg(' +
         this.getRowObjectExpression(columnNames, srcAlias) +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") +
-      "),'[]'::jsonb)"
+        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
+      `),'[]'::jsonb)`
     );
   }
 
@@ -57,14 +61,28 @@ export class PostgresDialect implements SqlDialect
   {
     return (
       `coalesce(jsonb_agg(${srcAlias}.${columnName}` +
-        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") +
-      "))"
+        (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
+      '))'
     );
+  }
+
+  quoteNameIfNeeded(name: string): string
+  {
+    if ( this.quotedStringRegex.test(name) )
+      return name;
+    if ( name.charAt(0) === '_' )
+      return `"${name}"`;
+    if ( this.lowercaseNameRegex.test(name) )
+      return name;
+    return `"${name}"`;
   }
 }
 
 export class OracleDialect implements SqlDialect
 {
+  readonly uppercaseNameRegex = /^[A-Z_]+$/;
+  readonly quotedStringRegex = /^".*"$/;
+
   constructor(private indentSpaces: number) {}
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
@@ -72,12 +90,12 @@ export class OracleDialect implements SqlDialect
     const objectFieldDecls =
       columnNames
       .map(colName => `'${unDoubleQuote(colName)}' value ${srcAlias}.${colName}`)
-      .join(",\n");
+      .join(',\n');
 
     return (
-      "json_object(\n" +
-        indentLines(objectFieldDecls + "\nreturning clob", this.indentSpaces) + "\n" +
-      ")"
+      'json_object(\n' +
+        indentLines(objectFieldDecls + '\nreturning clob', this.indentSpaces) + '\n' +
+      ')'
     );
   }
 
@@ -90,10 +108,10 @@ export class OracleDialect implements SqlDialect
     : string
   {
     return (
-      "treat(coalesce(json_arrayagg(" +
+      'treat(coalesce(json_arrayagg(' +
         this.getRowObjectExpression(columnNames, srcAlias) +
-        (orderBy != null ? " order by " + orderBy.replace(/\$\$/g, srcAlias) : "") +
-        " returning clob), to_clob('[]')) as json)"
+        (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
+        ` returning clob), to_clob('[]')) as json)`
     );
   }
 
@@ -107,14 +125,29 @@ export class OracleDialect implements SqlDialect
   {
     return (
       `treat(coalesce(json_arrayagg(${srcAlias}.${columnName}` +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : "") +
-        " returning clob), to_clob('[]')) as json)"
+        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
+        ` returning clob), to_clob('[]')) as json)`
     );
+  }
+
+  quoteNameIfNeeded(name: string): string
+  {
+    if ( this.quotedStringRegex.test(name) )
+      return name;
+    if ( name.charAt(0) === '_' )
+      return `"${name}"`;
+    if ( this.uppercaseNameRegex.test(name) )
+      return name;
+    return `"${name}"`;
   }
 }
 
 export class MySQLDialect implements SqlDialect
 {
+  readonly simpleNameRegex = /^[A-Za-z_][A-Za-z_0-9]+$/;
+  readonly backtickQuotedStringRegex = /^`.*`$/;
+  readonly doubleQuotedStringRegex = /^".*"$/;
+
   constructor(private indentSpaces: number) {}
 
   getRowObjectExpression
@@ -126,13 +159,13 @@ export class MySQLDialect implements SqlDialect
   {
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.\`${unDoubleQuote(colName)}\``)
+      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
       .join(',\n');
 
     return (
-      "json_object(\n" +
-        indentLines(objectFieldDecls, this.indentSpaces) + "\n" +
-      ")"
+      'json_object(\n' +
+        indentLines(objectFieldDecls, this.indentSpaces) + '\n' +
+      ')'
     );
   }
 
@@ -148,9 +181,9 @@ export class MySQLDialect implements SqlDialect
       throw new Error(`MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
-      "cast(coalesce(json_arrayagg(" +
+      'cast(coalesce(json_arrayagg(' +
         this.getRowObjectExpression(columnNames, srcAlias) +
-      "), json_type('[]')) as json)"
+      `), json_type('[]')) as json)`
     );
   }
 
@@ -166,8 +199,17 @@ export class MySQLDialect implements SqlDialect
       throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
-      `cast(coalesce(json_arrayagg(${srcAlias}.\`${unDoubleQuote(columnName)}\`), json_type('[]')) as json)`
+      `cast(coalesce(json_arrayagg(${srcAlias}.${columnName}), json_type('[]')) as json)`
     );
+  }
+
+  quoteNameIfNeeded(name: string): string
+  {
+    if ( this.doubleQuotedStringRegex.test(name) )
+      return `\`${unDoubleQuote(name)}\``;
+    if ( this.backtickQuotedStringRegex.test(name) || this.simpleNameRegex.test(name) )
+      return name;
+    return `\`${name}\``;
   }
 }
 
@@ -186,8 +228,8 @@ export function getSqlDialect(dbmd: DatabaseMetadata, indentSpaces: number): Sql
 function getDbmsType(dbmsName: string): DbmsType
 {
   const dbmsLower = dbmsName.toLowerCase();
-  if ( dbmsLower.startsWith("postgres") ) return 'PG';
-  else if ( dbmsLower.startsWith("oracle") ) return 'ORA';
-  else if ( dbmsLower === "mysql" ) return 'MYSQL';
+  if ( dbmsLower.startsWith('postgres') ) return 'PG';
+  else if ( dbmsLower.startsWith('oracle') ) return 'ORA';
+  else if ( dbmsLower === 'mysql' ) return 'MYSQL';
   else return 'ISO';
 }

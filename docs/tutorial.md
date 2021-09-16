@@ -36,24 +36,28 @@ so long as commands below are adjusted accordingly.
 
 ## Database Setup
 
-Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres database for
-use in this tutorial.
+Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres or
+MySQL database for use in this tutorial. The database should be listening with the connect information
+properties at `db/jdbc.props`.
 
 ## Generate Database Metadata
 
 Now that the database is created and SQL/JSON-Query installed, we can generate our database metadata
 via the following Maven command:
 
+For Postgres:
 ```console
-mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=jdbc.props -Ddb=pg
+mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=db/jdbc.props -Ddb=pg
 ```
-
-
+For MySQL:
+```console
+mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=db/jdbc.props -Ddb=mysql
+```
 
 As noted above, it's also easy to generate the database metadata without relying on Maven or Java, if you
 will just execute the
 [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-for your database type (Oracle or Postgres) and save the resulting json value to file
+for your database type (Postgres/MySQL/Oracle) and save the resulting json value to file
 `query-gen/dbmd/dbmd.json`. The query has one parameter `relPat` which is a regular expression for table
 names to be included, for which you can pass '.*' or adjust it as required.
 
@@ -70,6 +74,7 @@ We're expected to define our queries in file `query-gen/queries/query-specs.ts`.
 with the following initial contents:
 
 ```typescript
+// query-gen/queries/query-specs.ts
 import {QueryGroupSpec, QuerySpec, RecordCondition} from 'sqljson-query';
 
 const drugsQuery1: QuerySpec = {
@@ -88,14 +93,18 @@ const drugsQuery1: QuerySpec = {
 };
 
 export const queryGroupSpec: QueryGroupSpec = {
-   defaultSchema: 'public',
-   generateUnqualifiedNamesForSchemas: [ 'public' ],
+   defaultSchema: 'public',                           // Use 'drugs' here for MySQL.
+   generateUnqualifiedNamesForSchemas: [ 'public' ],  // Use ['drugs'] here for MySQL
    propertyNameDefault: 'CAMELCASE',
    querySpecs: [
       drugsQuery1,
    ]
 };
 ``` 
+
+If you created a MySQL example database, change the two instances of the schema name `'public'` at the
+bottom to `'drugs'`. (Had we put the Postgres example database tables in a separate 'drugs' schema, we would
+put 'drugs' for the schema here for Postgres as well, but we put them in `public`).
 
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower definition
 represents the total set of queries and is the only export for the module. It contains the list of queries to
@@ -207,8 +216,12 @@ from (
 ) q
 ```  
 
-If we try executing the query in psql, supplying the value 'A' for parameter `catCode`, we should 
-see output like the following:
+The SQL shown here is for a Postgres example database, for a MySQL database it will differ slightly. The
+generated SQL is database-specific generally, with the database type having been determined from the
+database metadata that was generated above and found at its standard location of `query-gen/dbmd/dbmd.json`.
+
+Open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
+the `catCode` parameter. You should see output like the following:
 ```json lines
 {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
@@ -793,13 +806,17 @@ const drugsQuery6: QuerySpec = {
                   fieldExpressions: [ 'publication' ]
                }
             ],
-            orderBy: 'priority asc'
+            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg / ora.
          }
          // <-- (Added)
       ]
    }
 };
 ```
+
+NOTE: If you aren't using  a MySQL example database, you can uncomment the `orderBy` property at bottom of the
+query definition to enable ordering within the child collection. Ordering in child collections is currently not
+supported for the MySQL database target.
 
 We already had a `childTables` property in our `drug` specification from previous queries (for advisories),
 so we've just added another entry for our intersection table `drug_reference` in the same array. We project

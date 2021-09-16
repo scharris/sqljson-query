@@ -1,7 +1,10 @@
-# Tutorial Database Setup
+# PostgreSQL Tutorial Database Setup
 
 Here we'll setup a small Postgres database for our tutorial. We'll assume a Postgres server is installed on the
-local machine and listening on localhost port 5432.
+local machine and listening on localhost port 5432. If you would rather use Docker to run the example database,
+see the [Postgres/Docker tutorial database setup documentation](tutorial-database-setup-pg-docker.md). Or if
+you'd rather setup a MySQL database instead for the tutorial, see the
+[MySQL tutorial database setup documentation](tutorial-database-setup-mysql.md).
 
 First create the Postgres database and user using your Postgres admin user login:
 ```
@@ -159,12 +162,13 @@ insert into advisory(id, drug_id, advisory_type_id, text)
 ;
 ```
 
-To complete the database setup, create properties file `jdbc.props` to hold our connection information:
+To complete the database setup, create properties file `db/jdbc.props` to hold our connection information:
 ```shell
-cat > jdbc.props << EOF
+# db/jdbc.props
 jdbc.driverClassName=org.postgresql.Driver
 jdbc.url=jdbc:postgresql://localhost:5432/drugs
 jdbc.username=drugs
 jdbc.password=drugs
-EOF
 ```
+
+That's it! You're now ready to continue with the tutorial.
