@@ -13,8 +13,6 @@ jobs:
       matrix:
         node-version: ['14.x', '16.x']
     name: Node ${{ matrix.node-version }} / ${{ matrix.db-type }}
-    env:
-      TEST_DB_TYPE: pg
     services:
       postgres:
         image: postgres:13
@@ -36,8 +34,9 @@ jobs:
             MYSQL_USER: drugs
             MYSQL_PASSWORD: drugs
             MYSQL_ROOT_PASSWORD: drugs
+            MYSQL_ALLOW_EMPTY_PASSWORD: yes
           ports:
-            - 3306:3306
+            - 127.0.0.1:3306:3306
           options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Checkout project repository
@@ -53,8 +52,8 @@ jobs:
       - name: Initialize MySQL testing database
         run: |
           cd "$GITHUB_WORKSPACE"/src/__tests__/db/mysql
-          mysql --user=drugs --password=drugs --database=drugs --port=3306 < sql/create-schema-objects.sql
-          mysql --user=drugs --password=drugs --database=drugs --port=3306 < sql/create-test-data.sql
+          mysql --host=127.0.0.1 --port=3306 --user=drugs --password=drugs --database=drugs < sql/create-schema-objects.sql
+          mysql --host=127.0.0.1 --port=3306 --user=drugs --password=drugs --database=drugs < sql/create-test-data.sql
       - name: Setup node.js
         uses: actions/setup-node@v2
         with:
