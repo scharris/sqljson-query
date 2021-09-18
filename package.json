@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -14,18 +14,12 @@
     "type": "git",
     "url": "https://github.com/scharris/sqljson-query.git"
   },
-  "bin": {
-    "sjq-gen-queries": "lib/cli-query-gen.js",
-    "sjq-gen-relmds": "lib/cli-relmds-gen.js"
-  },
   "main": "./lib/mod.js",
   "exports": "./lib/mod.js",
   "scripts": {
-    "gen-qspecs-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/query-specs.schema.json tsconfig.json QueryGroupSpec",
-    "gen-dbmd-json-schema": "typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/dbmd.schema.json tsconfig.json DatabaseMetadataStoredProperties",
-    "gen-json-schemas": "mkdirp lib/schemas && npm run gen-qspecs-json-schema && npm run gen-dbmd-json-schema",
+    "gen-dbmd-json-schema": "mkdirp lib/schemas && typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/dbmd.schema.json tsconfig.json DatabaseMetadataStoredProperties",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot",
-    "build": "npm run clean && tsc && npm run gen-json-schemas",
+    "build": "npm run clean && tsc && npm run gen-dbmd-json-schema",
     "test": "jest",
     "clean": "rimraf lib"
   },
