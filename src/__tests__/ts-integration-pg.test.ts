@@ -15,15 +15,14 @@ import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources} from '../mod';
-import {getDbClient} from './db/db-handle';
-import {ChildProcess, spawn, spawnSync} from 'child_process';
+import {getDbClient} from './db/db-client-pg';
+import {spawnSync} from 'child_process';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
-const exec = util.promisify(child_process.exec);
 
 const resTypesSrcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
 

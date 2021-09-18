@@ -1,16 +1,14 @@
 import * as path from 'path';
-import {Client} from 'pg';
 import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
 import {QuerySpec} from '../mod';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
-import {getDbClient} from './db/db-handle';
+import {getDbConnection} from './db/db-connection-mysql';
 
-const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
+const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
-
 
 test('query of single table for json object rows results', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
@@ -24,17 +22,16 @@ test('query of single table for json object rows results', async () => {
       }
     };
 
-
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(5);
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(5);
 
-  const firstJson = res.rows[0].json as any;
+  const firstJson = res[0][0].json as any;
   // id and name are not-null fields, so typeof the values should be number and string
   expect(typeof firstJson['id']).toEqual('number');
   expect(typeof firstJson['name']).toEqual('string');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('query of single table for json array row results', async () => {
@@ -50,15 +47,15 @@ test('query of single table for json array row results', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const jsonArray: any[] = res.rows[0].json as any[];
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const jsonArray: any[] = res[0][0].json as any[];
   expect(jsonArray.length).toBe(5);
   // id and name are not-null fields, so typeof the values should be number and string
   expect(typeof jsonArray[0]['id']).toEqual('number');
   expect(typeof jsonArray[0]['name']).toEqual('string');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('query of single table for multi column rows results', async () => {
@@ -74,14 +71,14 @@ test('query of single table for multi column rows results', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('MULTI_COLUMN_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBeGreaterThan(1);
-  const firstRow = res.rows[0];
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBeGreaterThan(1);
+  const firstRow = res[0][0];
   // id and name are not-null fields, so typeof the values should be number and string
   expect(typeof firstRow['id']).toEqual('number');
   expect(typeof firstRow['name']).toEqual('string');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('record condition properly restricts results for top level table', async () => {
@@ -97,13 +94,13 @@ test('record condition properly restricts results for top level table', async ()
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.id).toBe(1);
   expect(json.name).toEqual('Test Drug 1');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field property names specified by jsonProperty', async () => {
@@ -128,13 +125,13 @@ test('table field property names specified by jsonProperty', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.drugId).toBe(1);
   expect(json.drugName).toEqual('Test Drug 1');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field property names default according to the provided naming function', async () => {
@@ -151,13 +148,13 @@ test('table field property names default according to the provided naming functi
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.idX).toBe(1);
   expect(json.nameX).toEqual('Test Drug 1');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('non-unwrapped child table collection', async () => {
@@ -180,15 +177,15 @@ test('non-unwrapped child table collection', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(Object.keys(json.compoundsEntered[0]))).toEqual(new Set(['id', 'displayName']));
   expect(new Set(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`))).toEqual(
     new Set(['2|Test Compound 2', '4|Test Compound 4'])
   );
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of table field property', async () => {
@@ -212,12 +209,12 @@ test('unwrapped child table collection of table field property', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(json.compoundsEntered)).toEqual(new Set([2,4]));
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of field exression property', async () => {
@@ -243,12 +240,12 @@ test('unwrapped child table collection of field exression property', async () =>
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(json.compoundsEntered)).toEqual(new Set(['test compound 2', 'test compound 4']));
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of parent reference property', async () => {
@@ -277,15 +274,15 @@ test('unwrapped child table collection of parent reference property', async () =
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.drugAnalysts.length).toBe(1);
   const drugAnalyst: any = json.drugAnalysts[0];
   expect(drugAnalyst.id).toBe(1);
   expect(drugAnalyst.shortName).toEqual('jdoe');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of inlined parent property', async () => {
@@ -313,12 +310,12 @@ test('unwrapped child table collection of inlined parent property', async () => 
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.drugRegisteringAnalystIds).toEqual([1]);
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection of child collection property', async () => {
@@ -348,10 +345,10 @@ test('unwrapped child collection of child collection property', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.drugAdvisories.length).toBe(1);
   const advisories = json.drugAdvisories[0];
   expect(advisories.length).toBe(3);
@@ -359,7 +356,7 @@ test('unwrapped child collection of child collection property', async () => {
   expect(new Set(advisories.map((a: any) => `${a.id}|${a.advisoryTypeId}`))).toEqual(
     new Set(['101|1',  '102|2', '123|3'])
   );
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection of unwrapped child collection property', async () => {
@@ -389,14 +386,14 @@ test('unwrapped child collection of unwrapped child collection property', async 
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.drugAdvisoryTypeIds.length).toBe(1);
   const advisoryTypeIds = json.drugAdvisoryTypeIds[0];
   expect(new Set(advisoryTypeIds)).toEqual(new Set([1,2,3]));
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection with element type containing more than one property should cause error', () => {
@@ -422,6 +419,7 @@ test('unwrapped child collection with element type containing more than one prop
   );
 });
 
+/* MySQL doesn't support order by in json_arrayagg currently.
 test('order-by specification determines ordering in a child table collection', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
   const querySpec: QuerySpec =
@@ -443,15 +441,16 @@ test('order-by specification determines ordering in a child table collection', a
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`)).toEqual(
     ['4|Test Compound 4', '2|Test Compound 2']
   );
-  dbClient.end();
+  dbConn.end();
 });
+*/
 
 test('referenced parent table', async () => {
   const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
@@ -474,14 +473,14 @@ test('referenced parent table', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(Object.keys(json.enteredByAnalyst))).toEqual(new Set(['id', 'shortName']));
   expect(json.enteredByAnalyst.id).toBe(2);
   expect(json.enteredByAnalyst.shortName).toEqual('sch');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field properties from inline parent tables', async () => {
@@ -507,15 +506,15 @@ test('table field properties from inline parent tables', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(Object.keys(json))).toEqual(new Set(['id', 'analystId', 'analystShortName']));
   expect(json.id).toBe(1);
   expect(json.analystId).toBe(2);
   expect(json.analystShortName).toEqual('sch');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field properties from an inlined parent and its own inlined parent', async () => {
@@ -549,10 +548,10 @@ test('table field properties from an inlined parent and its own inlined parent',
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(Object.keys(json))).toEqual(new Set([
     'id', 'name', // from top-level table
     'compoundId', 'compoundDisplayName', // from inlined compound parent
@@ -563,7 +562,7 @@ test('table field properties from an inlined parent and its own inlined parent',
   expect(json.compoundId).toBe(1);
   expect(json.compoundDisplayName).toEqual('Test Compound 1');
   expect(json.compoundApprovedBy).toEqual('jdoe');
-  dbClient.end();
+  dbConn.end();
 });
 
 test('referenced parent property from an inlined parent', async () => {
@@ -592,10 +591,10 @@ test('referenced parent property from an inlined parent', async () => {
     };
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
-  const dbClient: Client = await getDbClient();
-  const res = await dbClient.query(sql);
-  expect(res.rows.length).toBe(1);
-  const json = res.rows[0].json as any;
+  const dbConn = await getDbConnection();
+  const res: [any[], any] = await dbConn.execute(sql);
+  expect(res[0].length).toBe(1);
+  const json = res[0][0].json as any;
   expect(new Set(Object.keys(json))).toEqual(new Set([
     'id', 'name', // from top-level "drug" table
     'enteredByAnalyst' // from analyst parent of inlined parent table "compound"
@@ -605,5 +604,5 @@ test('referenced parent property from an inlined parent', async () => {
   expect(new Set(Object.keys(json.enteredByAnalyst))).toEqual(new Set(['id', 'shortName']));
   expect(json.enteredByAnalyst.id).toBe(2);
   expect(json.enteredByAnalyst.shortName).toEqual('sch');
-  dbClient.end();
+  dbConn.end();
 });

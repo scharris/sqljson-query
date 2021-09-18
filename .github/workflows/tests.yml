@@ -29,10 +29,20 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mysql:
+          image: mysql:8.0
+          env:
+            MYSQL_DATABASE: drugs
+            MYSQL_USER: drugs
+            MYSQL_PASSWORD: drugs
+            MYSQL_ROOT_PASSWORD: drugs
+          ports:
+            - 3306:3306
+          options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Checkout project repository
         uses: actions/checkout@v2
-      - name: Initialize testing database
+      - name: Initialize PostgreSQL testing database
         run: |
           cd "$GITHUB_WORKSPACE"/src/__tests__/db/pg
           psql "$CONNSTR" -a -q -f sql/create-schema.sql
@@ -40,6 +50,11 @@ jobs:
           psql "$CONNSTR" -a -q -f sql/create-test-data.sql
         env:
           CONNSTR: "postgresql://drugs:drugs@localhost:5432/drugs"
+      - name: Initialize MySQL testing database
+        run: |
+          cd "$GITHUB_WORKSPACE"/src/__tests__/db/mysql
+          mysql --user=drugs --password=drugs --database=drugs --port=3306 < sql/create-schema-objects.sql
+          mysql --user=drugs --password=drugs --database=drugs --port=3306 < sql/create-test-data.sql
       - name: Setup node.js
         uses: actions/setup-node@v2
         with:

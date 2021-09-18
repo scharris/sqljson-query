@@ -1,7 +1,4 @@
 import * as path from 'path';
-import * as child_process from 'child_process';
-import * as util from 'util';
-import {Client} from 'pg';
 import {
   indentLines,
   propertyNameDefaultFunction,
@@ -16,17 +13,16 @@ import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources} from '../mod';
-import {getDbClient} from './db/db-handle';
+import {getDbConnection} from './db/db-connection-mysql';
 import {spawnSync} from 'child_process';
 
-const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
+const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
 const srcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
 const java = { sourceLanguage: 'Java' } as const;
-const execFile = util.promisify(child_process.execFile);
 
 test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =
@@ -43,19 +39,19 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
       )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('results match generated types for JSON_ARRAY_ROW query of single table', async () => {
@@ -73,17 +69,17 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    `String resJson = ${JSON.stringify(JSON.stringify(queryRes.rows[0].json))};\n` +
+    `String resJson = ${JSON.stringify(JSON.stringify(queryRes[0][0].json))};\n` +
     `Drug[] drugs = jsonMapper.readValue(resJson.getBytes(), Drug[].class);\n`
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field property names specified by jsonProperty attributes', async () => {
@@ -110,19 +106,19 @@ test('table field property names specified by jsonProperty attributes', async ()
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('parent reference', async () => {
@@ -148,19 +144,19 @@ test('parent reference', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field properties from inline parent tables', async () => {
@@ -187,19 +183,19 @@ test('table field properties from inline parent tables', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('table field properties from an inlined parent and its own inlined parent', async () => {
@@ -234,19 +230,19 @@ test('table field properties from an inlined parent and its own inlined parent',
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('referenced parent property from an inlined parent', async () => {
@@ -276,19 +272,19 @@ test('referenced parent property from an inlined parent', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('child collection property from an inlined parent', async () => {
@@ -317,19 +313,19 @@ test('child collection property from an inlined parent', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection property from an inlined parent', async () => {
@@ -359,19 +355,19 @@ test('unwrapped child collection property from an inlined parent', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('child collection', async () => {
@@ -397,19 +393,19 @@ test('child collection', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of table field property', async () => {
@@ -435,19 +431,19 @@ test('unwrapped child table collection of table field property', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of field exression property', async () => {
@@ -474,19 +470,19 @@ test('unwrapped child table collection of field exression property', async () =>
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of field expression property with lang-specific type', async () => {
@@ -515,19 +511,19 @@ test('unwrapped child table collection of field expression property with lang-sp
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Analyst row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Analyst.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of parent reference property', async () => {
@@ -557,19 +553,19 @@ test('unwrapped child table collection of parent reference property', async () =
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child table collection of inlined parent property', async () => {
@@ -599,19 +595,19 @@ test('unwrapped child table collection of inlined parent property', async () => 
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection of child collection property', async () => {
@@ -643,19 +639,19 @@ test('unwrapped child collection of child collection property', async () => {
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix: number) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('unwrapped child collection of unwrapped child collection property', async () => {
@@ -688,19 +684,19 @@ test('unwrapped child collection of unwrapped child collection property', async 
 
   const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
 
-  const dbClient: Client = await getDbClient();
+  const dbConn = await getDbConnection();
 
-  const queryRes = await dbClient.query(sql);
+  const queryRes: [any[], any] = await dbConn.execute(sql);
 
   await testWithResultTypes(
     resTypesSrc,
-    queryRes.rows.map((resRow, ix) => (
+    queryRes[0].map((resRow: any, ix) => (
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Compound row${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Compound.class);\n`
     )).join('\n')
   );
 
-  dbClient.end();
+  dbConn.end();
 });
 
 test('generateQueries() produces expected output files', async () => {
