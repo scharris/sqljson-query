@@ -93,18 +93,14 @@ const drugsQuery1: QuerySpec = {
 };
 
 export const queryGroupSpec: QueryGroupSpec = {
-   defaultSchema: 'public',                           // Use 'drugs' here for MySQL.
-   generateUnqualifiedNamesForSchemas: [ 'public' ],  // Use ['drugs'] here for MySQL
+   defaultSchema: 'drugs',
+   generateUnqualifiedNamesForSchemas: [ 'drugs' ],
    propertyNameDefault: 'CAMELCASE',
    querySpecs: [
       drugsQuery1,
    ]
 };
 ``` 
-
-If you created a MySQL example database, change the two instances of the schema name `'public'` at the
-bottom to `'drugs'`. (Had we put the Postgres example database tables in a separate 'drugs' schema, we would
-put 'drugs' for the schema here for Postgres as well, but we put them in `public`).
 
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower definition
 represents the total set of queries and is the only export for the module. It contains the list of queries to
@@ -137,12 +133,16 @@ tableJson: {
 - The `table` property specifies the top (and here the only) table in this JSON output, which is table `drug`.
 
 
-- The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL predicate,
-basically anything suitable for a WHERE clause. Here we're restricting results by `category_code` value, and using
-a SQL parameter named `catCode` as part of the predicate expression. You can use whatever notation is needed
-by your SQL execution runtime to indicate parameters.  The `paramNames` property is not required, but if it is
-provided then a constant will be defined in the TypeScript or Java source code for each parameter entered here
-with value equal to the parameter name, to help catch errors involving using wrong parameter names.
+- The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL
+predicate &mdash; basically anything suitable for a SQL WHERE clause. Here we're restricting results by
+`category_code` value, and using a SQL parameter named `catCode` as part of the predicate expression. For
+the parameters you can use whatever notation is needed by your SQL execution runtime to indicate them within
+the expression. The `paramNames` property is not required, but if it is provided then a constant will be
+defined in the TypeScript or Java source code for each parameter entered here with value equal to the
+parameter name, to help catch errors involving using wrong parameter names. Using literal field names like
+`category_code` here may lead to runtime errors in case of typos or database changes. See 
+[Validating Database Object Names in Free-Form Expressions](#validating-database-object-names-in-free-form-expressions)
+below for a safer alternative.
 
 
 - Finally, the `fieldExpressions` property lists the fields and expressions involving the fields from `table` which
@@ -728,9 +728,7 @@ drugs data. We will include within each drug a collection of the drug's referenc
 priority of each reference particular to the drug from the intermediate table. We'll also sort the
 references collections by priority.
 
-Make a modified copy of the previous query and assign to `drugsQuery6`, which will be our final query, as follows:
-
-### Final Query
+Make a modified copy of the previous query and assign to `drugsQuery6`, as follows:
 
 ```typescript
 const drugsQuery6: QuerySpec = {
@@ -836,6 +834,124 @@ Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the
 npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
 ```
 
+## Validating Database Object Names in Free-Form Expressions
+
+As mentioned previously, field and table references in queries are verified against database metadata when
+queries are generated. However, there are exceptions where custom expressions are used in a query specification,
+such as in a `recordCondition` property or in an `expression` property of a field expression. In our previous
+queries, we just used literals to refer to field names in these cases. That method works, but this has the
+disadvantage that such references are not checked for validity at query generation time, and may cause runtime
+errors in case of typos or database changes.
+
+There is however an easy way to reference table and field names from database metadata for use in the
+"free form" parts of any query specification. As an example, let's make the `recordCondition` in our
+previous query reference the `category_code` field it in database metadata, for safety.
+
+First we need to add an import near the top of our `query-gen/queries/query-specs.ts` file:
+```typescript
+import {Schema_drugs as drugs, verifiedFieldNames} from '../dbmd/relations-metadata';
+```
+
+This imports metadata about tables and fields, and a function to verify field names against that metadata.
+The imported metadata file is always generated just prior to query generation, so it's always available
+to import as shown above in `query-specs.ts`. Let's use it in a new variant of our previous query, which
+will be our final query.
+
+### Final Query
+```typescript
+const {category_code} = verifiedFieldNames(drugs.drug); // category_code === 'category_code'
+
+const drugsQuery7: QuerySpec = {
+   queryName: 'drugs query 7',
+   tableJson: {
+      table: 'drug',
+      recordCondition: { sql: `${category_code} = :catCode`, paramNames: ['catCode'] }, // <-- (Modified)
+      fieldExpressions: [
+         { field: 'name', jsonProperty: 'drugName' },
+         'category_code',
+      ],
+      parentTables: [
+         {
+            referenceName: 'primaryCompound',
+            table: 'compound',
+            fieldExpressions: [
+               { field: 'id', jsonProperty: 'compoundId' },
+               { field: 'display_name', jsonProperty: 'compoundDisplayName' },
+            ],
+            parentTables: [
+               {
+                  table: 'analyst',
+                  fieldExpressions: [
+                     { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
+                  ],
+                  viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+               },
+               {
+                  table: 'analyst',
+                  fieldExpressions: [
+                     { field: 'short_name', jsonProperty: 'approvedByAnalyst' }
+                  ],
+                  viaForeignKeyFields: ['approved_by'] // <- select one of two foreign keys to analyst
+               }
+            ]
+         },
+         {
+            table: 'analyst',
+            fieldExpressions: [
+               { field: 'short_name', jsonProperty: 'registeredByAnalyst' },
+            ],
+         }
+      ],
+      childTables: [
+         {
+            collectionName: 'advisories',
+            table: 'advisory',
+            fieldExpressions: [
+               'advisory_type_id',
+               { field: 'text', jsonProperty: 'advisoryText' },
+            ],
+            parentTables: [
+               {
+                  table: 'advisory_type',
+                  fieldExpressions: [ { field: 'name', jsonProperty: 'advisoryTypeName' } ],
+                  parentTables: [
+                     {
+                        table: 'authority',
+                        fieldExpressions: [ { field: 'name', jsonProperty: 'advisoryTypeAuthorityName' } ]
+                     }
+                  ]
+               }
+            ]
+         },
+         {
+            collectionName: 'prioritizedReferences',
+            table: 'drug_reference',
+            fieldExpressions: [ 'priority' ],
+            parentTables: [
+               {
+                  table: "reference",
+                  fieldExpressions: [ 'publication' ]
+               }
+            ],
+            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg / ora.
+         }
+      ]
+   }
+};
+```
+
+Now the existence of the `category_code` field in the record condition is checked at time of query generation.
+If the field ceases to exist with that name in the `drug` table, and database metadata is regenerated to
+reflect the database change, then the query build process would fail, as we would want it to, due to the
+invalid field reference. A similar function, `verifiedTableName` can be imported as well to check a table
+name against database metadata in a similar way.
+
+That completes our final query specification. Add it to the query group spec and generate sources:
+
+```console
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+```
+
 ## Final Query Review
 
 Let's review what's been accomplished with the [final query specification](#final-query) above. 
@@ -844,7 +960,7 @@ The query includes data from each of the following related tables using all of t
 
 <img src="img/drug-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
-From the query specification above, a SQL query is generated at `src/sql/drugs-query-6.sql`, which includes
+From the query specification above, a SQL query is generated at `src/sql/drugs-query-7.sql`, which includes
 data from all of the above tables:
 
 ```sql
@@ -995,12 +1111,12 @@ from (
 ) q
 ```
 
-Also generated is a TypeScript result types module `src/ts/drugs-query-6.ts`, to represent the types in the query
+Also generated is a TypeScript result types module `src/ts/drugs-query-7.ts`, to represent the types in the query
 result set:
 
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
-export const sqlResource = "drugs-query-6.sql";
+export const sqlResource = "drugs-query-7.sql";
 
 
 // query parameters

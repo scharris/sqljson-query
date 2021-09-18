@@ -14,7 +14,16 @@ create database drugs owner drugs;
 \q
 ```
 
-Then logging in as the new Postgres user `drugs` to the database created above, create the database objects:
+Then logging in as the new Postgres user `drugs` to the database created above, create a 'drugs' schema and
+set our user's search path to it:
+```sql
+# ( psql -U drugs )
+create schema drugs authorization drugs;
+alter role drugs set search_path to drugs;
+\q
+```
+
+Then logging in again as the new Postgres user, create the database objects:
 ```sql
 # ( psql -U drugs )
 

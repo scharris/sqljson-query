@@ -7,6 +7,7 @@ running with our test data. For performing the database setup without relying on
 Fetch the SQL scripts which create the database tables and load them with our tutorial example data:
 ```shell
 mkdir db
+curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/pg/sql/create-schema.sql > db/create-schema.sql
 curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/pg/sql/create-schema-objects.sql > db/create-schema-objects.sql
 curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/pg/sql/create-test-data.sql > db/create-test-data.sql
 ```
@@ -16,8 +17,9 @@ Next create file `db/Dockerfile` with these contents:
 # db/Dockerfile
 FROM postgres:13
 
-COPY create-schema-objects.sql /docker-entrypoint-initdb.d/01-schema-objects.sql
-COPY create-test-data.sql /docker-entrypoint-initdb.d/02-test-data.sql
+COPY create-schema.sql /docker-entrypoint-initdb.d/01-schema.sql
+COPY create-schema-objects.sql /docker-entrypoint-initdb.d/02-schema-objects.sql
+COPY create-test-data.sql /docker-entrypoint-initdb.d/03-test-data.sql
 RUN chmod a+r /docker-entrypoint-initdb.d/*
 
 ENV POSTGRES_USER=drugs
