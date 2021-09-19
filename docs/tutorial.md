@@ -27,7 +27,6 @@ initialize it via `npm`:
 
 ```console
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
-
 (cd query-gen && npm i)
 ```
 
@@ -43,27 +42,29 @@ properties at `db/jdbc.props`.
 ## Generate Database Metadata
 
 Now that the database is created and SQL/JSON-Query installed, we can generate our database metadata
-via the following Maven command:
+via the following command:
 
 For Postgres:
 ```console
-mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=db/jdbc.props -Ddb=pg
+query-gen/generate-dbmd.sh db/jdbc.props pg
 ```
 For MySQL:
 ```console
-mvn -f query-gen/dbmd/pom.xml compile exec:java -DjdbcProps=db/jdbc.props -Ddb=mysql
+query-gen/generate-dbmd.sh db/jdbc.props mysql
 ```
 
-As noted above, it's also easy to generate the database metadata without relying on Maven or Java, if you
-will just execute the
+(On Windows, invoke `query-gen/generate-dbmd.ps1` instead with the same arguments, from Powershell.)
+
+The above command depends on Maven and Java, but as noted above, it's also easy to generate the database
+metadata without relying on either of these, if you will just execute the
 [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
 for your database type (Postgres/MySQL/Oracle) and save the resulting json value to file
 `query-gen/dbmd/dbmd.json`. The query has one parameter `relPat` which is a regular expression for table
 names to be included, for which you can pass '.*' or adjust it as required.
 
-The metadata is generated at `query-gen/dbmd/dbmd.json`, which is where it's expected to be for the
-query generator. It's good to glance at its contents when you're getting started just to make sure
-that the tool found the tables and views you expected it to.
+The metadata files are generated at `query-gen/dbmd/dbmd.json` and `query-gen/dbmd/relations-metadata.ts`, which
+is where they are expected to be for the query generator. It's good to glance at its contents when you're
+getting started just to make sure that the tool found the tables and views you expected it to.
 
 ## Query Generation
 
@@ -75,7 +76,7 @@ with the following initial contents:
 
 ```typescript
 // query-gen/queries/query-specs.ts
-import {QueryGroupSpec, QuerySpec, RecordCondition} from 'sqljson-query';
+import {QueryGroupSpec, QuerySpec} from 'sqljson-query';
 
 const drugsQuery1: QuerySpec = {
   queryName: 'drugs query 1',
@@ -190,7 +191,7 @@ mkdir -p src/sql src/ts
 Now we can generate the SQL and TypeScript sources as follows:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something like:
@@ -327,7 +328,7 @@ export const queryGroupSpec: QueryGroupSpec = {
 Now let's again generate the SQL and TypeScript sources with the same command as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added a new
@@ -439,7 +440,7 @@ fields from `compound` itself.
 Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 In the result type declaration module `src/ts/drugs-query-3.ts`, we see that our two analyst fields have been added to
@@ -558,7 +559,7 @@ const drugsQuery4: QuerySpec = {
 Add `drugsQuery4` to `queryGroupSpec` and run the sources generator with our usual command:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 If you examine the generated result types module for the query at `src/ts/drugs-query-4.ts`, you should see a new
@@ -692,7 +693,7 @@ const drugsQuery5: QuerySpec = {
 Add the new `drugsQuery5` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources again:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 In the generated result types module for the query at `src/ts/drugs-query-5.ts`, we should see new fields for the
@@ -831,7 +832,7 @@ to perform multiple queries to get the same data.
 Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 ## Validating Database Object Names in Free-Form Expressions
@@ -949,7 +950,7 @@ name against database metadata in a similar way.
 That completes our final query specification. Add it to the query group spec and generate sources:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts --tsRelMdsDir=../src/ts
+npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 ## Final Query Review
