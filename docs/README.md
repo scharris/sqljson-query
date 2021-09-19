@@ -313,9 +313,9 @@ which contains a nearly ready-to-go form of the tool.
   you can name and position the folder however you want.
 
 
-- Next, install dependencies needed by the tool in the `query-gen folder`:
+- Next, install dependencies needed by the tool in the `query-gen` folder:
 
-  ```cd query-gen; npm i```
+  ```(cd query-gen && npm i)```
 
   This step only needs to be performed once to install npm dependencies.
 
@@ -324,11 +324,12 @@ which contains a nearly ready-to-go form of the tool.
   
   Add a script or manually-triggered step to your build process to perform the following whenever
   database metadata needs to be updated to reflect changes in the database:
+  ```console
+  query-gen/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
   ```
-  mvn -f query-gen/dbmd/pom.xml compile exec:java "-DjdbcProps=<props>" "-Ddb=<pg|ora>"
-  ```
+  A PowerShell variant of the script taking the same parameters is also available, for Windows users. 
   
-  Here `<props>` is the path to a properties file with JDBC connection information for
+  Here `<jdbc-props>` is the path to a properties file with JDBC connection information for
   the database to be examined. The expected format of the jdbc properties file is:
   ```
   jdbc.driverClassName=...
@@ -336,23 +337,19 @@ which contains a nearly ready-to-go form of the tool.
   jdbc.username=...
   jdbc.password=...
   ```
-  
-  The above command will produce output file `query-gen/dbmd/dbmd.json` containing the database
-  metadata, which is where the tool expects to find the metadata while generating queries. On
-  first run of metadata generation, examine this file to make sure that the expected tables have
-  been found by the metadata generator.
-  
-  To remove unwanted tables from database metadata generation, add an additional property
-  definition `-Ddbmd.table.pattern=<regex>` to the `mvn` command to only include relations
-  whose name matches the given regular expression. The pattern defaults to `^[^$].*`.
 
-
+  The database metadata files are generated at `query-gen/dbmd/dbmd.json` and
+  `query-gen/dbmd/relations-metadata.ts`, which is where the tool expects to find them when generating
+  queries. On first run of metadata generation, examine the `dbmd.json` file to make sure that the
+  expected tables have been found by the metadata generator.
+  
+  
 - Define application queries in TypeScript file `query-gen/queries/query-specs.ts`
 
-  Edit the `query-specs.ts` file in `query-gen/queries` to define application queries, exporting
-  a `QueryGroupSpec` instance as `queryGroupSpec`. The details of how to write query specifications
-  are described in [the query specifications documentation](query-specifications.md). It may help
-  to work through [the tutorial](tutorial.md) before consulting the detailed documentation first.
+  Edit the `query-specs.ts` file in `query-gen/queries` to define application queries, which should
+  export a `QueryGroupSpec` instance as `queryGroupSpec`. The details of how to write query specifications
+  are described in [the query specifications documentation](query-specifications.md). It is recommended 
+  to work through [the tutorial](tutorial.md) before consulting the detailed documentation.
   Any tables, views and fields used in the queries must exist in the database metadata, so database
   metadata should be generated before proceeding to query generation.
 
@@ -362,17 +359,14 @@ which contains a nearly ready-to-go form of the tool.
   To generate SQL and matching Java result types:
   
   ```
-  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --javaBaseDir=../src/generated/lib -javaQueriesPkg=gen.queries -javaRelMdsPkg=gen.relmds # --javaResultTypesHeader=...
+  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --javaBaseDir=../src/generated/lib --javaQueriesPkg=gen.queries
   ```
 
-  To generate SQL and matching TypeScript result types:
+  Or to generate SQL and matching TypeScript result types:
   
   ```
-  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --tsQueriesDir=../src/generated/lib --tsRelMdsDir=../src/generated/lib --tsTypesHeader=queries/result-types-header-ts
+  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --tsQueriesDir=../src/generated/lib
   ```
-
-  The java/tsTypesHeader parameters are not required, but can be used in case additional imports
-  or comments are wanted at the top of the generated query result type files.
 
 
 ## Tutorial
