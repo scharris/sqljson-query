@@ -49,12 +49,12 @@ then again whenever the database has changes that we want to incorporate into ou
 
 Next we supply specifications for our queries. A query specification describes how to form JSON output for
 each table and how related table data is nested via parent/child table relationships. These are expressed in
-TypeScript and they are checked at query-generation time (during the app build, usually) against the database
-metadata. This checking ensures validity of all references to database objects, including implicit reliance
-on foreign keys in parent/child relationships. 
+TypeScript and they are checked whenever the tool is run to generate queries (during the app build, usually)
+against the database metadata. This checking ensures validity of all references to database objects,
+including implicit reliance on foreign keys in parent/child relationships. 
 
-In this example we supply a specification for a single drugs query, which fetches data from all tables in the
-diagram above:
+In this example we supply a specification for a single drugs query, which fetches data from all of
+the tables shown in the above diagram:
 
 ```typescript
 const drugAdvisoriesReferencesQuery: QuerySpec = {
@@ -124,11 +124,12 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
 ```
 
 ### Outputs
-The tool produces the following outputs:
+Given the inputs above, SQL/JSON-Query produces the following outputs:
 
 1) <img align="right" src="img/sql-output-oval.dot.svg" alt="SQL files"> SQL files are generated and written
 to a specified output directory, for each query specification that was supplied. The SQL utilizes ISO standard
-SQL/JSON operators or their closest equivalent for the chosen type of database:
+SQL/JSON operators or their closest equivalent for the chosen type of database. For the query specification
+above the following SQL is produced.
 
 ```sql
 select
@@ -259,7 +260,8 @@ from (
 2) <img align="right" src="img/result-types-oval.dot.svg" alt="result types"> A TypeScript or Java source code file
    is generated for each query, which declares the result types for the objects appearing in the query results of
    the generated SQL for the query. The JSON value from each result row can be directly deserialized to the first
-   result type declared in this file.
+   result type declared in this file. For our example query specification, the following TypeScript source file
+   is generated (Java source would be similar).
 
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
@@ -305,43 +307,41 @@ against an actual example database, see [the tutorial](tutorial.md).
 
 ## Setup
 
-The easiest way to enable query generation via SQL/JSON-Query is to clone the 
-`sqljson-query-dropin` project from
-[the sqljson-query-dropin repo](https://github.com/scharris/sqljson-query-dropin),
-which contains a nearly ready-to-go form of the tool.
+The following is a brief set of instructions for using the tool. It may help to work through
+[the tutorial](tutorial.md) to see a stepwise guide through a working example.
 
-- Clone the dropin repository
+### Setup the tool folder
+
+  Clone from [the sqljson-query-dropin repo](https://github.com/scharris/sqljson-query-dropin) which
+  contains a ready-to-go form of the tool:
 
   ```git clone https://github.com/scharris/sqljson-query-dropin query-gen```
 
-  Here we've installed the tool in a directory named `query-gen` for definiteness, but
-  you can name and position the folder however you want.
+  Here we've installed the tool in a directory named `query-gen` but you can name and position the
+  folder however you like &mdash; just adjust commands accordingly below.
 
-
-- Next, install dependencies needed by the tool in the `query-gen` folder:
+  Install the dependencies for the tool via npm:
 
   ```(cd query-gen && npm i)```
 
-  This step only needs to be performed once to install npm dependencies.
+###  Generate database metadata
 
-
-- Generate database metadata
-  
-  Add a script or manually-triggered step to your build process to perform the following whenever
-  database metadata needs to be updated to reflect changes in the database:
-  ```console
-  query-gen/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
-  ```
-  A PowerShell variant of the script taking the same parameters is also available, for Windows users. 
-  
-  Here `<jdbc-props>` is the path to a properties file with JDBC connection information for
-  the database to be examined. The expected format of the jdbc properties file is:
+  Create a properties file containing JDBC connection information for your database, with the format:
   ```
   jdbc.driverClassName=...
   jdbc.url=...
   jdbc.username=...
   jdbc.password=...
   ```
+  
+  Then generate the database metadata:
+
+  ```console
+  query-gen/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
+  ```
+  where `jdbc-props` is the properties file create above and the second argument represents your database type.
+
+  A PowerShell variant of the script taking the same parameters is available in the same folder for Windows users. 
 
   The database metadata files are generated at `query-gen/dbmd/dbmd.json` and
   `query-gen/dbmd/relations-metadata.ts`, which is where the tool expects to find them when generating
@@ -349,55 +349,47 @@ which contains a nearly ready-to-go form of the tool.
   expected tables have been found by the metadata generator.
   
   
-- Define application queries in TypeScript file `query-gen/queries/query-specs.ts`
+### Define application query specifications
 
-  Edit the `query-specs.ts` file in `query-gen/queries` to define application queries, which should
-  export a `QueryGroupSpec` instance as `queryGroupSpec`. The details of how to write query specifications
-  are described in [the query specifications documentation](query-specifications.md). It is recommended 
-  to work through [the tutorial](tutorial.md) before consulting the detailed documentation.
-  Any tables, views and fields used in the queries must exist in the database metadata, so database
-  metadata should be generated before proceeding to query generation.
+  Create and edit file `query-specs.ts` in folder `query-gen/queries/` to define application queries.
+  The file should export a `QueryGroupSpec` instance as `queryGroupSpec`. 
 
-
-- Generate SQL and result types:
-
-  To generate SQL and matching Java result types:
-  
+  ```typescript
+  // (file <query-gen-folder>/queries/query-specs.ts)
+  export const queryGroupSpec: QueryGroupSpec = {
+     defaultSchema: "foos",
+     generateUnqualifiedNamesForSchemas: ["foos"],
+     propertyNameDefault: "CAMELCASE",
+     querySpecs: [
+       // <your query specifications here>
+     ]
+  };
   ```
-  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --javaBaseDir=../src/generated/lib --javaQueriesPkg=gen.queries
-  ```
-
-  Or to generate SQL and matching TypeScript result types:
   
+  The details of how to write query specifications are described in the [the tutorial](tutorial.md) and
+  further in [the query specifications documentation](query-specifications.md). It is recommended to work
+  through [the tutorial](tutorial.md) before consulting the detailed documentation. 
+
+
+### Generate SQL and result types:
+
+  To generate SQL and matching TypeScript result types:
+
   ```
   npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --tsQueriesDir=../src/generated/lib
+  ```
+
+  This will generate the SQL and TypeScript sources for your queries in whatever directories you specify for
+  the `sqlDir` and `tsQueriesDir` arguments.
+  
+  Or for Java result types instead:
+  ```
+  npm run --prefix query-gen generate-queries -- --sqlDir=../src/generated/sql --javaBaseDir=../src/generated/lib --javaQueriesPkg=gen.queries
   ```
 
 
 ## Tutorial
 
 [A tutorial](tutorial.md) is available which builds a working example for an example database schema.
-It is recommended to review the tutorial before consulting the detailed query specifications
-documentation.
-
-## Query Specifications
-
-If using the ready-made [project dropin](https://github.com/scharris/sqljson-query-dropin)
-to add query generation capability to a project as described above, then you define your
-single `QueryGroupSpec` object in file `<query-gen-folder>/queries/query-specs.ts`, and
-export it from that module as `queryGroupSpec`.
-
-```typescript
-// (file query-specs.ts)
-export const queryGroupSpec: QueryGroupSpec = {
-   defaultSchema: "foos",
-   generateUnqualifiedNamesForSchemas: ["foos"],
-   propertyNameDefault: "CAMELCASE",
-   querySpecs: [
-     // <your query specifications here>
-   ]
-};
-```
-
-See [the tutorial](tutorial.md) and [the query specifications documentation](query-specifications.md)
-for details of constructing the query specifications.
+It is recommended to review the tutorial before consulting the detailed
+[query specifications documentation](query-specifications.md).
