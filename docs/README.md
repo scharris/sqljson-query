@@ -2,19 +2,21 @@
 
 ## Overview
 
-This is a source generation tool to be used to generate SQL nested data queries, which
-utilize SQL/JSON operators to gather results in JSON format, as well as matching type
-declarations for the query results in TypeScript or Java.
+Generate SQL nested data queries which gather results from any number of related tables in
+JSON format via single query executions using SQL/JSON operators. Also generates for each 
+query the matching type declarations for the query results in either TypeScript or Java.
+Supports PostgreSQL, Oracle, MySQL databases. This is intended to be a build-time tool,
+it doesn't have (and doesn't need) any runtime component.
 
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
 As a developer, your job in the process is to supply a file `query-specs.ts`
 which provides a list of query specifications, where each specification describes a
 hierarchy of data to be fetched for a query. From these query specifications and a
-database metadata file (generated from a database via included tool), SQL/JSON-Query 
-generates:
-- SQL queries compliant with the SQL/JSON standard (or the closest approximation supported by
-  the database) for fetching nested data, for PostgreSQL, MySQL and Oracle databases
+database metadata file (auto-generated from a database via included tool), the
+SQL/JSON-Query tool generates:
+- SQL queries compliant with the SQL/JSON standard (or the closest approximation supported
+  by the database) for fetching nested data, for PostgreSQL, MySQL and Oracle databases
 - Result type declarations in TypeScript or Java, defining the structure of the objects
   appearing in result sets for the generated SQL, and to which the query results can be
   directly deserialized
@@ -27,14 +29,17 @@ database metadata for PostgresSQL, MySQL, and Oracle databases is included.
 The query generation work is all done at build time, and there is no run-time component
 needed to use the generated SQL queries and generated result types. The SQL can be
 executed by any preferred means, and deserialized to the generated result types using
-any library suitable for the purpose, such as Jackson in Java, or via `JSON.parse()`
+your whatever you like to use for that purpose, such as Jackson for Java, or via `JSON.parse()`
 in TypeScript.
 
 ## Example Inputs and Outputs
 
-For the database diagrammed below, containing information about clinical drugs, we would first use the tool
-to generate database metadata. Generally we would only generate database metadata initially, and then again
-whenever the database has changes that we want to incorporate into our queries.
+Let's look at example inputs and outputs to clarify what the tool does. For an actual follow-along
+executable example, see the [the tutorial](tutorial.md).
+
+For the given example database diagrammed below, containing information about clinical drugs, we would first
+use the tool to generate database metadata. Generally we would only generate database metadata initially, and
+then again whenever the database has changes that we want to incorporate into our queries.
 
 ### Inputs
 <img align="right" src="img/db-box.dot.svg" alt="database diagram">
