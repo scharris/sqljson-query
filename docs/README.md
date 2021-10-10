@@ -5,8 +5,8 @@
 Generate SQL nested data queries which gather results from any number of related tables in
 JSON format via single query executions using SQL/JSON operators. Also generates for each 
 query the matching type declarations for the query results in either TypeScript or Java.
-Supports PostgreSQL, Oracle, MySQL databases. This is intended to be a build-time tool,
-it doesn't have (and doesn't need) any runtime component.
+Supports PostgreSQL, Oracle, and MySQL databases. This is intended to be a build-time tool,
+it doesn't have or need any runtime component.
 
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
@@ -15,8 +15,9 @@ which provides a list of query specifications, where each specification describe
 hierarchy of data to be fetched for a query. From these query specifications and a
 database metadata file (auto-generated from a database via included tool), the
 SQL/JSON-Query tool generates:
-- SQL queries compliant with the SQL/JSON standard (or the closest approximation supported
-  by the database) for fetching nested data, for PostgreSQL, MySQL and Oracle databases
+- SQL queries compliant with the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html)
+  (or the closest approximation supported by the database) for fetching nested data, for
+  PostgreSQL, MySQL and Oracle databases
 - Result type declarations in TypeScript or Java, defining the structure of the objects
   appearing in result sets for the generated SQL, and to which the query results can be
   directly deserialized
