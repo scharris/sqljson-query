@@ -10,10 +10,9 @@ Generate nested data SQL queries and matching result types for trees of related 
 
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
-This is a source-generating tool which is intended for developers to use as part of their project build processes.
-It generates nested data SQL queries and matching result type declarations for each query. For each of a set of
-TypeScript *query specifications*, where each specification describes a hierarchy of any number of related tables from
-which to fetch data (including independent child tables from any parent table), the tool:
+This is a source-generating tool which is intended for use by developers as part of their project build processes.
+For each of a set of TypeScript *query specifications* written by the developer, which describes a hierarchy of any
+number of related tables from which to fetch data (including independent child tables from any parent table), the tool:
  - Generates a SQL query conforming to the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html),
    or the closest approximation supported by the database, which when executed will yield JSON data for the
    related tables via a single query execution
