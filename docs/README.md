@@ -1,4 +1,6 @@
-# Overview
+# SQL/JSON-Query
+
+## Overview
 
 This tool generates SQL queries to fetch nested data in JSON format from any number of related database tables,
 and generates result type declarations that match each query's result structure. The generated SQL can then be
