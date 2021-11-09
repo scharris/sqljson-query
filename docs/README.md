@@ -1,27 +1,32 @@
-# SQL/JSON-Query
+# Overview
 
-Generate nested data SQL queries and matching result types for trees of related database tables. 
+This tool generates SQL queries to fetch nested data in JSON format from any number of related database tables,
+and generates result type declarations that match each query's result structure. The generated SQL can then be
+executed directly against the database without the need for any extra runtime libraries, yielding JSON, and the
+results deserialized to the generated result types using any of the common libraries or facilities in your target
+language for that purpose (e.g. Jackson for Java, or just JSON.parse() for TypeScript).
 
 - Supported databases: **PostgreSQL**, **MySQL**, **Oracle**.
 
 - Supported languages for result types: **TypeScript**, **Java**
 
-## Overview
+## Process
 
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
-This is a source-generating tool which is intended for use by developers as part of their project build processes.
-For each of a set of TypeScript *query specifications* written by the developer, which describes a hierarchy of any
-number of related tables from which to fetch data (including independent child tables from any parent table), the tool:
+For each of a set of TypeScript *query specifications* written by the developer, which describes a hierarchy of
+related tables from which to fetch data (including independent child table hierarchies from any parent table),
+the tool:
  - Generates a SQL query conforming to the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html),
    or the closest approximation supported by the database, which when executed will yield JSON data for the
    related tables via a single query execution
  - Generates the matching type declarations for the query results in either TypeScript or Java, to which the
    query results can be directly deserialized.
 
-The query generation work is intended to executed at build time, and there is no run-time component needed to use the
-generated SQL queries and result types. The SQL can be executed by any preferred means and deserialized to the generated
-result types using your whatever library is preferred, such as Jackson for Java, or via `JSON.parse()` in TypeScript.
+The query generation work is intended to execute at build time, and there is no run-time component needed to use
+the generated SQL queries and result types. The SQL can be executed by any preferred means and deserialized to the
+generated result types using your whatever library is preferred, such as Jackson for Java, or via `JSON.parse()`
+in TypeScript.
 
 When generating queries, database metadata is used to verify all tables, fields, and foreign key relationships
 referenced in the query specifications, failing with an error if any such items are not found in database metadata.
@@ -37,21 +42,26 @@ query specifications and generated sources follows.
 Let's look at example inputs and outputs to clarify what the tool does. For an actual follow-along executable example,
 please see the [the tutorial](tutorial.md).
 
-For the given example database diagrammed below (about clinical drugs), we would first use the tool to generate database
-metadata. Generally we would only generate database metadata initially, and then again whenever the database has changes
-that we want to incorporate into our queries.
 
 ### Inputs
+
+Out first "input" is the database itself, for which we'll use the example schema diagrammed below (which is about
+clinical drugs). The database is used to generate database metadata in JSON form, which is needed by the tool
+during source generation, both to verify references to database objects and to find foreign key information
+for related tables in query specifications. Generally we would only generate database metadata initially and then
+whenever the database has changes that we want to incorporate into our queries.
+
 <img align="right" src="img/db-box.dot.svg" alt="database diagram">
 <img src="img/drug-almost-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
 <img align="right" src="img/query-spec-box.dot.svg" alt="query-specification">
 
-Next we supply specifications for our queries. A query specification describes how to form JSON output for each table
-and how related table data is nested via parent/child table relationships. These are expressed in TypeScript (regardless
-of target language) and they are checked whenever the tool is run to generate queries against the database metadata.
-This checking ensures validity of all references to database objects, including implicit reliance on foreign keys in
-parent/child relationships. 
+The other input for the source generator is a set of query specifications. A query specification describes how
+to form JSON output for each table, including how related table data is nested via parent/child table
+relationships within a table's output. These query specifications are expressed in TypeScript, regardless of
+target language, and are checked against database metadata whenever the tool is run. This checking ensures
+validity of all references to database objects, including implicit reliance on foreign keys in parent/child
+relationships. 
 
 In this example we supply a specification for a single drugs query, which fetches data from all tables in the above
 diagram:
