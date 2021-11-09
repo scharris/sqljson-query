@@ -90,7 +90,7 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
             fieldExpressions: [
               { field: 'short_name', jsonProperty: 'enteredByAnalyst' }
             ],
-            viaForeignKeyFields: ['entered_by'] // <- select on of two foreign keys to analyst
+            viaForeignKeyFields: ['entered_by'] // <- specified because there are two foreign keys to this parent
           },
         ]
       },
