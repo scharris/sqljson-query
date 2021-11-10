@@ -17,13 +17,20 @@ language for that purpose (e.g. Jackson for Java, or just JSON.parse() for TypeS
 <img align="right" src="img/diagram-1.dot.svg" alt="source generation process diagram">
 
 For each of a set of TypeScript *query specifications* written by the developer, which describes a hierarchy of
-related tables from which to fetch data (including independent child table hierarchies from any parent table),
-the tool:
+related tables from which to fetch data, the tool:
  - Generates a SQL query conforming to the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html),
    or the closest approximation supported by the database, which when executed will yield JSON data for the
-   related tables via a single query execution
+   related tables via a single query execution.
  - Generates the matching type declarations for the query results in either TypeScript or Java, to which the
    query results can be directly deserialized.
+
+An advantage of using SQL/JSON aggregation functions, as found in the generated queries, is that it allows us to
+efficiently pull data from multiple independent child hierarchies of any given parent table in a single query,
+which is not achievable practically or efficiently via traditional joins. The downside of SQL/JSON is that it's
+somewhat difficult and tedious to actually write these queries directly in SQL, and more so to also create types
+to match the query result structures. This was the motivation for the source generator: to make it easy to create
+the nested data SQL/JSON queries from a simple specification and to auto-generate their result types at the same
+time.
 
 The query generation work is intended to execute at build time, and there is no run-time component needed to use
 the generated SQL queries and result types. The SQL can be executed by any preferred means and deserialized to the

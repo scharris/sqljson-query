@@ -8,11 +8,12 @@
 Make sure that Maven's `mvn` is on your path and `JAVA_HOME` is defined to point to your JDK11+
 installation directory. From the node installation, `npm` needs to be on your path as well.
 
-&dagger; NOTE: The Java and Maven dependencies can be dispensed with, if you arrange other means of executing
+&dagger; NOTE: The Java and Maven dependencies are not necessary, if you arrange other means of executing
 the [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-for your database type and the saving of its results to `query-gen/dbmd/dbmd.json`. The query has one parameter
-`relPat` which is a regular expression for table names to be included (you can pass '.*' or adjust to suit).
-The Maven project simply executes this query with a default for `relPat` and saves the results to file.
+for your type of database, and then save that query's results to file `query-gen/dbmd/dbmd.json`. The query has
+one parameter `relPat` which is a regular expression for table names to be included (you can pass '.*', or adjust
+to suit). The Maven project simply executes this query with a default for `relPat` and saves the results to the
+`dbmd.json` file indicated above.
 
 ## Project Directory Setup
 
@@ -35,13 +36,13 @@ so long as commands below are adjusted accordingly.
 
 ## Database Setup
 
-Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres or
-MySQL database for use in this tutorial. The database should be listening with the connect information
-properties at `db/jdbc.props`.
+Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres or MySQL
+database for use in this tutorial. After you've completed the database setup, the database should be listening
+for connections with the connection information properties as provided in file `db/jdbc.props`.
 
 ## Generate Database Metadata
 
-Now that the database is created and SQL/JSON-Query installed, we can generate our database metadata
+Now that the database is created and SQL/JSON-Query is installed, we can generate our database metadata
 via the following command:
 
 For Postgres:
@@ -53,7 +54,7 @@ For MySQL:
 query-gen/generate-dbmd.sh db/jdbc.props mysql
 ```
 
-(On Windows, invoke `query-gen/generate-dbmd.ps1` instead with the same arguments, from Powershell.)
+(On Windows, invoke `query-gen/generate-dbmd.ps1` from Powershell with the same arguments.)
 
 The above command depends on Maven and Java, but as noted above, it's also easy to generate the database
 metadata without relying on either of these, if you will just execute the
@@ -113,7 +114,7 @@ all queries such as the default schema name to be assumed for unqualified tables
 In `drugsQuery1` we've defined a simple query based on just a single table, `drug`. It's given a name via
 `queryName` which is used to determine the names of the generated SQL files and TypeScript/Java source files.
 The rest of the query specification lies in the `tableJson` property, which describes how to form JSON output
-for a given "top" table and whatever related tables it may want to include in its output.
+for a given "top" table and whatever related tables it may want to include data from in its output.
 
 Let's briefly go over the properties of the `tableJson` object, since it's the centerpiece of our query.
 
@@ -147,7 +148,7 @@ below for a safer alternative.
 
 
 - Finally, the `fieldExpressions` property lists the fields and expressions involving the fields from `table` which
-to be included as properties in the JSON objects representing the table rows. The field expressions take three
+are to be included as properties in the JSON objects representing the table rows. The field expressions take three
 forms here, which cover all possibilities:
 
   - The first item shows the general form for a simple table field:
@@ -184,6 +185,7 @@ parent and child tables to the JSON output.
 
 So that describes our first query on the `drug` table. Before we generate the SQL and TypeScript sources for it,
 let's make source directories to hold our generated sources:
+
 ```console
 mkdir -p src/sql src/ts
 ```
@@ -223,7 +225,8 @@ database metadata that was generated above and found at its standard location of
 
 Open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
 the `catCode` parameter. You should see output like the following:
-```json lines
+
+```
 {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
@@ -244,9 +247,9 @@ export interface Drug
   cidPlus1000: number | null;
 }
 ```
-This TypeScript module defines an interface `Drug` which matches the form of the result objects in the
-query results. It also defines a constant for the parameter name as a convenience/safety feature, and
-lets you know the corresponding SQL file that was generated as well.
+This TypeScript module defines an interface `Drug` which matches the form of the the result object in each
+row of the query results. It also defines a constant for the parameter name as a convenience/safety feature,
+and lets you know the corresponding SQL file that was generated from the same query specification as well.
 
 ## Adding Parent Tables
 
@@ -262,8 +265,9 @@ parent table of drug.
 We add references to parent tables via the optional property `parentTables` within our `tableJson` object.
 Each entry in `parentTables` is itself a structure like that in `tableJson` &mdash; in other words it is a
 [TableJsonSpec](query-specifications.md#table-json-specification). It also supports a few additional
-properties to control the join mechanism between parent and child. See the
-[Parent Table Specification](query-specifications.md#parent-table-specification) documentation for full details.
+properties to control the join mechanism between parent and child (which usually don't need to be specified).
+See the [Parent Table Specification](query-specifications.md#parent-table-specification) documentation for
+full details.
 
 Now let's proceed to make a copy of our previous query and assign it to `drugsQuery2`, with a new parent tables
 section added as follows:
@@ -485,15 +489,14 @@ That covers the main points for obtaining data from parent tables. For more info
 <img align="right" src="img/drug-advisory.svg" alt="drug and advisory tables" width="150" height="380">
 
 Next we'll add a collection of related advisories for the drugs. The `advisory` table is a child table of table
-`drug` as seen in the diagram. We want a collection property which collects for each drug the list of related
-advisories. Child table collection properties are described in the optional property `childTables` within the
-`tableJson`. Each entry in `childTables` can specify any of the properties allowed in `tableJson` as described
-above, to control the translation of the child table's content to JSON &mdash; in other words a `childTables`
-entry is a [TableJsonSpec](query-specifications.md#table-json-specification). It also allows a few additional
-properties: a `collectionName` property to name the collection member, and a few optional properties related
-to customizing or disambiguating the join between parent and child, which are needed only infrequently.
-See the [Child Table Specification](query-specifications.md#child-table-specification) documentation for full
-details.
+`drug` as seen in the diagram. Child table collection properties are described in a `tableJson` (any `TableJsonSpec`
+instance in fact) via the optional property `childTables`. Each entry in `childTables` can specify any of the
+properties allowed in `tableJson` as described above, to control the translation of the child table's content to
+JSON &mdash; in other words a `childTables` entry is a
+[TableJsonSpec](query-specifications.md#table-json-specification). It also allows a few additional properties: a
+`collectionName` property to name the collection member, and a few optional properties related to customizing or
+disambiguating the join between parent and child, which are needed only infrequently. See the
+[Child Table Specification](query-specifications.md#child-table-specification) documentation for full details.
 
 To add the drug advisories data, add a new query based on the previous one which adds a new `childTables` section
 within `tableJson` as follows:
