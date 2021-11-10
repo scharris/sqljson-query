@@ -73,7 +73,7 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
   queryName: 'drug advisories references query',
   tableJson: {
     table: 'drug',
-    recordCondition: { sql: 'category_code = :catCode', paramNames: ['catCode'] },
+    recordCondition: { sql: 'category_code = :catCode' },
     fieldExpressions: [
       { field: 'name', jsonProperty: 'drugName' },
       'category_code',
@@ -278,9 +278,6 @@ from (
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
 export const sqlResource = "drug-advisories-references-query.sql";
-
-// query parameters
-export const catCodeParam = 'catCode';
 
 // Below are types representing the result data for the generated query, with top-level type first.
 export interface Drug
