@@ -32,11 +32,6 @@ to match the query result structures. This was the motivation for the source gen
 the nested data SQL/JSON queries from a simple specification and to auto-generate their result types at the same
 time.
 
-The query generation work is intended to execute at build time, and there is no run-time component needed to use
-the generated SQL queries and result types. The SQL can be executed by any preferred means and deserialized to the
-generated result types using your whatever library is preferred, such as Jackson for Java, or via `JSON.parse()`
-in TypeScript.
-
 When generating queries, database metadata is used to verify all tables, fields, and foreign key relationships
 referenced in the query specifications, failing with an error if any such items are not found in database metadata.
 A self-contained tool is included to fetch the database metadata for each supported database.
