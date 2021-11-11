@@ -63,7 +63,7 @@ The above command depends on Maven and Java, but it's easy to generate the datab
 on either of these. There are two database metadata files which should be generated:
   - First generate the primary database metadata by executing the
     [SQL database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-    in the folder for your database type, by whatever means you prefer to run it against your database. The query
+    folder for your database type, by whatever means you prefer to run it against your database. The query
     has one parameter `relPat` which is a regular expression for table names to be included, for which you can
     pass (or textually replace with) '.*'. Save the resulting json contents to file `query-gen/dbmd/dbmd.json`. 
   - Next generate additional "relations" metadata, which is the table and field metadata in a form used to verify

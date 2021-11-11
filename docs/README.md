@@ -383,7 +383,7 @@ The following is a brief set of instructions for using the tool. It may help to 
   
   The details of how to write query specifications are described in the [the tutorial](tutorial.md) and
   further in [the query specifications documentation](query-specifications.md). It is recommended to work
-  through [the tutorial](tutorial.md) before consulting the detailed documentation. 
+  through the tutorial before consulting the detailed documentation. 
 
 
 ### Generate SQL and result types:
