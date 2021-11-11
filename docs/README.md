@@ -362,7 +362,7 @@ The following is a brief set of instructions for using the tool. It may help to 
   Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be easily avoided.
   See 
   [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java)
-  in the tutorial, if you want to generate database metadata without using Maven and Java.
+  in the tutorial, if you want to generate database metadata without those dependencies.
   
 ### Define application query specifications
 
