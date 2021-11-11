@@ -358,6 +358,11 @@ The following is a brief set of instructions for using the tool. It may help to 
   `query-gen/dbmd/relations-metadata.ts`, which is where the tool expects to find them when generating
   queries. On first run of metadata generation, examine the `dbmd.json` file to make sure that the
   expected tables have been found by the metadata generator.
+
+  Note: Maven and Java are only used here to fetch database metadata, but the the Java/Maven dependency can be
+  easily avoided. See the
+  [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java).
+  section in the tutorial for instructions showing how to generate database metadata without Maven and Java.
   
   
 ### Define application query specifications
