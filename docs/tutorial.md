@@ -2,18 +2,14 @@
 
 ## Prerequisites
 - [NodeJS 14+](https://nodejs.org/en/)
-- [Java JDK 11+](https://jdk.java.net) &dagger;
-- [Apache Maven 3.6+](https://maven.apache.org/download.cgi) &dagger;
+- [Java JDK 11+](https://jdk.java.net) (optional &dagger);
+- [Apache Maven 3.6+](https://maven.apache.org/download.cgi) (optional &dagger);
+  
+&dagger; Maven and Java are only used here to fetch database metadata, and they can be easily avoided.
+See [Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java).
 
-Make sure that Maven's `mvn` is on your path and `JAVA_HOME` is defined to point to your JDK11+
-installation directory. From the node installation, `npm` needs to be on your path as well.
-
-&dagger; NOTE: The Java and Maven dependencies are not necessary, if you arrange other means of executing
-the [database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-for your type of database, and then save that query's results to file `query-gen/dbmd/dbmd.json`. The query has
-one parameter `relPat` which is a regular expression for table names to be included (you can pass '.*', or adjust
-to suit). The Maven project simply executes this query with a default for `relPat` and saves the results to the
-`dbmd.json` file indicated above.
+If using Maven to fetch database metadata, make sure that Maven's `mvn` is on your path and `JAVA_HOME` is
+defined to point to your JDK11+ installation directory. The `npm` command is assumed to be on your path as well.
 
 ## Project Directory Setup
 
@@ -56,16 +52,27 @@ query-gen/generate-dbmd.sh db/jdbc.props mysql
 
 (On Windows, invoke `query-gen/generate-dbmd.ps1` from Powershell with the same arguments.)
 
-The above command depends on Maven and Java, but as noted above, it's also easy to generate the database
-metadata without relying on either of these, if you will just execute the
-[database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-for your database type (Postgres/MySQL/Oracle) and save the resulting json value to file
-`query-gen/dbmd/dbmd.json`. The query has one parameter `relPat` which is a regular expression for table
-names to be included, for which you can pass '.*' or adjust it as required.
-
 The metadata files are generated at `query-gen/dbmd/dbmd.json` and `query-gen/dbmd/relations-metadata.ts`, which
 is where they are expected to be for the query generator. It's good to glance at its contents when you're
 getting started just to make sure that the tool found the tables and views you expected it to.
+
+
+### Generating Database Metadata without Maven and Java
+
+The above command depends on Maven and Java, but it's easy to generate the database metadata without relying
+on either of these. There are two database metadata files which should be generated:
+  - First generate the primary database metadata by executing the
+    [SQL database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
+    in the folder for your database type, by whatever means you prefer to run it against your database. The query
+    has one parameter `relPat` which is a regular expression for table names to be included, for which you can
+    pass (or textually replace with) '.*'. Save the resulting json contents to file `query-gen/dbmd/dbmd.json`. 
+  - Next generate additional "relations" metadata, which is the table and field metadata in a form used to verify
+    table and field names from TypeScript code at compile time. This is done via the command:
+    ```
+    npm run --prefix query-gen generate-relations-metadata
+    ```
+    This command depends on the primary database metadata already existing, so these steps need to be run in the
+    order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
 
 ## Query Generation
 
@@ -269,8 +276,8 @@ properties to control the join mechanism between parent and child (which usually
 See the [Parent Table Specification](query-specifications.md#parent-table-specification) documentation for
 full details.
 
-Now let's proceed to make a copy of our previous query and assign it to `drugsQuery2`, with a new parent tables
-section added as follows:
+Now let's proceed to make a variant of our previous query assigned to `drugsQuery2`, having a new parent tables
+section as follows:
 
 ```typescript
 const drugsQuery2: QuerySpec = {
@@ -381,7 +388,7 @@ just have to be specific about the foreign key to use when pulling in analyst in
 want information for both analysts wherever available (though including just one or the other would be fine as
 well, but would need the same disambiguation to be provided).
 
-Add a new query by copying the previous one and adding a *nested* `parentTables` property within the
+Add a new query based on the previous one, adding a *nested* `parentTables` property within the
 `primaryCompound` entry:
 
 ```typescript
@@ -620,8 +627,8 @@ object wrapper.
 <hr>
 <hr>
 
-Make a modified copy of the previous query and assign it to `drugsQuery5` as follows, to add information from
-`advisory_type` and `authority` within each `advisory`:
+Make a variant of the previous query assigned to `drugsQuery5`, adding information from `advisory_type` and
+`authority` within each `advisory` as follows:
 
 ```typescript
 const drugsQuery5: QuerySpec = {
@@ -732,7 +739,7 @@ drugs data. We will include within each drug a collection of the drug's referenc
 priority of each reference particular to the drug from the intermediate table. We'll also sort the
 references collections by priority.
 
-Make a modified copy of the previous query and assign to `drugsQuery6`, as follows:
+Define a new query `drugsQuery6`, as follows:
 
 ```typescript
 const drugsQuery6: QuerySpec = {
@@ -849,17 +856,17 @@ errors in case of typos or database changes.
 
 There is however an easy way to reference table and field names from database metadata for use in the
 "free form" parts of any query specification. As an example, let's make the `recordCondition` in our
-previous query reference the `category_code` field it in database metadata, for safety.
+previous query reference the `category_code` field in the database metadata, for safety.
 
 First we need to add an import near the top of our `query-gen/queries/query-specs.ts` file:
 ```typescript
 import {Schema_drugs as drugs, verifiedFieldNames} from '../dbmd/relations-metadata';
 ```
 
-This imports metadata about tables and fields, and a function to verify field names against that metadata.
-The imported metadata file is always generated just prior to query generation, so it's always available
-to import as shown above in `query-specs.ts`. Let's use it in a new variant of our previous query, which
-will be our final query.
+This imports metadata about tables and fields in a form where table and field names are literal object keys,
+to make them amenable to the TypeScript compiler's type analysis. It also includes a function to conveniently
+verify field names against this metadata. Let's use it in a new variant of our previous query, which will be
+our final query.
 
 ### Final Query
 ```typescript
