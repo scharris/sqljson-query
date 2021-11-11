@@ -1,4 +1,4 @@
-# Query Specifications
+# SQL/JSON-Query &mdash; Query Specifications
 
 ## The Query Group Specification - `QueryGroupSpec`
 
