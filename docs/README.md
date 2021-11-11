@@ -8,7 +8,8 @@ executed directly against the database without the need for any extra runtime li
 results deserialized to the generated result types using any of the common libraries or facilities in your target
 language for that purpose (e.g. Jackson for Java, or just JSON.parse() for TypeScript).
 
-- Supported databases: **PostgreSQL** (12+, maybe others), **MySQL** (8, maybe others), **Oracle** (19+, 18 probably OK).
+- Supported databases: **PostgreSQL**, **MySQL**, **Oracle**.
+  (Postgres OK for v. 12+, others may also work; MySQL only tested at v.8; Oracle 19+ OK, 18 might work, but not <=12.2)
 
 - Supported languages for result types: **TypeScript**, **Java**
 
