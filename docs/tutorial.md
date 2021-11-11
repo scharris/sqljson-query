@@ -876,7 +876,9 @@ const drugsQuery7: QuerySpec = {
    queryName: 'drugs query 7',
    tableJson: {
       table: 'drug',
-      recordCondition: { sql: `${category_code} = :catCode`, paramNames: ['catCode'] }, // <-- (Modified)
+     // (Modified) -->
+      recordCondition: { sql: `${category_code} = :catCode`, paramNames: ['catCode'] },
+      // <-- (Modified)
       fieldExpressions: [
          { field: 'name', jsonProperty: 'drugName' },
          'category_code',
