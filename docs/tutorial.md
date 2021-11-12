@@ -117,6 +117,7 @@ generate in `querySpecs`, which is just `drugsQuery1` at present. It also specif
 all queries such as the default schema name to be assumed for unqualified tables.
 
 <img align="right" src="img/drug.svg" alt="drug table" width="150" height="170">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 In `drugsQuery1` we've defined a simple query based on just a single table, `drug`. It's given a name via
 `queryName` which is used to determine the names of the generated SQL files and TypeScript/Java source files.
@@ -261,6 +262,7 @@ and lets you know the corresponding SQL file that was generated from the same qu
 ## Adding Parent Tables
 
 <img align="right" src="img/drug-parents.svg" alt="drug compound relationship" width="400" height="300">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 The single-table query above lacks information about the compound found in each drug (we're assuming
 a drug can only have one such compound in  this example schema). So let's make a new query adding this
@@ -375,6 +377,7 @@ parent table entry.
 ## Adding Parent Tables with Explicit Foreign Keys
 
 <img align="right" src="img/drug-compound-analyst.svg" alt="drug table" width="350" height="300">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 We've got basic information from the `compound` table in our results now, but `compound` itself references
 interesting information in its *own* parent table, `analyst`, which we'd also like to include in our results.
@@ -494,6 +497,7 @@ That covers the main points for obtaining data from parent tables. For more info
 ## Adding a Child Collection
 
 <img align="right" src="img/drug-advisory.svg" alt="drug and advisory tables" width="150" height="380">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 Next we'll add a collection of related advisories for the drugs. The `advisory` table is a child table of table
 `drug` as seen in the diagram. Child table collection properties are described in a `tableJson` (any `TableJsonSpec`
@@ -613,6 +617,7 @@ array of drug advisories. The json value in each row should look like:
 ## Pulling Fields through Multiple Parents
 
 <img align="right" src="img/drug-advisory-advtype-auth.svg" alt="drug and advisory tables" width="480" height="430">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 With our advisories added above, it would be helpful if we included details from `advisory_type` with
 each advisory, and better still if we also had data from `advisory_type`'s own parent table `authority`.
@@ -729,6 +734,7 @@ We've discussed above the handling of relationships with parent tables (many to 
 (one to many), but nothing yet about how to include data through many-to-many relationships.
 
 <img align="right" src="img/drug-references.svg" alt="drug table" width="510" height="210">
+<img align="right" src="img/spacer.png" width="20" height="20" alt="schema diagram">
 
 It turns out we don't need any new constructs to handle this case. We can include data from the far side of
 a many-many relationship by first including the intersection table as a direct child table of our starting
