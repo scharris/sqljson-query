@@ -508,6 +508,9 @@ disambiguating the join between parent and child, which are needed only infreque
 To add the drug advisories data, add a new query based on the previous one which adds a new `childTables` section
 within `tableJson` as follows:
 
+<hr>
+<hr>
+
 ```typescript
 const drugsQuery4: QuerySpec = {
    queryName: 'drugs query 4',
@@ -622,10 +625,6 @@ add `authority` as a parent table within the `advisory_type` entry.
 We will also include each added parent as "inlined", by not giving a reference property name, so the parent's
 fields will be inlined among the fields of its child table without wrapping the parent data in an unnecessary
 object wrapper.
-
-<hr>
-<hr>
-<hr>
 
 Make a variant of the previous query assigned to `drugsQuery5`, adding information from `advisory_type` and
 `authority` within each `advisory` as follows:
