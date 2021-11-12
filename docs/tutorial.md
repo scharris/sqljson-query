@@ -510,6 +510,7 @@ within `tableJson` as follows:
 
 <hr>
 <hr>
+<hr>
 
 ```typescript
 const drugsQuery4: QuerySpec = {
