@@ -305,6 +305,7 @@ function tableFieldPropertyType
       return textTableFieldPropertyType(tfp, srcLang);
     case 'bit':
     case 'boolean':
+    case 'bool':
       return booleanTableFieldPropertyType(tfp, srcLang);
     case 'json':
     case 'jsonb':
@@ -312,7 +313,7 @@ function tableFieldPropertyType
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
         return textTableFieldPropertyType(tfp, srcLang);
-      else throw new Error(`unsupported type for database field ${tfp.name} of type ${tfp.databaseType}`);
+      else throw new Error(`unsupported type for database field '${tfp.name}' of type '${tfp.databaseType}'`);
   }
 }
 
