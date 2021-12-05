@@ -28,10 +28,10 @@ export async function generateRelationsMetadataSource
     }
     case 'Java':
     {
-      const relMdsOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
+      const relsMdOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
       return await writeTextFile(
-        relMdsOutputFile,
+        relsMdOutputFile,
         header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames)
       );
     }
@@ -65,7 +65,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata, preferLowercaseNames: b
     parts.push("};\n"); // close schema object
   }
 
-  parts.push(tsRelMdsModuleAuxFunctions);
+  parts.push(tsRelsMdModuleAuxFunctions);
 
   return parts.join('');
 }
@@ -187,7 +187,7 @@ public static class Field
    public @Nullable Integer precision;
    public @Nullable Integer precisionRadix;
    public @Nullable Integer fractionalDigits;
-   
+
    public Field
       (
          String name,
@@ -301,7 +301,7 @@ const autogenWarning =
 `;
 
 // Auxiliary functions for the TS rel mds module.
-const tsRelMdsModuleAuxFunctions =  `
+const tsRelsMdModuleAuxFunctions =  `
 export function verifiedFieldNames<T extends Object>(relMd: T): { [P in keyof T]: string }
 {
    const res: any = {};
