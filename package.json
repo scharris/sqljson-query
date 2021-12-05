@@ -24,11 +24,10 @@
     "start-mysql-test-db": "npm run build-mysql-test-db && docker run -d --name drugs-mysql -p 127.0.0.1:3306:3306 drugs-mysql",
     "mysql-test-db": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
 
-    "gen-dbmd-json-schema": "mkdirp lib/schemas && typescript-json-schema --refs --required --strictNullChecks -o lib/schemas/dbmd.schema.json tsconfig.json DatabaseMetadataStoredProperties",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot",
 
     "compile": "tsc --noEmit # (check-compile without emitting outputs)",
-    "build": "npm run clean && tsc && npm run gen-dbmd-json-schema",
+    "build": "npm run clean && tsc",
 
     "test": "jest",
 
@@ -56,7 +55,6 @@
     "mysql2": "^2.3.0",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.5",
-    "typescript": "^4.4.3",
-    "typescript-json-schema": "^0.50.1"
+    "typescript": "^4.4.3"
   }
 }
