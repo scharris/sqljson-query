@@ -1,5 +1,5 @@
-import {caseNormalizeName, makeMap} from './util/mod';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId, relIdString, toRelId} from './database-metadata';
+import {caseNormalizeName, makeMap, relIdDescr} from './util/mod';
+import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId} from './database-metadata';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
@@ -8,6 +8,7 @@ import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec
 } from './query-specs';
+import { identifyTable } from './query-spec-validations';
 
 export class ResultTypesGenerator
 {
@@ -32,7 +33,8 @@ export class ResultTypesGenerator
     const typeBuilder = new ResultTypeBuilder(queryName);
     const resultTypes: ResultType[] = [];
 
-    const relId = toRelId(tjs.table, this.defaultSchema, this.dbmd.caseSensitivity);
+    const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, {queryName});
+
     const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(relId);
 
     // Add the table's own fields and expressions involving those fields.
@@ -94,7 +96,7 @@ export class ResultTypesGenerator
       {
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if ( dbField == undefined )
-          throw new Error(`No metadata found for field ${relIdString(relId)}.${fieldName}.`);
+          throw new Error(`No metadata found for field ${relIdDescr(relId)}.${fieldName}.`);
         fields.push(this.makeTableFieldProperty(tfe, dbField));
       }
     }
@@ -121,7 +123,9 @@ export class ResultTypesGenerator
       const parentType = parentResultTypes[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable = parentSpec.recordCondition != undefined || !this.someFkFieldNullableFalse(parentSpec, relId);
+      const nullable =
+        parentSpec.recordCondition != null ||
+        !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
       typeBuilder.addFieldsFromResultType(parentType, nullable);
       resultTypes.push(...parentResultTypes.slice(1));
@@ -149,7 +153,10 @@ export class ResultTypesGenerator
       const resultType = parentResultTypes[0]; // parent object type
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable = !!parentSpec.recordCondition || !this.someFkFieldNullableFalse(parentSpec, relId);
+      const nullable =
+        parentSpec.recordCondition != null ||
+        !!parentSpec.recordCondition ||
+        !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
       parentReferenceProperties.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
       resultTypes.push(...parentResultTypes);
@@ -227,29 +234,30 @@ export class ResultTypesGenerator
   private getTableFieldsByName (relId: RelId): Map<string,Field>
   {
     const relMd = this.dbmd.getRelationMetadata(relId);
-    if ( relMd == null ) throw new Error(`Metadata for table ${relIdString(relId)} not found.`);
+    if ( relMd == null ) throw new Error(`Metadata for table ${relIdDescr(relId)} not found.`);
 
     return makeMap(relMd.fields, f => f.name, f => f);
   }
 
-  private someFkFieldNullableFalse
+  private someFkFieldNotNullable
     (
       parentSpec: ParentSpec,
-      childRelId: RelId
+      childRelId: RelId,
+      queryName: string
     )
     : boolean
   {
-    const parentRelId = toRelId(parentSpec.table, this.defaultSchema, this.dbmd.caseSensitivity);
+    const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, {queryName});
     const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
-    if ( !fk ) throw new Error(`Foreign key from ${relIdString(childRelId)} to parent ${relIdString(parentRelId)} not found.`);
+    if ( !fk ) throw new Error(`Foreign key from ${relIdDescr(childRelId)} to parent ${relIdDescr(parentRelId)} not found.`);
 
     const childFieldsByName = this.getTableFieldsByName(childRelId);
 
     for ( const fkFieldName of foreignKeyFieldNames(fk) )
     {
       const fkField = childFieldsByName.get(fkFieldName);
-      if ( !fkField ) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdString(childRelId)}.`);
+      if ( !fkField ) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdDescr(childRelId)}.`);
       if ( fkField.nullable != null && !fkField.nullable ) return true;
     }
 
@@ -376,7 +384,7 @@ function getTableExpressionProperties
     {
       const jsonProperty = tfe.jsonProperty;
       if ( jsonProperty == null )
-        throw new Error(`Expression field ${relIdString(relId)}.${tfe.expression} requires a json property.`)
+        throw new Error(`Expression field ${relIdDescr(relId)}.${tfe.expression} requires a json property.`)
 
       fields.push({
         name: jsonProperty,

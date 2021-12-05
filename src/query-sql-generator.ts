@@ -1,6 +1,6 @@
 import {
   makeMap, mapSet, caseNormalizeName, valueOr, propertyNameDefaultFunction, indentLines,
-  lowerCaseInitials, makeNameNotInSet, replaceAll
+  lowerCaseInitials, makeNameNotInSet, replaceAll, exactUnquotedName
 } from './util/mod';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
@@ -9,7 +9,7 @@ import {
 } from './query-specs';
 import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-spec-validations';
 import {SqlDialect, getSqlDialect} from './sql-dialects';
-import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId, relIdString} from './database-metadata';
+import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId} from './database-metadata';
 
 export class QuerySqlGenerator
 {
@@ -28,7 +28,7 @@ export class QuerySqlGenerator
       private readonly indentSpaces: number = 2
     )
   {
-    this.unqualifiedNamesSchemas = mapSet(unqualifiedNamesSchemas, s => this.dbNormd(s));
+    this.unqualifiedNamesSchemas = mapSet(unqualifiedNamesSchemas, s => this.normalizeSchemaName(s));
     this.sqlDialect = getSqlDialect(dbmd, indentSpaces);
   }
 
@@ -135,8 +135,8 @@ export class QuerySqlGenerator
   private hiddenPkSelectEntries(relId: RelId, alias: string): SelectEntry[]
   {
     return this.dbmd.getPrimaryKeyFieldNames(relId).map(pkFieldName => {
-      const pkFieldDbName = this.sqlDialect.quoteNameIfNeeded(pkFieldName);
-      const pkFieldOutputName = this.sqlDialect.quoteNameIfNeeded(QuerySqlGenerator.HIDDEN_PK_PREFIX + pkFieldName);
+      const pkFieldDbName = this.sqlDialect.quoteColumnNameIfNeeded(pkFieldName);
+      const pkFieldOutputName = this.sqlDialect.quoteColumnNameIfNeeded(QuerySqlGenerator.HIDDEN_PK_PREFIX + pkFieldName);
       return {valueExpr: `${alias}.${pkFieldDbName}`, name: pkFieldOutputName, source: 'HIDDEN_PK'};
     });
   }
@@ -156,7 +156,7 @@ export class QuerySqlGenerator
       return [];
     else return tableSpec.fieldExpressions.map((tfe,ix) => {
       const loc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tableSpec.table}`);
-      const name = this.sqlDialect.quoteNameIfNeeded(jsonPropertyName(tfe, propNameFn, loc));
+      const name = this.sqlDialect.quoteColumnNameIfNeeded(jsonPropertyName(tfe, propNameFn, loc));
       return { valueExpr: tableFieldExpressionSql(tfe, alias, loc), name, source: 'NATIVE_FIELD' };
     });
   }
@@ -268,8 +268,8 @@ export class QuerySqlGenerator
   {
     const virtualFkComps =
       customJoinCond.equatedFields.map(eqfs => ({
-        foreignKeyFieldName: this.dbNormd(eqfs.childField),
-        primaryKeyFieldName: this.dbNormd(eqfs.parentPrimaryKeyField)
+        foreignKeyFieldName: this.normalizeFieldName(eqfs.childField),
+        primaryKeyFieldName: this.normalizeFieldName(eqfs.parentPrimaryKeyField)
       }));
 
     return new ParentPkCondition(childAlias, virtualFkComps, this.sqlDialect);
@@ -323,7 +323,7 @@ export class QuerySqlGenerator
             this.jsonObjectRowsSql(parentSpec, parentPkCond, null, propNameFn, specLoc)
           ) + '\n' +
         ')',
-      name: this.sqlDialect.quoteNameIfNeeded(parentSpec.referenceName),
+      name: this.sqlDialect.quoteColumnNameIfNeeded(parentSpec.referenceName),
       source: 'PARENT_REFERENCE'
     }];
 
@@ -352,7 +352,7 @@ export class QuerySqlGenerator
               this.childCollectionQuery(childCollSpec, relId, alias, propNameFn, childLoc)
             ) + '\n' +
           ')',
-        name: this.sqlDialect.quoteNameIfNeeded(childCollSpec.collectionName),
+        name: this.sqlDialect.quoteColumnNameIfNeeded(childCollSpec.collectionName),
         source: 'CHILD_COLLECTION'
       };
    });
@@ -415,8 +415,8 @@ export class QuerySqlGenerator
   {
     const virtualFkComps =
       customJoinCond.equatedFields.map(eqfs => ({
-        foreignKeyFieldName: this.dbNormd(eqfs.childField),
-        primaryKeyFieldName: this.dbNormd(eqfs.parentPrimaryKeyField)
+        foreignKeyFieldName: this.normalizeFieldName(eqfs.childField),
+        primaryKeyFieldName: this.normalizeFieldName(eqfs.parentPrimaryKeyField)
       }));
 
     return new ChildFkCondition(parentAlias, virtualFkComps, this.sqlDialect);
@@ -502,16 +502,24 @@ export class QuerySqlGenerator
     return fk;
   }
 
-  /// Return a possibly qualified identifier for the given relation, omitting the schema
-  /// qualifier if it has a schema for which it's specified to use unqualified names.
+  /**
+   * Return a possibly qualified identifier for the given relation, omitting the schema
+   * qualifier if it has a schema for which it's specified to use unqualified names.
+   */
   private minimalRelIdentifier(relId: RelId): string
   {
-    const schema = relId.schema;
-    return !schema || this.unqualifiedNamesSchemas.has(this.dbNormd(schema)) ? relId.name
-      : relIdString(relId);
+    const unquotedSchema = relId.schema && !this.unqualifiedNamesSchemas.has(relId.schema) ? relId.schema : null;
+    const schema = unquotedSchema ? this.sqlDialect.quoteObjectNameIfNeeded(unquotedSchema) : null;
+    const relName = this.sqlDialect.quoteObjectNameIfNeeded(relId.name);
+    return schema != null ? `${schema}.${relName}` : relName;
   }
 
-  private dbNormd(name: string): string
+  private normalizeSchemaName(name: string): string
+  {
+    return exactUnquotedName(name, this.dbmd.caseSensitivity);
+  }
+
+  private normalizeFieldName(name: string): string
   {
     return caseNormalizeName(name, this.dbmd.caseSensitivity);
   }
@@ -520,7 +528,6 @@ export class QuerySqlGenerator
   {
     return indentLines(s, this.indentSpaces, true);
   }
-
 }
 
 function specError(querySpec: QuerySpec, queryPart: string, problem: string): SpecError
@@ -559,9 +566,9 @@ class ParentPkCondition implements ParentChildCondition
   {
     return (
       this.matchedFields.map(mf =>
-        `${this.childAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.foreignKeyFieldName)}` +
+        `${this.childAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.foreignKeyFieldName)}` +
         ' = ' +
-        `${parentAlias}.${this.sqlDialect.quoteNameIfNeeded(parentPkPrefix + mf.primaryKeyFieldName)}`
+        `${parentAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(parentPkPrefix + mf.primaryKeyFieldName)}`
       )
       .join(' and ')
     );
@@ -584,9 +591,9 @@ class ChildFkCondition implements ParentChildCondition
   {
     return (
       this.matchedFields.map(mf =>
-        `${childAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.foreignKeyFieldName)}` +
+        `${childAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.foreignKeyFieldName)}` +
         ' = ' +
-        `${this.parentAlias}.${this.sqlDialect.quoteNameIfNeeded(mf.primaryKeyFieldName)}`
+        `${this.parentAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.primaryKeyFieldName)}`
       )
       .join(' and ')
     );

@@ -103,7 +103,7 @@ export function indentLines
 export function unDoubleQuote(s: string): string
 {
   if ( s.startsWith("\"") && s.endsWith("\"") )
-    return s.substring(1, s.length-1);
+    return s.length == 1 ? '' : s.substring(1, s.length-1);
   return s;
 }
 

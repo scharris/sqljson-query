@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import {DatabaseMetadata, foreignKeyFieldNames, relIdString, toRelId} from '../database-metadata';
+import {DatabaseMetadata, foreignKeyFieldNames, RelId, relIdsEqual} from '../database-metadata';
+import { relIdDescr } from '../util/database-names';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(fs.readFileSync(dbmdPath, 'utf8'));
@@ -12,107 +13,129 @@ test('can be initialized from stored properties', () => {
 
 test('fetch metadata for existing table by rel id', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  expect(dbmd.getRelationMetadata({schema: 'drugs', name: 'authority'})).toBeTruthy();
+  const relId = RelId.make('authority', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  expect(dbmd.getRelationMetadata(relId)).toBeTruthy();
 });
 
 test('do not fetch metadata for non-existing rel id', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  expect(dbmd.getRelationMetadata({schema: 'drugs', name: 'dne'})).toBeNull();
+  const relId = RelId.make('dne', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  expect(dbmd.getRelationMetadata(relId)).toBeNull();
 });
 
 test('get single primary key field name', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const authTable = {schema: 'drugs', name: 'authority'};
-  expect(dbmd.getPrimaryKeyFieldNames(authTable)).toEqual(["id"]);
-  expect(dbmd.getPrimaryKeyFieldNames(authTable, "a")).toEqual(["a.id"]);
+  const authRelId = RelId.make('authority', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  expect(dbmd.getPrimaryKeyFieldNames(authRelId)).toEqual(["id"]);
+  expect(dbmd.getPrimaryKeyFieldNames(authRelId, "a")).toEqual(["a.id"]);
 });
 
 test('get multiple primary key field names', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const drugRef = {schema: 'drugs', name: 'drug_reference'};
-  expect(dbmd.getPrimaryKeyFieldNames(drugRef)).toEqual(['drug_id', 'reference_id']);
-  expect(dbmd.getPrimaryKeyFieldNames(drugRef, "dr")).toEqual(['dr.drug_id', 'dr.reference_id']);
+  const drugRefRelId = RelId.make('drug_reference', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  expect(dbmd.getPrimaryKeyFieldNames(drugRefRelId)).toEqual(['drug_id', 'reference_id']);
+  expect(dbmd.getPrimaryKeyFieldNames(drugRefRelId, "dr")).toEqual(['dr.drug_id', 'dr.reference_id']);
 });
 
 test('get unique foreign key from child to parent without specifying fk fields', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const drug = {schema: 'drugs', name: 'drug'};
-  const drugRef = {schema: 'drugs', name: 'drug_reference'};
-  const fk = dbmd.getForeignKeyFromTo(drugRef, drug); // (from/to order intentionally reversed)
+  const drugRelId = RelId.make('drug', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const drugRefRelId = RelId.make('drug_reference', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const fk = dbmd.getForeignKeyFromTo(drugRefRelId, drugRelId); // (from/to order intentionally reversed)
   expect(fk?.constraintName).toEqual('drug_reference_drug_fk');
 });
 
 test('get foreign key from child to parent when specifying fk field(s)', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const compound = {schema: 'drugs', name: 'compound'};
-  const analyst = {schema: 'drugs', name: 'analyst'};
-  const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['entered_by']));
+  const compoundRelId = RelId.make('compound', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const analystRelId = RelId.make('analyst', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const fk = dbmd.getForeignKeyFromTo(compoundRelId, analystRelId, new Set(['entered_by']));
   expect(fk?.constraintName).toEqual('compound_enteredby_analyst_fk');
 });
 
 test('return no foreign key from child to parent when specifying non-existing fk field', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const compound = {schema: 'drugs', name: 'compound'};
-  const analyst = {schema: 'drugs', name: 'analyst'};
-  const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['nonexisting_field']));
+  const compoundRelId = RelId.make('compound', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const analystRelId = RelId.make('analyst', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const fk = dbmd.getForeignKeyFromTo(compoundRelId, analystRelId, new Set(['nonexisting_field']));
   expect(fk).toBeNull();
 });
 
 test('return null when foreign key does not exist between specified tables', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const drug = {schema: 'drugs', name: 'drug'};
-  const drugRef = {schema: 'drugs', name: 'drug_reference'};
-  const fk = dbmd.getForeignKeyFromTo(drug, drugRef);
+  const drugRelId = RelId.make('drug', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const drugRefRelId = RelId.make('drug_reference', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const fk = dbmd.getForeignKeyFromTo(drugRelId, drugRefRelId);
   expect(fk).toBeNull();
 });
 
 test('throw error if multiple foreign keys satisfy conditions for call to getForeignKeyFromTo()', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const compound = {schema: 'drugs', name: 'compound'};
-  const analyst = {schema: 'drugs', name: 'analyst'};
-  expect(() => dbmd.getForeignKeyFromTo(compound, analyst))
+  const compoundRelId = RelId.make('compound', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const analystRelId = RelId.make('analyst', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  expect(() => dbmd.getForeignKeyFromTo(compoundRelId, analystRelId))
   .toThrowError(/multiple foreign key constraints exist /i);
 });
 
 test('get foreign key field names from foreign key', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
-  const compound = {schema: 'drugs', name: 'compound'};
-  const analyst = {schema: 'drugs', name: 'analyst'};
-  const fk = dbmd.getForeignKeyFromTo(compound, analyst, new Set(['entered_by']));
+  const compoundRelId = RelId.make('compound', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const analystRelId = RelId.make('analyst', 'drugs', 'INSENSITIVE_STORED_LOWER');
+  const fk = dbmd.getForeignKeyFromTo(compoundRelId, analystRelId, new Set(['entered_by']));
   expect(foreignKeyFieldNames(fk!)).toEqual(['entered_by']);
 });
 
 test('make rel ids with default schema applied', () => {
-  expect(toRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))
+  expect(RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))
     .toEqual({schema: 'drugs', name: 'authority'});
-  expect(toRelId('AUTHORITY', null, 'INSENSITIVE_STORED_LOWER'))
+  expect(RelId.make('AUTHORITY', null, 'INSENSITIVE_STORED_LOWER'))
     .toEqual({schema: null, name: 'authority'});
-  expect(toRelId('authority', 'drugs', 'INSENSITIVE_STORED_UPPER'))
+  expect(RelId.make('authority', 'drugs', 'INSENSITIVE_STORED_UPPER'))
     .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
-  expect(toRelId('authority', null, 'INSENSITIVE_STORED_UPPER'))
+  expect(RelId.make('authority', null, 'INSENSITIVE_STORED_UPPER'))
     .toEqual({schema: null, name: 'AUTHORITY'});
 });
 
 test('make rel id by parsing qualified name', () => {
-  expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
+  expect(RelId.make('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
     .toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
-    expect(toRelId('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
+  expect(RelId.make('drugs.authority', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
     .toEqual({schema: 'drugs', name: 'authority'});
 });
 
+test('make rel id by parsing qualified name with quoted parts', () => {
+  expect(RelId.make('drugs."Authority"', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: 'DRUGS', name: 'Authority'});
+  expect(RelId.make('"Drugs"."Authority"', 'default_schema', 'INSENSITIVE_STORED_UPPER'))
+    .toEqual({schema: 'Drugs', name: 'Authority'});
+  expect(RelId.make('drugs."Authority"', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: 'drugs', name: 'Authority'});
+  expect(RelId.make('"Drugs"."Authority"', 'default_schema', 'INSENSITIVE_STORED_LOWER'))
+    .toEqual({schema: 'Drugs', name: 'Authority'});
+});
+
 test('rel id string', () => {
-  expect(relIdString({schema: 'DRUGS', name: 'AUTHORITY'})).toEqual('DRUGS.AUTHORITY');
-  expect(relIdString({schema: null, name: 'AUTHORITY'})).toEqual('AUTHORITY');
-  expect(relIdString({schema: 'drugs', name: 'authority'})).toEqual('drugs.authority');
-  expect(relIdString({schema: null, name: 'authority'})).toEqual('authority');
+  expect(relIdDescr(RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))).toEqual('drugs.authority');
+  expect(relIdDescr(RelId.make('Authority', 'Drugs', 'INSENSITIVE_STORED_UPPER'))).toEqual('DRUGS.AUTHORITY');
+  expect(relIdDescr(RelId.make('authority', null, 'INSENSITIVE_STORED_UPPER'))).toEqual('AUTHORITY');
+  expect(relIdDescr(RelId.make('authority', null, 'INSENSITIVE_STORED_LOWER'))).toEqual('authority');
 });
 
 test('rel ids equal', () => {
-  expect({schema: 'DRUGS', name: 'AUTHORITY'}).toEqual({schema: 'DRUGS', name: 'AUTHORITY'});
-  expect({schema: null, name: 'AUTHORITY'}).toEqual({schema: null, name: 'AUTHORITY'});
-  expect({schema: 'drugs', name: 'authority'}).toEqual({schema: 'drugs', name: 'authority'});
-  expect({schema: null, name: 'authority'}).toEqual({schema: null, name: 'authority'});
-  expect({schema: 'DRUGS', name: 'AUTHORITY'}).not.toEqual({schema: 'DRUGS', name: 'authority'});
-  expect({schema: 'DRUGS', name: 'AUTHORITY'}).not.toEqual({schema: 'drugs', name: 'AUTHORITY'});
-  expect({schema: null, name: 'AUTHORITY'}).not.toEqual({schema: null, name: 'authority'});
+  expect(relIdsEqual(
+    RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'),
+    RelId.make('authority', 'drugs', 'INSENSITIVE_STORED_LOWER')
+  ));
+  expect(relIdsEqual(
+    RelId.make('drugs.authority', null, 'INSENSITIVE_STORED_LOWER'),
+    RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER')
+  ));
+  expect(!relIdsEqual(
+    RelId.make('drugs.authority', null, 'INSENSITIVE_STORED_UPPER'),
+    RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER')
+  ));
+  expect(!relIdsEqual(
+    RelId.make('AUTHORITY', null, 'INSENSITIVE_STORED_UPPER'),
+    RelId.make('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_UPPER')
+  ));
 });

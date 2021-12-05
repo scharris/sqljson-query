@@ -1,4 +1,12 @@
-import {computeIfAbsent, setsEqual,caseNormalizeName} from './util/mod';
+import {
+  computeIfAbsent,
+  setsEqual,
+  caseNormalizeName,
+  unDoubleQuote,
+  relIdDescr,
+  splitSchemaAndRelationNames,
+  exactUnquotedName
+} from './util/mod';
 
 /// The stored part of the database metadata.
 export interface DatabaseMetadataStoredProperties
@@ -31,10 +39,26 @@ export interface ForeignKeyComponent
   readonly primaryKeyFieldName: string;
 }
 
-export interface RelId
+export class RelId
 {
-  schema?: string | null,
-  name: string
+  private __nominal: void;
+
+  private constructor(public schema: string | null, public name: string) {};
+
+  public static make(table: string, defaultSchema: string | null, caseSensitivity: CaseSensitivity): RelId
+  {
+    const [schemaName, tableName] = splitSchemaAndRelationNames(table);
+
+    if ( !tableName )
+      throw new Error(`Invalid table name: '${table}''.` );
+
+    return new RelId(
+      (schemaName ?  exactUnquotedName(schemaName, caseSensitivity):
+      defaultSchema ? exactUnquotedName(defaultSchema, caseSensitivity):
+      null),
+      exactUnquotedName(tableName, caseSensitivity)
+    );
+  }
 }
 
 export type RelType = 'Table' | 'View' | 'Unknown';
@@ -99,7 +123,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
     const relMd = this.getRelationMetadata(relId);
 
     if ( relMd == null )
-       throw new Error(`Relation metadata not found for relation id '${relIdString(relId)}'.`);
+       throw new Error(`Relation metadata not found for relation id '${relIdDescr(relId)}'.`);
 
     return getPrimaryKeyFields(relMd).map(f => alias != null ? `${alias}.${f.name}` : f.name);
   }
@@ -124,7 +148,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
       {
         if ( soughtFk != null ) // already found an fk satisfying requirements?
           throw new Error(
-            `Multiple foreign key constraints exist from table ${relIdString(fromRelId)} to table ${relIdString(toRelId)}` +
+            `Multiple foreign key constraints exist from table ${relIdDescr(fromRelId)} to table ${relIdDescr(toRelId)}` +
             (fieldNames != null ?
               ' with the same specified foreign key fields.'
               : ' and no foreign key fields were specified to disambiguate.'));
@@ -178,17 +202,17 @@ class DerivedDatabaseMetadata
 
   getRelMetadata(relId: RelId): RelMetadata | null
   {
-    return this.relMDsByRelId.get(relIdString(relId)) || null;
+    return this.relMDsByRelId.get(relIdKey(relId)) || null;
   }
 
   getFksReferencingParent(relId: RelId): ForeignKey[] | null
   {
-    return this.fksByParentRelId.get(relIdString(relId)) || null;
+    return this.fksByParentRelId.get(relIdKey(relId)) || null;
   }
 
   getFksFromChild(relId: RelId): ForeignKey[] | null
   {
-    return this.fksByChildRelId.get(relIdString(relId)) || null;
+    return this.fksByChildRelId.get(relIdKey(relId)) || null;
   }
 }
 
@@ -203,15 +227,15 @@ function makeDerivedData
   const fksByParentRelId = new Map<string, ForeignKey[]>();
   const fksByChildRelId = new Map<string, ForeignKey[]>();
 
-  for ( const relMd of relationMetadatas)
-    relMDsByRelId.set(relIdString(relMd.relationId), relMd);
+  for ( const relMd of relationMetadatas )
+    relMDsByRelId.set(relIdKey(relMd.relationId), relMd);
 
   for ( const fk of foreignKeys )
   {
-    const fksFromChild = computeIfAbsent(fksByChildRelId, relIdString(fk.foreignKeyRelationId), _k => [])
+    const fksFromChild = computeIfAbsent(fksByChildRelId, relIdKey(fk.foreignKeyRelationId), _k => [])
     fksFromChild.push(fk);
 
-    const fksToParent = computeIfAbsent(fksByParentRelId, relIdString(fk.primaryKeyRelationId), _k => [])
+    const fksToParent = computeIfAbsent(fksByParentRelId, relIdKey(fk.primaryKeyRelationId), _k => [])
     fksToParent.push(fk);
   }
 
@@ -265,41 +289,11 @@ export function foreignKeyFieldNames(fk: ForeignKey): string[]
   return fkFieldNames;
 }
 
-function makeRelId
-  (
-    schema: string | null,
-    relName: string,
-    caseSensitivity: CaseSensitivity
-  )
-  : RelId
+function relIdKey(relId: RelId): string
 {
-  return {
-    schema: schema != null ? caseNormalizeName(schema, caseSensitivity) : null,
-    name: caseNormalizeName(relName, caseSensitivity)
-  };
-}
-
-/// Make a relation id from a given qualified or unqualified table identifier
-/// and an optional default schema for interpreting unqualified table names.
-export function toRelId
-  (
-    table: string,
-    defaultSchema: string | null,
-    caseSensitivity: CaseSensitivity,
-  )
-  : RelId
-{
-  const dotIx = table.indexOf('.');
-
-  if ( dotIx != -1 ) // already qualified, split it
-    return makeRelId(table.substring(0, dotIx), table.substring(dotIx+1), caseSensitivity);
-  else // not qualified, qualify it if there is a default schema
-    return makeRelId(defaultSchema, table, caseSensitivity);
-}
-
-export function relIdString(relId: RelId): string
-{
-  return relId.schema ? relId.schema + '.' + relId.name : relId.name;
+  const relName = unDoubleQuote(relId.name);
+  const schema = relId.schema ? unDoubleQuote(relId.schema) : null;
+  return schema ? schema + '.' + relName : relName;
 }
 
 export function relIdsEqual(relId1: RelId, relId2: RelId)

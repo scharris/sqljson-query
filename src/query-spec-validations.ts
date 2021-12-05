@@ -1,5 +1,5 @@
-import {caseNormalizeName} from './util/mod';
-import {DatabaseMetadata, RelId, relIdString, RelMetadata, toRelId} from './database-metadata';
+import {caseNormalizeName, relIdDescr} from './util/mod';
+import {DatabaseMetadata, RelId, RelMetadata} from './database-metadata';
 import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 
 export function identifyTable
@@ -11,12 +11,7 @@ export function identifyTable
   )
   : RelId
 {
-  const relMd = dbmd.getRelationMetadata(toRelId(table, defaultSchema, dbmd.caseSensitivity));
-
-  if ( relMd == null )
-    throw new SpecError(specLoc, `Table '${table}' was not found in database metadata.`);
-
-  return relMd.relationId;
+  return getRelMetadata(table, defaultSchema, dbmd, specLoc).relationId;
 }
 
 export function verifyTableFieldExpressionsValid
@@ -48,9 +43,7 @@ export function verifyTableFieldExpressionsValid
     }
   }
 
-  const relMd = dbmd.getRelationMetadata(toRelId(tableSpec.table, defaultSchema, dbmd.caseSensitivity));
-  if ( relMd == null )
-    throw new SpecError(specLoc, `Table '${tableSpec.table}' was not found in database metadata.`);
+  const relMd = getRelMetadata(tableSpec.table, defaultSchema, dbmd, specLoc);
 
   verifyFieldsExistInRelMd(simpleSelectFields, relMd, dbmd, specLoc);
 }
@@ -93,6 +86,23 @@ function verifyFieldsExistInRelMd
 
   if ( missing.length !== 0 )
     throw new SpecError(specLoc,
-      `Field(s) not found in table ${relIdString(relMd.relationId)}: ${missing.join(', ')}.`
+      `Field(s) not found in table ${relIdDescr(relMd.relationId)}: ${missing.join(', ')}.`
     );
+}
+
+function getRelMetadata
+  (
+    table: string, // as from input, possibly qualified
+    defaultSchema: string | null,
+    dbmd: DatabaseMetadata,
+    specLoc: SpecLocation
+  )
+  : RelMetadata
+{
+  const relMd = dbmd.getRelationMetadata(RelId.make(table, defaultSchema, dbmd.caseSensitivity));
+
+  if ( relMd == null )
+    throw new SpecError(specLoc, `Table '${table}' was not found in database metadata.`);
+
+  return relMd;
 }

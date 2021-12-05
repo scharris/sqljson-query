@@ -3,6 +3,12 @@ import {DatabaseMetadata} from './database-metadata';
 
 type DbmsType = 'PG' | 'ORA' | 'MYSQL' | 'ISO';
 
+const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
+
+const sqlKeywordsLowercase = new Set([
+  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over'
+]);
+
 export interface SqlDialect
 {
   getRowObjectExpression(colNames: string[], srcAlias: string): string;
@@ -11,7 +17,9 @@ export interface SqlDialect
 
   getAggregatedColumnValuesExpression(colName: string, orderBy: string | null | undefined, srcAlias: string): string;
 
-  quoteNameIfNeeded(name: string): string;
+  quoteObjectNameIfNeeded(name: string): string;
+
+  quoteColumnNameIfNeeded(name: string): string;
 }
 
 export class PostgresDialect implements SqlDialect
@@ -66,15 +74,24 @@ export class PostgresDialect implements SqlDialect
     );
   }
 
-  quoteNameIfNeeded(name: string): string
+  quoteObjectNameIfNeeded(name: string): string
   {
     if ( this.quotedStringRegex.test(name) )
       return name;
-    if ( name.charAt(0) === '_' )
+    if ( !simpleIdentifierRegex.test(name) ||
+         !this.lowercaseNameRegex.test(name) ||
+         sqlKeywordsLowercase.has(name) )
       return `"${name}"`;
-    if ( this.lowercaseNameRegex.test(name) )
+    return name;
+  }
+
+  quoteColumnNameIfNeeded(name: string): string
+  {
+    if ( this.quotedStringRegex.test(name) )
       return name;
-    return `"${name}"`;
+    if ( !simpleIdentifierRegex.test(name) || !this.lowercaseNameRegex.test(name) )
+      return `"${name}"`;
+    return name;
   }
 }
 
@@ -130,21 +147,30 @@ export class OracleDialect implements SqlDialect
     );
   }
 
-  quoteNameIfNeeded(name: string): string
+  quoteObjectNameIfNeeded(name: string): string
   {
     if ( this.quotedStringRegex.test(name) )
       return name;
-    if ( name.charAt(0) === '_' )
+    if ( !simpleIdentifierRegex.test(name) ||
+         !this.uppercaseNameRegex.test(name) ||
+         sqlKeywordsLowercase.has(name.toLowerCase()) )
       return `"${name}"`;
-    if ( this.uppercaseNameRegex.test(name) )
-      return name;
-    return `"${name}"`;
+    return name;
   }
+
+  quoteColumnNameIfNeeded(nameExact: string): string
+  {
+    if ( this.quotedStringRegex.test(nameExact) )
+      return nameExact;
+    if ( !simpleIdentifierRegex.test(nameExact) || !this.uppercaseNameRegex.test(nameExact) )
+      return `"${nameExact}"`;
+    return nameExact;
+  }
+
 }
 
 export class MySQLDialect implements SqlDialect
 {
-  readonly simpleNameRegex = /^[A-Za-z_][A-Za-z_0-9]+$/;
   readonly backtickQuotedStringRegex = /^`.*`$/;
   readonly doubleQuotedStringRegex = /^".*"$/;
 
@@ -203,13 +229,26 @@ export class MySQLDialect implements SqlDialect
     );
   }
 
-  quoteNameIfNeeded(name: string): string
+  quoteObjectNameIfNeeded(name: string): string
   {
+    if ( this.backtickQuotedStringRegex.test(name) )
+      return name;
     if ( this.doubleQuotedStringRegex.test(name) )
       return `\`${unDoubleQuote(name)}\``;
-    if ( this.backtickQuotedStringRegex.test(name) || this.simpleNameRegex.test(name) )
+    if ( !simpleIdentifierRegex.test(name) || sqlKeywordsLowercase.has(name.toLowerCase()) )
+      return `\`${name}\``;
+    return name;
+  }
+
+  quoteColumnNameIfNeeded(name: string): string
+  {
+    if ( this.backtickQuotedStringRegex.test(name) )
       return name;
-    return `\`${name}\``;
+    if ( this.doubleQuotedStringRegex.test(name) )
+      return `\`${unDoubleQuote(name)}\``;
+    if ( !simpleIdentifierRegex.test(name) )
+      return `\`${name}\``;
+    return name;
   }
 }
 
