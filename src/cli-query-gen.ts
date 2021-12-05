@@ -69,4 +69,10 @@ async function main(): Promise<void>
   }
 }
 
-main().then(() => console.log("Source generation completed."));
+main()
+  .then(() => console.log("Source generation completed."))
+  .catch((e) => {
+    console.error("Source generation failed with error." + e);
+    exit(1);
+  })
+;
