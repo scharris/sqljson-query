@@ -1,10 +1,11 @@
 # SQL/JSON-Query TUTORIAL
 
 ## Prerequisites
+
 - [NodeJS 14+](https://nodejs.org/en/)
 - [Java JDK 11+](https://jdk.java.net) (optional &dagger;)
 - [Apache Maven 3.6+](https://maven.apache.org/download.cgi) (optional &dagger;)
-  
+
 &dagger; Maven and Java are only used here to fetch database metadata, and they can be easily avoided.
 See [Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java).
 
@@ -14,6 +15,7 @@ defined to point to your JDK11+ installation directory. The `npm` command is ass
 ## Project Directory Setup
 
 Let's create a directory for our query generation experiments.
+
 ```console
 mkdir sjq-example
 cd sjq-example
@@ -42,48 +44,55 @@ Now that the database is created and SQL/JSON-Query is installed, we can generat
 via the following command:
 
 For Postgres:
+
 ```console
-query-gen/generate-dbmd.sh db/jdbc.props pg
-```
-For MySQL:
-```console
-query-gen/generate-dbmd.sh db/jdbc.props mysql
+query-gen/scripts/generate-dbmd.sh db/jdbc.props pg
+
 ```
 
-(On Windows, invoke `query-gen/generate-dbmd.ps1` from Powershell with the same arguments.)
+For MySQL:
+
+```console
+query-gen/scripts/generate-dbmd.sh db/jdbc.props mysql
+```
+
+(On Windows, invoke `query-gen/scripts/generate-dbmd.ps1` from Powershell with the same arguments.)
 
 The metadata files are generated at `query-gen/dbmd/dbmd.json` and `query-gen/dbmd/relations-metadata.ts`, which
 is where they are expected to be for the query generator. It's good to glance at its contents when you're
 getting started just to make sure that the tool found the tables and views you expected it to.
 
-
 ### Generating Database Metadata without Maven and Java
 
 The above command depends on Maven and Java, but it's easy to generate the database metadata without relying
 on either of these. There are two database metadata files which should be generated:
-  - First generate the primary database metadata by executing the
-    [SQL database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
-    for your database type, by whatever means you prefer to run it against your database. The query
-    has one parameter `relPat` which is a regular expression for table names to be included, for which you can
-    pass (or textually replace with) '.*'. Save the resulting json contents to file `query-gen/dbmd/dbmd.json`. 
-  - Next generate additional "relations" metadata, which is the table and field metadata in a form used to verify
-    table and field names from TypeScript code at compile time. This is done via the command:
-    ```
-    npm run --prefix query-gen generate-relations-metadata
-    ```
-    This command depends on the primary database metadata already existing, so these steps need to be run in the
-    order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
+
+- First generate the primary database metadata by executing the
+  [SQL database metadata query](https://github.com/scharris/sqljson-query-dropin/tree/main/dbmd/src/main/resources)
+  for your database type, by whatever means you prefer to run it against your database. The query
+  has one parameter `relPat` which is a regular expression for table names to be included, for which you can
+  pass (or textually replace with) '.*'. Save the resulting json contents to file `query-gen/dbmd/dbmd.json`.
+- Next generate additional "relations" metadata, which is the table and field metadata in a form used to verify
+  table and field names from TypeScript code at compile time. This is done via the command:
+
+```console
+npm run --prefix query-gen gen-rels-md
+```
+
+This command depends on the primary database metadata already existing, so these steps need to be run in the
+order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
 
 ## Query Generation
 
 We're now ready to write our query specifications and to generate the SQL and result types sources from them.
 
 ## Single-Table Query
-We're expected to define our queries in file `query-gen/queries/query-specs.ts`. Create the file in a text editor
+
+We're expected to define our queries in file `query-gen/query-specs.ts`. Create the file in a text editor
 with the following initial contents:
 
 ```typescript
-// query-gen/queries/query-specs.ts
+// query-gen/query-specs.ts
 import {QueryGroupSpec, QuerySpec} from 'sqljson-query';
 
 const drugsQuery1: QuerySpec = {
@@ -109,7 +118,7 @@ export const queryGroupSpec: QueryGroupSpec = {
       drugsQuery1,
    ]
 };
-``` 
+```
 
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower definition
 represents the total set of queries and is the only export for the module. It contains the list of queries to
@@ -142,7 +151,6 @@ tableJson: {
 
 - The `table` property specifies the top (and here the only) table in this JSON output, which is table `drug`.
 
-
 - The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL
 predicate &mdash; basically anything suitable for a SQL WHERE clause. Here we're restricting results by
 `category_code` value, and using a SQL parameter named `catCode` as part of the predicate expression. For
@@ -150,34 +158,40 @@ the parameters you can use whatever notation is needed by your SQL execution run
 the expression. The `paramNames` property is not required, but if it is provided then a constant will be
 defined in the TypeScript or Java source code for each parameter entered here with value equal to the
 parameter name, to help catch errors involving using wrong parameter names. Using literal field names like
-`category_code` here may lead to runtime errors in case of typos or database changes. See 
+`category_code` here may lead to runtime errors in case of typos or database changes. See
 [Validating Database Object Names in Free-Form Expressions](#validating-database-object-names-in-free-form-expressions)
 below for a safer alternative.
-
 
 - Finally, the `fieldExpressions` property lists the fields and expressions involving the fields from `table` which
 are to be included as properties in the JSON objects representing the table rows. The field expressions take three
 forms here, which cover all possibilities:
 
   - The first item shows the general form for a simple table field:
+
     ```typescript
     { field: 'name', jsonProperty: 'drugName' }
     ```
+
     In this case the source database table field and desired JSON property name are both given explicitly.
+
   - The second form ('category_code') is simply a string which is the database field name, in which case the JSON
     property name is automatically set to the camelcase form of the given name ('categoryCode'), because of our
     choice of "propertyNameDefault: 'CAMELCASE'" in the query group specification. Another option is 'AS_IN_DB'
     which would have property names defaulting to the database field names verbatim.
     Thus the `'category_code'` entry is equivalent to:
+
     ```typescript
     { field: 'category_code', jsonProperty: 'categoryCode' }
     ```
+
   - The third and final entry is a general expression involving database fields:
+
     ```typescript
     { expression: '$$.cid + 1000',
       jsonProperty: 'cidPlus1000',
       fieldTypeInGeneratedSource: {TS: 'number | null', Java: '@Nullable Long'} }
     ```
+
   In this case `expression` is provided instead of `field` (these two are mutually exclusive), and the `jsonProperty`
   and `fieldTypeInGeneratedSource` properties are *required* for expressions, to tell the tool how to name the
   expression and what type its values should be given in result types, by target language. With this form of field
@@ -201,10 +215,11 @@ mkdir -p src/sql src/ts
 Now we can generate the SQL and TypeScript sources as follows:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something like:
+
 ```sql
 select
   -- row object for table 'drug'
@@ -225,7 +240,7 @@ from (
     (category_code = :catCode)
   )
 ) q
-```  
+```
 
 The SQL shown here is for a Postgres example database, for a MySQL database it will differ slightly. The
 generated SQL is database-specific generally, with the database type having been determined from the
@@ -234,12 +249,13 @@ database metadata that was generated above and found at its standard location of
 Open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
 the `catCode` parameter. You should see output like the following:
 
-```
+```console
 {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
 
 Also a TypeScript module was generated, at `src/ts/drugs-query-1.ts` with contents similar to:
+
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
 export const sqlResource = "drugs-query-1.sql";
@@ -255,6 +271,7 @@ export interface Drug
   cidPlus1000: number | null;
 }
 ```
+
 This TypeScript module defines an interface `Drug` which matches the form of the the result object in each
 row of the query results. It also defines a constant for the parameter name as a convenience/safety feature,
 and lets you know the corresponding SQL file that was generated from the same query specification as well.
@@ -341,7 +358,7 @@ export const queryGroupSpec: QueryGroupSpec = {
 Now let's again generate the SQL and TypeScript sources with the same command as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added a new
@@ -358,6 +375,7 @@ export interface Compound
 ```
 
 If we run the query (with 'A' for parameter `catCode`), we'll see result row values like the following:
+
 ```json
 {
   "drugName": "Test Drug 2",
@@ -369,6 +387,7 @@ If we run the query (with 'A' for parameter `catCode`), we'll see result row val
   "registeredByAnalyst": "sch"
 }
 ```
+
 We see our compound information has been added in property `primaryCompound` as expected, and the registering
 analyst is represented in the string valued property `registeredByAnalyst`.  Notice that the registering analyst
 information does not have a wrapping object (it is "inlined"), because `referenceName` was omitted in its
@@ -454,7 +473,7 @@ fields from `compound` itself.
 Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 In the result type declaration module `src/ts/drugs-query-3.ts`, we see that our two analyst fields have been added to
@@ -577,15 +596,16 @@ const drugsQuery4: QuerySpec = {
 Add `drugsQuery4` to `queryGroupSpec` and run the sources generator with our usual command:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 If you examine the generated result types module for the query at `src/ts/drugs-query-4.ts`, you should see a new
 `advisories` property of type `Advisory[]` within the `Drug` type, as well as a definition for the `Advisory` type
 itself.
 
-Try running the SQL at `src/sql/drugs-query-4.sql` with 'A' for `catCode`, and verify that the query produces an 
+Try running the SQL at `src/sql/drugs-query-4.sql` with 'A' for `catCode`, and verify that the query produces an
 array of drug advisories. The json value in each row should look like:
+
 ```json
 {
   "drugName": "Test Drug 2",
@@ -708,7 +728,7 @@ const drugsQuery5: QuerySpec = {
 Add the new `drugsQuery5` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources again:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 In the generated result types module for the query at `src/ts/drugs-query-5.ts`, we should see new fields for the
@@ -848,7 +868,7 @@ to perform multiple queries to get the same data.
 Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 ## Validating Database Object Names in Free-Form Expressions
@@ -864,7 +884,7 @@ There is however an easy way to reference table and field names from database me
 "free form" parts of any query specification. As an example, let's make the `recordCondition` in our
 previous query reference the `category_code` field in the database metadata, for safety.
 
-First we need to add an import near the top of our `query-gen/queries/query-specs.ts` file:
+First we need to add an import near the top of our `query-gen/query-specs.ts` file:
 ```typescript
 import {Schema_drugs as drugs, verifiedFieldNames} from '../dbmd/relations-metadata';
 ```
@@ -875,6 +895,7 @@ verify field names against this metadata. Let's use it in a new variant of our p
 our final query.
 
 ### Final Query
+
 ```typescript
 const {category_code} = verifiedFieldNames(drugs.drug); // category_code === 'category_code'
 
@@ -968,12 +989,12 @@ name against database metadata in a similar way.
 That completes our final query specification. Add it to the query group spec and generate sources:
 
 ```console
-npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
 ```
 
 ## Final Query Review
 
-Let's review what's been accomplished with the [final query specification](#final-query) above. 
+Let's review what's been accomplished with the [final query specification](#final-query) above.
 
 The query includes data from each of the following related tables using all of the foreign keys shown:
 
@@ -1225,5 +1246,5 @@ When run, the SQL query results in values like the following from one of the res
 }
 ```
 
-That concludes this tutorial. For more in depth information about building query specifications, 
+That concludes this tutorial. For more in depth information about building query specifications,
 see the [query specifications](query-specifications.md) documentation.

@@ -66,7 +66,7 @@ to form JSON output for each table, including how related table data is nested v
 relationships within a table's output. These query specifications are expressed in TypeScript, regardless of
 target language, and are checked against database metadata whenever the tool is run. This checking ensures
 validity of all references to database objects, including implicit reliance on foreign keys in parent/child
-relationships. 
+relationships.
 
 In this example we supply a specification for a single drugs query, which fetches data from all tables in the above
 diagram:
@@ -346,16 +346,16 @@ will provide more details.
   jdbc.username=...
   jdbc.password=...
   ```
-  
+
   Then generate the database metadata:
 
   ```console
-  query-gen/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
+  query-gen/scripts/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
   ```
   where `jdbc-props` is the properties file create above and the second argument represents your database type.
 
   A PowerShell variant of the script taking the same parameters is available in the same folder for Windows users.
-  
+
   Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be easily avoided.
   See
   [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java)
@@ -367,11 +367,11 @@ will provide more details.
 
 ### Define application query specifications
 
-  Create and edit file `query-specs.ts` in folder `query-gen/queries/` to define application queries.
-  The file should export a `QueryGroupSpec` instance as `queryGroupSpec`. 
+  Create and edit file `query-specs.ts` in folder `query-gen/` to define application queries.
+  The file should export a `QueryGroupSpec` instance as `queryGroupSpec`.
 
   ```typescript
-  // (file <query-gen-folder>/queries/query-specs.ts)
+  // (file <query-gen-folder>/query-specs.ts)
   export const queryGroupSpec: QueryGroupSpec = {
      defaultSchema: "foos",
      generateUnqualifiedNamesForSchemas: ["foos"],
@@ -381,10 +381,10 @@ will provide more details.
      ]
   };
   ```
-  
+
   The details of how to write query specifications are described in the [the tutorial](tutorial.md) and
   further in [the query specifications documentation](query-specifications.md). It is recommended to work
-  through the tutorial before consulting the detailed documentation. 
+  through the tutorial before consulting the detailed documentation.
 
 
 ### Generate SQL and result types:
@@ -392,15 +392,15 @@ will provide more details.
   To generate SQL and matching TypeScript result types:
 
   ```
-  npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/lib
+  npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/lib
   ```
 
   This will generate the SQL and TypeScript sources for your queries in whatever directories you specify for
   the `sqlDir` and `tsQueriesDir` arguments.
-  
+
   Or for Java result types instead:
   ```
-  npm run --prefix query-gen generate-queries -- --sqlDir=../src/sql --javaBaseDir=../src/lib --javaQueriesPkg=gen.queries
+  npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --javaBaseDir=../src/lib --javaQueriesPkg=gen.queries
   ```
 
 ## Tutorial

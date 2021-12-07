@@ -41,7 +41,7 @@ A database field `account_number` would yield a JSON property name
   - `CAMELCASE`: JSON property name will be the camelcase form of the database field
 name. A database field `account_number` would yield a JSON property name
 of `accountNumber` with this setting.
-  
+
 
 - `generateUnqualifiedNamesForSchemas`
 
@@ -65,7 +65,7 @@ of `accountNumber` with this setting.
 
 If using the ready-made [project dropin](https://github.com/scharris/sqljson-query-dropin)
 to add query generation capability to a project, then you define your single `QueryGroupSpec`
-object in file `<query-gen-folder>/queries/query-specs.ts`, and export it from that module
+object in file `<query-gen-folder>/query-specs.ts`, and export it from that module
 as `queryGroupSpec`.
 
 ```typescript
@@ -218,7 +218,7 @@ interface TableJsonSpec
   for the enclosing `QueryGroupSpec`. The table name may be entered with quotes in which case it
   will be used in quoted form exactly as entered in query generation, or without quotes in which
   case the database's default name case folding if any will be applied automatically (to uppercase
-  for Oracle, lowercase for Postgres, no folding for MySQL). 
+  for Oracle, lowercase for Postgres, no folding for MySQL).
 
 
 - `fieldExpressions`
@@ -241,7 +241,7 @@ interface TableJsonSpec
 
   - A simple `string` value is interpreted as a `TableFieldExpr` with the `field` property of that value and
   no other properties provided.
-   
+
   - Exactly one of `field` and `expression` should be specified. In the `field` case the value comes directly
   from a database column, while an `expression` may be any SQL expression involving the database fields in scope.
   The expression should be entered just as it should appear in generated SQL, with the exception that `$$`
@@ -305,7 +305,7 @@ interface TableJsonSpec
     withTableAliasAs?: string;
   }
   ```
-  
+
   - The `sql` property holds the SQL predicate expression, just as it would appear in a SQL `WHERE` clause.
     Within the expression, usages of `$$` will be expanded to be the alias of the subject table in the
     generated query, unless the alias placeholder has been customized via the `withTableAlias` property in
@@ -319,7 +319,7 @@ interface TableJsonSpec
     TypeScript source code containing the parameter names. This is a convenience for the users of the SQL
     to assist with auto-completion and to prevent usage of wrong or missing parameter names, and is in no
     case required to properly execute the SQL.
-  
+
   - The `withTableAlias` member controls the text that will be expanded to the subject table alias in
     the SQL expression in the `sql` property. Defaults to `$$`. Usually unqualified field names are
     unambiguous so no table alias is necessary.
@@ -501,7 +501,7 @@ many-to-one or -zero/one relationship, and from child tables via a one-to-many r
 But we haven't yet described how to include data from a many-to-many relationship.
 
 In fact we don't need any new constructs to handle the many-to-many case. We start by including
-the intermediate/intersection table as a child table collection within our initial table which 
+the intermediate/intersection table as a child table collection within our initial table which
 represents one side of the relationship. Then within that child table specification we include
 whatever parts we want from the intersection table's other parent as an "inlined" parent
 specification, by not specifying `referenceName` in the `ParentSpec`.
@@ -524,7 +524,7 @@ const drugsQuery: QuerySpec = {
   queryName: 'drugs query',
   tableJson: {
     table: "drug",
-    fieldExpressions: ["id", "name"], 
+    fieldExpressions: ["id", "name"],
     childTables: [
       {
         collectionName: "prioritizedReferences",
