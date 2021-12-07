@@ -75,14 +75,16 @@ on either of these. There are two database metadata files which should be genera
 - Next generate additional "relations" metadata, which is the table and field metadata in a form used to verify
   table and field names from TypeScript code at compile time. This is done via the command:
 
-```console
-npm run --prefix query-gen gen-rels-md
-```
+   ```console
+   npm run --prefix query-gen gen-rels-md
+   ```
 
-This command depends on the primary database metadata already existing, so these steps need to be run in the
-order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
+   This command depends on the primary database metadata already existing, so these steps need to be run in the
+   order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
 
-## Query Generation
+That wraps up for generating database metadata, with or without Java/Maven.
+
+# Query Generation
 
 We're now ready to write our query specifications and to generate the SQL and result types sources from them.
 
