@@ -85,7 +85,7 @@ on either of these. There are two database metadata files which should be genera
 # Query Generation
 
 With our database metadata having been generated, we're now ready to write our query specifications and to generate
-the SQL and result types sources. We'll start with a sample query of a single table.
+the SQL and result types sources. We'll start with a simple query of a single table.
 
 ## Single-Table Query
 
