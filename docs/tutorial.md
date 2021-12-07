@@ -82,16 +82,16 @@ on either of these. There are two database metadata files which should be genera
    This command depends on the primary database metadata already existing, so these steps need to be run in the
    order above. This command should produce a metadata file at `query-gen/dbmd/relations-metadata.ts`.
 
-That wraps up for generating database metadata, with or without Java/Maven.
-
 # Query Generation
 
-We're now ready to write our query specifications and to generate the SQL and result types sources from them.
+With our database metadata having been generated, we're now ready to write our query specifications and to generate
+the SQL and result types sources. We'll start with a sample query of a single table.
 
 ## Single-Table Query
 
-We're expected to define our queries in file `query-gen/query-specs.ts`. Create the file in a text editor
-with the following initial contents:
+We're expected to define our queries in file `query-gen/query-specs.ts`. The `query-gen` folder contains a self-contained
+TypeScript project, so you should be able to get proper support from your favorite IDE as you edit the TypesScript queries
+sources. Create the `query-gen/query-specs.ts` file in an IDE or text editor with the following initial contents:
 
 ```typescript
 // query-gen/query-specs.ts
@@ -133,7 +133,7 @@ all queries such as the default schema name to be assumed for unqualified tables
 In `drugsQuery1` we've defined a simple query based on just a single table, `drug`. It's given a name via
 `queryName` which is used to determine the names of the generated SQL files and TypeScript/Java source files.
 The rest of the query specification lies in the `tableJson` property, which describes how to form JSON output
-for a given "top" table and whatever related tables it may want to include data from in its output.
+for a given "top" table and whatever related tables it may want to pull data from into its own output.
 
 Let's briefly go over the properties of the `tableJson` object, since it's the centerpiece of our query.
 
@@ -153,18 +153,18 @@ tableJson: {
 
 - The `table` property specifies the top (and here the only) table in this JSON output, which is table `drug`.
 
-- The `recordCondition` is present to filter the rows of our "drug" table, which can be an arbitrary SQL
-predicate &mdash; basically anything suitable for a SQL WHERE clause. Here we're restricting results by
+- The `recordCondition` is present to filter the rows of our `drug` table, which can be an arbitrary SQL
+predicate &mdash; basically anything suitable for a SQL `WHERE` clause. Here we're restricting results by
 `category_code` value, and using a SQL parameter named `catCode` as part of the predicate expression. For
 the parameters you can use whatever notation is needed by your SQL execution runtime to indicate them within
 the expression. The `paramNames` property is not required, but if it is provided then a constant will be
 defined in the TypeScript or Java source code for each parameter entered here with value equal to the
-parameter name, to help catch errors involving using wrong parameter names. Using literal field names like
+parameter name, to help catch errors involving the use of wrong parameter names. Using literal field names like
 `category_code` here may lead to runtime errors in case of typos or database changes. See
 [Validating Database Object Names in Free-Form Expressions](#validating-database-object-names-in-free-form-expressions)
 below for a safer alternative.
 
-- Finally, the `fieldExpressions` property lists the fields and expressions involving the fields from `table` which
+- Finally, the `fieldExpressions` property lists the fields, and expressions involving the fields, from `table` which
 are to be included as properties in the JSON objects representing the table rows. The field expressions take three
 forms here, which cover all possibilities:
 
@@ -176,10 +176,10 @@ forms here, which cover all possibilities:
 
     In this case the source database table field and desired JSON property name are both given explicitly.
 
-  - The second form ('category_code') is simply a string which is the database field name, in which case the JSON
-    property name is automatically set to the camelcase form of the given name ('categoryCode'), because of our
-    choice of "propertyNameDefault: 'CAMELCASE'" in the query group specification. Another option is 'AS_IN_DB'
-    which would have property names defaulting to the database field names verbatim.
+  - The second form, `'category_code'`, is simply a string which is the database field name, in which case the JSON
+    property name is automatically set to the camelcase form of the given name (`'categoryCode'`), because of our
+    choice of `"propertyNameDefault: 'CAMELCASE'"` in the query group specification. Another option would have been
+    'AS_IN_DB' which would make property names default to the verbatim database field names.
     Thus the `'category_code'` entry is equivalent to:
 
     ```typescript
@@ -245,15 +245,15 @@ from (
 ```
 
 The SQL shown here is for a Postgres example database, for a MySQL database it will differ slightly. The
-generated SQL is database-specific generally, with the database type having been determined from the
-database metadata that was generated above and found at its standard location of `query-gen/dbmd/dbmd.json`.
+generated SQL is database-specific generally, with the database type having been determined automatically from
+the database metadata that was generated above at `query-gen/dbmd/dbmd.json`.
 
-Open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
+Now open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
 the `catCode` parameter. You should see output like the following:
 
 ```console
-{"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
-{"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
+(row 1) {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
+(row 2) {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
 
 Also a TypeScript module was generated, at `src/ts/drugs-query-1.ts` with contents similar to:
@@ -275,7 +275,7 @@ export interface Drug
 ```
 
 This TypeScript module defines an interface `Drug` which matches the form of the the result object in each
-row of the query results. It also defines a constant for the parameter name as a convenience/safety feature,
+row of the query results. It also defines a constant for the parameter name as a convenience and safety feature,
 and lets you know the corresponding SQL file that was generated from the same query specification as well.
 
 ## Adding Parent Tables
