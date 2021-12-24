@@ -9,6 +9,6 @@ mkShell {
   ];
 
   shellHook = ''
-    echo Welcome to the sql-json-query project (deno branch).
+    echo Welcome to the sql-json-query project \(deno branch\).
   '';
 }
