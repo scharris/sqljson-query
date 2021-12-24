@@ -8,7 +8,7 @@ import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec
 } from './query-specs.ts';
-import { identifyTable } from './query-spec-validations';
+import { identifyTable } from './query-spec-validations.ts';
 
 export class ResultTypesGenerator
 {
