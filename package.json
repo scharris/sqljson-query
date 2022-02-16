@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.4.11",
+  "version": "1.4.12",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -17,40 +17,40 @@
   "main": "./lib/mod.js",
   "exports": "./lib/mod.js",
   "scripts": {
-    "build-pg-test-db": "docker build -t drugs-pg src/__tests__/db/pg",
-    "start-pg-test-db": "npm run build-pg-test-db && docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg",
-    "psql-test-db": "docker exec -it drugs-pg psql -U drugs",
-    "build-mysql-test-db": "docker build -t drugs-mysql src/__tests__/db/mysql",
-    "start-mysql-test-db": "npm run build-mysql-test-db && docker run -d --name drugs-mysql -p 127.0.0.1:3306:3306 drugs-mysql",
-    "mysql-test-db": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
+    "build-pg-testdb": "docker build -t drugs-pg src/__tests__/db/pg",
+    "start-pg-testdb": "npm run build-pg-testdb && docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg",
+    "psql-testdb-cli": "docker exec -it drugs-pg psql -U drugs",
+    "build-mysql-testdb": "docker build -t drugs-mysql src/__tests__/db/mysql",
+    "start-mysql-testdb": "npm run build-mysql-testdb && docker run -d --name drugs-mysql -p 127.0.0.1:3306:3306 drugs-mysql",
+    "mysql-testdb-cli": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot",
-    "compile": "tsc --noEmit # (check-compile without emitting outputs)",
+    "typecheck": "tsc --noEmit # (compile without emitting outputs)",
     "build": "npm run clean && tsc",
     "test": "jest",
     "clean": "rimraf lib"
   },
   "dependencies": {
-    "ajv": "^8.8.2",
+    "ajv": "^8.10.0",
     "lodash": "^4.17.20",
     "minimist": "^1.2.5"
   },
   "devDependencies": {
     "@types/ajv": "^1.0.0",
     "@types/jest": "^26.0.23",
-    "@types/lodash": "^4.14.177",
+    "@types/lodash": "^4.14.178",
     "@types/minimist": "^1.2.1",
-    "@types/node": "^16.11.11",
-    "@types/pg": "^8.6.1",
+    "@types/node": "^16.11.25",
+    "@types/pg": "^8.6.4",
     "copyfiles": "^2.4.1",
     "dotenv": "^10.0.0",
-    "jest": "^27.4.3",
-    "jest-cli": "^27.4.3",
+    "jest": "^27.5.1",
+    "jest-cli": "^27.5.1",
     "mkdirp": "^1.0.4",
     "mysql2": "^2.3.3",
     "path": "^0.12.7",
-    "pg": "^8.6.0",
+    "pg": "^8.7.3",
     "rimraf": "^3.0.2",
-    "ts-jest": "^27.0.7",
-    "typescript": "^4.5.2"
+    "ts-jest": "^27.1.3",
+    "typescript": "^4.5.5"
   }
 }
