@@ -17,17 +17,18 @@
   "main": "./lib/mod.js",
   "exports": "./lib/mod.js",
   "scripts": {
-    "build-pg-testdb": "docker build -t drugs-pg src/__tests__/db/pg",
-    "start-pg-testdb": "npm run build-pg-testdb && docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg",
-    "psql-testdb-cli": "docker exec -it drugs-pg psql -U drugs",
-    "build-mysql-testdb": "docker build -t drugs-mysql src/__tests__/db/mysql",
-    "start-mysql-testdb": "npm run build-mysql-testdb && docker run -d --name drugs-mysql -p 127.0.0.1:3306:3306 drugs-mysql",
-    "mysql-testdb-cli": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
-    "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot",
+    "build-pg": "docker build -t drugs-pg src/__tests__/db/pg",
+    "start-pg": "npm run build-pg && docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg",
+    "pgsql-cli": "docker exec -it drugs-pg psql -U drugs",
+    "build-mysql": "docker build --platform linux/x86_64 -t drugs-mysql src/__tests__/db/mysql",
+    "start-mysql": "npm run build-mysql && docker run --platform linux/x86_64 -d --name drugs-mysql -p 127.0.0.1:3306:3306 drugs-mysql",
+    "mysql-cli": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
+    "start-test-dbs": "npm run start-pg && npm run start-mysql",
     "typecheck": "tsc --noEmit # (compile without emitting outputs)",
     "build": "npm run clean && tsc",
     "test": "jest",
-    "clean": "rimraf lib"
+    "clean": "rimraf lib",
+    "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot"
   },
   "dependencies": {
     "ajv": "^8.10.0",
