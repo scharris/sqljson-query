@@ -64,10 +64,10 @@ jobs:
         run: npm ci
       - name: Build project
         run: npm run build
-      - name: Set up JDK 11 for Java tests
+      - name: Set up JDK 17 for Java tests
         uses: actions/setup-java@v2
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'adopt'
       - name: Run project tests
         run: npm test
