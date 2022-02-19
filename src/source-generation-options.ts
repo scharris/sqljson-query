@@ -4,11 +4,20 @@ export type SourceLanguage = 'TS' | 'Java';
 
 export type CustomPropertyTypeFn = (prop: TableFieldProperty, resultType: ResultType) => string | null;
 
-export interface SourceGenerationOptions
+export interface CommonSourceGenerationOptions
 {
   sourceLanguage?: SourceLanguage;
-  javaPackage?: string;
   sqlResourcePathPrefix?: string;
   typesHeaderFile?: string;
   customPropertyTypeFn?: CustomPropertyTypeFn;
+}
+
+export type SourceGenerationOptions =
+  { sourceLanguage: 'TS' } & CommonSourceGenerationOptions |
+  { sourceLanguage: 'Java', javaOptions: JavaSourceGenerationOptions } & CommonSourceGenerationOptions
+
+export interface JavaSourceGenerationOptions
+{
+  javaPackage?: string;
+  emitRecords?: boolean;
 }

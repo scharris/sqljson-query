@@ -28,7 +28,7 @@ export async function generateQuerySources
     dbmdFile: string,
     srcOutputDir: string | null,
     sqlOutputDir: string | null,
-    opts: SourceGenerationOptions = {}
+    opts: SourceGenerationOptions = { sourceLanguage: 'TS' }
   )
   : Promise<void>
 {

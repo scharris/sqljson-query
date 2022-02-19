@@ -7,7 +7,7 @@ import {
   ParentReferenceProperty, propertiesCount, resultTypesEqual
 } from './result-types';
 import {QueryReprSqlPath} from './query-repr-sql-path';
-import {SourceGenerationOptions, SourceLanguage, CustomPropertyTypeFn} from './source-generation-options';
+import {SourceGenerationOptions, SourceLanguage, JavaSourceGenerationOptions} from './source-generation-options';
 import {DatabaseMetadata} from './database-metadata';
 import {ResultTypesGenerator} from './result-types-generator';
 
@@ -30,7 +30,7 @@ export class ResultTypesSourceGenerator
       querySpec: QuerySpec,
       sqlPaths: QueryReprSqlPath[],
       fileName: string | null = null, // languages like Java constrain the exported type name to match the file name
-      opts: SourceGenerationOptions = {}
+      opts: SourceGenerationOptions = { sourceLanguage: 'TS' }
     )
     : Promise<string>
   {
@@ -38,16 +38,14 @@ export class ResultTypesSourceGenerator
     const qResTypes = this.resultTypesGen.generateResultTypes(querySpec.tableJson, qName);
     const qParams = getQueryParamNames(querySpec);
     const qTypesHdr = querySpec.typesFileHeader;
-    const srcLang = opts.sourceLanguage || 'TS';
 
-    switch (srcLang)
+    switch (opts.sourceLanguage)
     {
       case 'TS':
         return await makeTypeScriptSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
       case 'Java':
         if ( fileName == null ) throw new Error('file name is required to generate Java result types source code.');
         return await makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, fileName, opts);
-      default: return missingCase(srcLang);
     }
   }
 } // ends class ResultTypesSourceGenerator
@@ -59,7 +57,7 @@ async function makeTypeScriptSource
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
-    opts: NonLangSrcGenOptions
+    opts: SourceGenerationOptions
   )
   : Promise<string>
 {
@@ -71,7 +69,7 @@ async function makeTypeScriptSource
     '// query parameters\n' +
     queryParamDefinitions(queryParamNames, 'TS') + '\n\n' +
     '// Below are types representing the result data for the generated query, with top-level type first.\n' +
-    resultTypeDeclarations(resultTypes, opts.customPropertyTypeFn, 'TS')
+    resultTypeDeclarations(resultTypes, opts)
   );
 }
 
@@ -83,7 +81,7 @@ async function makeJavaSource
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
     fileName: string,
-    opts: NonLangSrcGenOptions
+    opts: SourceGenerationOptions & JavaSourceGenerationOptions,
   )
   : Promise<string>
 {
@@ -107,7 +105,7 @@ async function makeJavaSource
       sqlPathMembers +
       sqlParamMembers +
       "  // Below are types representing the result data for the generated query, with top-level result type first.\n\n" +
-      indentLines(resultTypeDeclarations(resultTypes, opts.customPropertyTypeFn, 'Java'), 2) + '\n' +
+      indentLines(resultTypeDeclarations(resultTypes, opts), 2) + '\n' +
     '}\n'
   );
 }
@@ -156,8 +154,7 @@ function queryParamDefinitions(paramNames: string[], srcLang: SourceLanguage): s
 function resultTypeDeclarations
   (
     resultTypes: ResultType[],
-    customPropTypeFn: CustomPropertyTypeFn | undefined,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -169,9 +166,7 @@ function resultTypeDeclarations
   const resultTypeNameAssignments: Map<ResultType,string> = assignResultTypeNames(resultTypes);
 
   const makeTypeDecl =
-    srcLang === 'TS' ? tsResultTypeDeclaration :
-    srcLang === 'Java' ? javaResultTypeDeclaration :
-      missingCase(srcLang)
+    opts.sourceLanguage === 'TS' ? makeTSResultTypeDeclaration : makeJavaResultTypeDeclaration;
 
   for ( const resType of resultTypes )
   {
@@ -181,7 +176,7 @@ function resultTypeDeclarations
 
     if ( !writtenTypeNames.has(resTypeName) )
     {
-      typeDecls.push(makeTypeDecl(resType, resultTypeNameAssignments, customPropTypeFn) + '\n');
+      typeDecls.push(makeTypeDecl(resType, resultTypeNameAssignments, opts) + '\n');
       writtenTypeNames.add(resTypeName);
     }
   }
@@ -189,11 +184,11 @@ function resultTypeDeclarations
   return typeDecls.join('\n');
 }
 
-function tsResultTypeDeclaration
+function makeTSResultTypeDeclaration
   (
     resType: ResultType,
     resTypeNameAssignments: Map<ResultType,string>,
-    customPropTypeFn: CustomPropertyTypeFn | undefined
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -203,56 +198,67 @@ function tsResultTypeDeclaration
   lines.push(`export interface ${resTypeName}`);
   lines.push('{');
   resType.tableFieldProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${tableFieldPropertyType(f, resType, customPropTypeFn, 'TS')};`
+    `${f.name}: ${tableFieldPropertyType(f, resType, opts)};`
   ));
   resType.tableExpressionProperty.forEach(f => lines.push('  ' +
-    `${f.name}: ${tableExpressionPropertyType(f, 'TS')};`
+    `${f.name}: ${tableExpressionPropertyType(f, opts)};`
   ));
   resType.parentReferenceProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${parentReferencePropertyType(f, resTypeNameAssignments, 'TS')};`
+    `${f.name}: ${parentReferencePropertyType(f, resTypeNameAssignments, opts)};`
   ));
   resType.childCollectionProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${childCollectionPropertyType(f, resTypeNameAssignments, customPropTypeFn, 'TS')};`
+    `${f.name}: ${childCollectionPropertyType(f, resTypeNameAssignments, opts)};`
   ));
   lines.push('}')
 
   return lines.join('\n');
 }
 
-function javaResultTypeDeclaration
+function makeJavaResultTypeDeclaration
   (
     resType: ResultType,
     resTypeNameAssignments: Map<ResultType,string>,
-    customPropTypeFn: CustomPropertyTypeFn | undefined
+    opts: SourceGenerationOptions
   )
   : string
 {
-  const fieldDecls: string[] = [];
+  if ( opts.sourceLanguage !== 'Java' )
+    throw new Error('Logic error: wrong source type found in options.');
 
+  const emitRecords: boolean = opts.javaOptions.emitRecords ?? false;
+
+  const vis = emitRecords ? '' : 'public ';
+
+  const fieldDecls: string[] = [];
   resType.tableFieldProperties.forEach(f => {
-    const fieldType = tableFieldPropertyType(f, resType, customPropTypeFn, 'Java');
-    fieldDecls.push(`public ${fieldType} ${f.name};`);
+    const fieldType = tableFieldPropertyType(f, resType, opts);
+    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
   resType.tableExpressionProperty.forEach(f => {
-    const fieldType = tableExpressionPropertyType(f, 'Java');
-    fieldDecls.push(`public ${fieldType} ${f.name};`);
+    const fieldType = tableExpressionPropertyType(f, opts);
+    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
   resType.parentReferenceProperties.forEach(f => {
-    const fieldType = parentReferencePropertyType(f, resTypeNameAssignments, 'Java');
-    fieldDecls.push(`public ${fieldType} ${f.name};`);
+    const fieldType = parentReferencePropertyType(f, resTypeNameAssignments, opts);
+    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
   resType.childCollectionProperties.forEach(f => {
-    const fieldType = childCollectionPropertyType(f, resTypeNameAssignments, customPropTypeFn, 'Java');
-    fieldDecls.push(`public ${fieldType} ${f.name};`);
+    const fieldType = childCollectionPropertyType(f, resTypeNameAssignments, opts);
+    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
 
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
-  return (
+  if ( emitRecords ) return (
+    `public record ${resTypeName}(\n` +
+      indentLines(fieldDecls.join(',\n'), 2) + '\n' +
+    '){}'
+  );
+  else return (
     '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
     `public static class ${resTypeName}\n` +
     '{\n' +
-    indentLines(fieldDecls.join('\n'), 2) + '\n' +
+      indentLines(fieldDecls.join(';\n'), 2) + ';\n' +
     '}'
   );
 }
@@ -261,15 +267,14 @@ function tableFieldPropertyType
   (
     tfp: TableFieldProperty,
     inResType: ResultType,
-    customPropTypeFn: CustomPropertyTypeFn | undefined,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
   if ( tfp.specifiedSourceCodeFieldType != null )
-    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, srcLang);
+    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, opts);
 
-  const customizedType = customPropTypeFn && customPropTypeFn(tfp, inResType);
+  const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType);
   if ( customizedType )
     return customizedType;
 
@@ -286,11 +291,11 @@ function tableFieldPropertyType
     case 'int4':
     case 'smallint':
     case 'int8':
-      return generalNumericTableFieldPropertyType(tfp, srcLang);
+      return generalNumericTableFieldPropertyType(tfp, opts.sourceLanguage);
     case 'float':
     case 'real':
     case 'double':
-      return floatingNumericTableFieldPropertyType(tfp, srcLang);
+      return floatingNumericTableFieldPropertyType(tfp, opts.sourceLanguage);
     case 'varchar':
     case 'varchar2':
     case 'text':
@@ -302,17 +307,17 @@ function tableFieldPropertyType
     case 'timestamp':
     case 'timestamp with time zone':
     case 'timestamptz':
-      return textTableFieldPropertyType(tfp, srcLang);
+      return textTableFieldPropertyType(tfp, opts.sourceLanguage);
     case 'bit':
     case 'boolean':
     case 'bool':
-      return booleanTableFieldPropertyType(tfp, srcLang);
+      return booleanTableFieldPropertyType(tfp, opts.sourceLanguage);
     case 'json':
     case 'jsonb':
-      return jsonTableFieldPropertyType(tfp, srcLang);
+      return jsonTableFieldPropertyType(tfp, opts.sourceLanguage);
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
-        return textTableFieldPropertyType(tfp, srcLang);
+        return textTableFieldPropertyType(tfp, opts.sourceLanguage);
       else throw new Error(`unsupported type for database field '${tfp.name}' of type '${tfp.databaseType}'`);
   }
 }
@@ -320,20 +325,20 @@ function tableFieldPropertyType
 function tableExpressionPropertyType
   (
     tep: TableExpressionProperty,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
   if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
     throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
 
-  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, srcLang);
+  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, opts);
 }
 
 function specifiedSourceCodeFieldType
   (
     specSourceCodeFieldType: string | {[srcLang: string]: string},
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -342,10 +347,10 @@ function specifiedSourceCodeFieldType
     case 'string':
       return specSourceCodeFieldType;
     default:
-      if ( !(srcLang in specSourceCodeFieldType) ) throw new Error(
-        `Expression type for language ${srcLang} not specified for table expression property ${specSourceCodeFieldType}.`
+      if ( !(opts.sourceLanguage in specSourceCodeFieldType) ) throw new Error(
+        `Expression type for language ${opts.sourceLanguage} not specified for table expression property ${specSourceCodeFieldType}.`
       );
-      return specSourceCodeFieldType[srcLang];
+      return specSourceCodeFieldType[opts.sourceLanguage];
   }
 }
 
@@ -353,33 +358,31 @@ function parentReferencePropertyType
   (
     f: ParentReferenceProperty,
     resTypeNames: Map<ResultType,string>,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
   const parentTypeName = resTypeNames.get(f.refResultType)!;
-  return withNullability(f.nullable, parentTypeName, srcLang);
+  return withNullability(f.nullable, parentTypeName, opts.sourceLanguage);
 }
 
 function childCollectionPropertyType
   (
     p: ChildCollectionProperty,
     resTypeNames: Map<ResultType,string>,
-    customPropTypeFn: CustomPropertyTypeFn | undefined,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
   const collElType = p.elResultType.unwrapped ?
-    getSolePropertyType(p.elResultType, resTypeNames, customPropTypeFn, srcLang)
+    getSolePropertyType(p.elResultType, resTypeNames, opts)
     : resTypeNames.get(p.elResultType)!; // a regular (wrapped) child record is never nullable itself, by its nature
 
-  switch (srcLang)
+  switch (opts.sourceLanguage)
   {
     case 'TS': return withNullability(p.nullable, `${collElType}[]`, 'TS');
     case 'Java':
       return withNullability(p.nullable, `List<${toJavaReferenceType(collElType)}>`, 'Java');
-    default: return missingCase(srcLang);
   }
 }
 
@@ -387,8 +390,7 @@ function getSolePropertyType
   (
     resType: ResultType,
     resTypeNames: Map<ResultType,string>,
-    customPropTypeFn: CustomPropertyTypeFn | undefined,
-    srcLang: SourceLanguage
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -396,13 +398,13 @@ function getSolePropertyType
     throw new Error(`Expected single field when unwrapping result type ${JSON.stringify(resType)}.`);
 
   if (resType.tableFieldProperties.length === 1)
-    return tableFieldPropertyType(resType.tableFieldProperties[0], resType, customPropTypeFn, srcLang);
+    return tableFieldPropertyType(resType.tableFieldProperties[0], resType, opts);
   else if (resType.tableExpressionProperty.length === 1)
-    return tableExpressionPropertyType(resType.tableExpressionProperty[0], srcLang);
+    return tableExpressionPropertyType(resType.tableExpressionProperty[0], opts);
   else if (resType.childCollectionProperties.length === 1)
-    return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, customPropTypeFn, srcLang);
+    return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, opts);
   else if (resType.parentReferenceProperties.length === 1)
-    return parentReferencePropertyType(resType.parentReferenceProperties[0], resTypeNames, srcLang);
+    return parentReferencePropertyType(resType.parentReferenceProperties[0], resTypeNames, opts);
   else
     throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
 }
@@ -552,6 +554,3 @@ const javaStandardImports: string =
   'import org.checkerframework.framework.qual.TypeUseLocation;\n' +
   'import com.fasterxml.jackson.databind.JsonNode;\n' +
   'import com.fasterxml.jackson.databind.node.*;\n';
-
-type NonLangSrcGenOptions = Omit<SourceGenerationOptions, 'sourceLanguage'>;
-

@@ -4,7 +4,7 @@ mkShell {
   buildInputs = [
     nodejs
     nodePackages.typescript
-    openjdk11
+    openjdk17
     maven
     graphviz-nox
   ];

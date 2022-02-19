@@ -23,9 +23,8 @@ const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
 const srcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
-const java = { sourceLanguage: 'Java' } as const;
 
-test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
+test('results match generated class types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -38,7 +37,8 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: false } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -50,6 +50,37 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
       `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
       `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
       )).join('\n')
+  );
+
+  dbClient.end();
+});
+
+test('results match generated record types for JSON_OBJECT_ROWS query of single table', async () => {
+  const querySpec: QuerySpec =
+    {
+      queryName: 'test query',
+      resultRepresentations: ['JSON_OBJECT_ROWS'],
+      tableJson: {
+        table: 'drug',
+        fieldExpressions: ['id', 'name']
+      }
+    };
+
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
+
+  const dbClient: Client = await getDbClient();
+
+  const queryRes = await dbClient.query(sql);
+
+  await testWithResultTypes(
+    resTypesSrc,
+    queryRes.rows.map((resRow, ix) => (
+      `String row${ix+1}Json = ${JSON.stringify(JSON.stringify(resRow.json))};\n` +
+      `Drug drugRow${ix+1} = jsonMapper.readValue(row${ix+1}Json.getBytes(), Drug.class);\n`
+    )).join('\n')
   );
 
   dbClient.end();
@@ -68,7 +99,8 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -105,7 +137,8 @@ test('table field property names specified by jsonProperty attributes', async ()
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -143,7 +176,8 @@ test('parent reference', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -182,7 +216,8 @@ test('table field properties from inline parent tables', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -229,7 +264,8 @@ test('table field properties from an inlined parent and its own inlined parent',
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -271,7 +307,8 @@ test('referenced parent property from an inlined parent', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -312,7 +349,8 @@ test('child collection property from an inlined parent', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -354,7 +392,8 @@ test('unwrapped child collection property from an inlined parent', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -392,7 +431,8 @@ test('child collection', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -430,7 +470,8 @@ test('unwrapped child table collection of table field property', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -469,7 +510,8 @@ test('unwrapped child table collection of field exression property', async () =>
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -510,7 +552,8 @@ test('unwrapped child table collection of field expression property with lang-sp
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -552,7 +595,8 @@ test('unwrapped child table collection of parent reference property', async () =
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -594,7 +638,8 @@ test('unwrapped child table collection of inlined parent property', async () => 
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -638,7 +683,8 @@ test('unwrapped child collection of child collection property', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -683,7 +729,8 @@ test('unwrapped child collection of unwrapped child collection property', async 
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', java);
+  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: true } } as const;
+  const resTypesSrc = await srcGen.makeQueryResultTypesSource(querySpec, [], 'TestQuery.java', opts);
 
   const dbClient: Client = await getDbClient();
 
@@ -831,7 +878,7 @@ const mavenPomContents =
             <artifactId>maven-compiler-plugin</artifactId>
             <version>3.8.1</version>
             <configuration>
-               <release>11</release>
+               <release>17</release>
             </configuration>
          </plugin>
       </plugins>
