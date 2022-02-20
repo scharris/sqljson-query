@@ -1,13 +1,24 @@
 import * as path from 'path';
-import {hashString, upperCamelCase, partitionByEquality, makeNameNotInSet, indentLines, missingCase, readTextFile}
-  from './util/mod';
+import {
+  hashString,
+  upperCamelCase,
+  partitionByEquality,
+  makeNameNotInSet,
+  indentLines,
+  missingCase,
+  readTextFileSync
+} from './util/mod';
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount, resultTypesEqual
 } from './result-types';
 import {QueryReprSqlPath} from './query-repr-sql-path';
-import {SourceGenerationOptions, SourceLanguage, JavaSourceGenerationOptions} from './source-generation-options';
+import {
+  SourceLanguage,
+  JavaSourceGenerationOptions,
+  ResultTypesSourceGenerationOptions
+} from './source-generation-options';
 import {DatabaseMetadata} from './database-metadata';
 import {ResultTypesGenerator} from './result-types-generator';
 
@@ -25,14 +36,13 @@ export class ResultTypesSourceGenerator
     this.resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, defaultPropertyNameFn);
   }
 
-  async makeQueryResultTypesSource
+  makeQueryResultTypesSource
     (
       querySpec: QuerySpec,
       sqlPaths: QueryReprSqlPath[],
-      fileName: string | null = null, // languages like Java constrain the exported type name to match the file name
-      opts: SourceGenerationOptions = { sourceLanguage: 'TS' }
+      opts: ResultTypesSourceGenerationOptions
     )
-    : Promise<string>
+    : ResultTypesSource
   {
     const qName = querySpec.queryName;
     const qResTypes = this.resultTypesGen.generateResultTypes(querySpec.tableJson, qName);
@@ -41,53 +51,48 @@ export class ResultTypesSourceGenerator
 
     switch (opts.sourceLanguage)
     {
-      case 'TS':
-        return await makeTypeScriptSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
-      case 'Java':
-        if ( fileName == null ) throw new Error('file name is required to generate Java result types source code.');
-        return await makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, fileName, opts);
+      case 'TS':   return makeTypeScriptSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
+      case 'Java': return makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
     }
   }
 } // ends class ResultTypesSourceGenerator
 
-async function makeTypeScriptSource
+function makeTypeScriptSource
   (
     queryName: string,
     resultTypes: ResultType[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
-  : Promise<string>
+  : ResultTypesSource
 {
-  return (
-    await generalTypesFileHeader(opts.typesHeaderFile) +
-    (queryTypesFileHeader || '') + '\n\n' +
-    '// The types defined in this file correspond to results of the following generated SQL queries.\n' +
-    sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix, 'TS') + "\n\n" +
-    '// query parameters\n' +
-    queryParamDefinitions(queryParamNames, 'TS') + '\n\n' +
-    '// Below are types representing the result data for the generated query, with top-level type first.\n' +
-    resultTypeDeclarations(resultTypes, opts)
-  );
+  return {
+    compilationUnitName: makeCompilationUnitName(queryName, 'TS'),
+    sourceCode:
+      generalTypesFileHeader(opts.typesHeaderFile) +
+      (queryTypesFileHeader || '') + '\n\n' +
+      '// The types defined in this file correspond to results of the following generated SQL queries.\n' +
+      sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix, 'TS') + "\n\n" +
+      '// query parameters\n' +
+      queryParamDefinitions(queryParamNames, 'TS') + '\n\n' +
+      '// Below are types representing the result data for the generated query, with top-level type first.\n' +
+      resultTypeDeclarations(resultTypes, opts)
+  };
 }
 
-async function makeJavaSource
+function makeJavaSource
   (
     queryName: string,
     resultTypes: ResultType[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
-    fileName: string,
-    opts: SourceGenerationOptions & JavaSourceGenerationOptions,
+    opts: JavaResultTypesSourceGenerationOptions
   )
-  : Promise<string>
+  : ResultTypesSource
 {
-  if ( !fileName.endsWith('.java') )
-    throw new Error('Expected Java source file name to end with ".java"');
-
   const sqlPathMembers = sqlPaths.length == 0 ? '' :
     '  // The types defined in this file correspond to results of the following generated SQL queries.\n' +
     indentLines(sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix, 'Java'), 2) + '\n\n';
@@ -95,24 +100,28 @@ async function makeJavaSource
     "  // query parameters\n" +
     indentLines(queryParamDefinitions(queryParamNames, 'Java'), 2) + '\n\n';
 
-  return (
-    (opts.javaPackage ? `package ${opts.javaPackage};\n\n` : '') +
-    await generalTypesFileHeader(opts.typesHeaderFile) +
-    (queryTypesFileHeader || '') + '\n' +
-    javaStandardImports + '\n\n' +
-    `public class ${fileName.substring(0, fileName.lastIndexOf('.'))}\n` +
-    '{\n' +
-      sqlPathMembers +
-      sqlParamMembers +
-      "  // Below are types representing the result data for the generated query, with top-level result type first.\n\n" +
-      indentLines(resultTypeDeclarations(resultTypes, opts), 2) + '\n' +
-    '}\n'
-  );
+  const compilationUnitName = makeCompilationUnitName(queryName, 'Java');
+
+  return {
+    compilationUnitName,
+    sourceCode:
+      (opts?.javaOptions?.javaPackage ? `package ${opts.javaOptions.javaPackage};\n\n` : '') +
+      generalTypesFileHeader(opts.typesHeaderFile) +
+      (queryTypesFileHeader || '') + '\n' +
+      javaStandardImports + '\n\n' +
+      `public class ${compilationUnitName}\n` +
+      '{\n' +
+        sqlPathMembers +
+        sqlParamMembers +
+        "  // Below are types representing the result data for the generated query, with top-level result type first.\n\n" +
+        indentLines(resultTypeDeclarations(resultTypes, opts), 2) + '\n' +
+      '}\n'
+  };
 }
 
-async function generalTypesFileHeader(typesHeaderFile: string | undefined): Promise<string>
+function generalTypesFileHeader(typesHeaderFile: string | undefined): string
 {
-  if ( typesHeaderFile != null ) return await readTextFile(typesHeaderFile) + "\n";
+  if ( typesHeaderFile != null ) return readTextFileSync(typesHeaderFile) + "\n";
   else return '';
 }
 
@@ -154,7 +163,7 @@ function queryParamDefinitions(paramNames: string[], srcLang: SourceLanguage): s
 function resultTypeDeclarations
   (
     resultTypes: ResultType[],
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -188,7 +197,7 @@ function makeTSResultTypeDeclaration
   (
     resType: ResultType,
     resTypeNameAssignments: Map<ResultType,string>,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -218,14 +227,14 @@ function makeJavaResultTypeDeclaration
   (
     resType: ResultType,
     resTypeNameAssignments: Map<ResultType,string>,
-    opts: SourceGenerationOptions
+    opts: JavaResultTypesSourceGenerationOptions
   )
   : string
 {
   if ( opts.sourceLanguage !== 'Java' )
     throw new Error('Logic error: wrong source type found in options.');
 
-  const emitRecords: boolean = opts.javaOptions.emitRecords ?? false;
+  const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
 
   const vis = emitRecords ? '' : 'public ';
 
@@ -267,7 +276,7 @@ function tableFieldPropertyType
   (
     tfp: TableFieldProperty,
     inResType: ResultType,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -325,7 +334,7 @@ function tableFieldPropertyType
 function tableExpressionPropertyType
   (
     tep: TableExpressionProperty,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -338,7 +347,7 @@ function tableExpressionPropertyType
 function specifiedSourceCodeFieldType
   (
     specSourceCodeFieldType: string | {[srcLang: string]: string},
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -358,7 +367,7 @@ function parentReferencePropertyType
   (
     f: ParentReferenceProperty,
     resTypeNames: Map<ResultType,string>,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -370,7 +379,7 @@ function childCollectionPropertyType
   (
     p: ChildCollectionProperty,
     resTypeNames: Map<ResultType,string>,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -390,7 +399,7 @@ function getSolePropertyType
   (
     resType: ResultType,
     resTypeNames: Map<ResultType,string>,
-    opts: SourceGenerationOptions
+    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
@@ -554,3 +563,23 @@ const javaStandardImports: string =
   'import org.checkerframework.framework.qual.TypeUseLocation;\n' +
   'import com.fasterxml.jackson.databind.JsonNode;\n' +
   'import com.fasterxml.jackson.databind.node.*;\n';
+
+function makeCompilationUnitName(queryName: string, srcLang: SourceLanguage): string
+{
+  switch (srcLang)
+  {
+    case 'TS': return queryName.replace(/ /g, '-').toLowerCase();
+    case 'Java': return upperCamelCase(queryName);
+    default: return missingCase(srcLang);
+  }
+}
+
+type JavaResultTypesSourceGenerationOptions =
+  ResultTypesSourceGenerationOptions &
+  { javaOptions?: JavaSourceGenerationOptions };
+
+export interface ResultTypesSource
+{
+  sourceCode: string;
+  compilationUnitName: string;
+}

@@ -4,14 +4,12 @@ import {
   propertyNameDefaultFunction,
   requireDirExists,
   requireFileExists,
-  missingCase,
-  upperCamelCase,
   writeTextFile,
   readTextFile,
   cwd
 } from './util/mod';
 import {DatabaseMetadata} from './database-metadata';
-import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
+import {SourceGenerationOptions} from './source-generation-options';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {QuerySqlGenerator} from './query-sql-generator';
 import {QueryReprSqlPath} from './query-repr-sql-path';
@@ -26,26 +24,21 @@ export async function generateQuerySources
   (
     querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
     dbmdFile: string,
-    srcOutputDir: string | null,
-    sqlOutputDir: string | null,
-    opts: SourceGenerationOptions = { sourceLanguage: 'TS' }
+    opts: SourceGenerationOptions
   )
   : Promise<void>
 {
   try
   {
     await requireFileExists(dbmdFile, 'The database metadata file was not found.');
-    if ( srcOutputDir )
-      await requireDirExists(srcOutputDir, 'The result types source output directory was not found.');
-    if ( sqlOutputDir )
-      await requireDirExists(sqlOutputDir, 'The SQL output directory was not found.');
-    if ( opts.typesHeaderFile )
+    await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
+    await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
+    if ( opts?.typesHeaderFile )
       await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
     const defaultSchema = queryGroupSpec.defaultSchema || null;
-    const srcLang = opts.sourceLanguage || 'TS';
     const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
     const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
@@ -54,13 +47,14 @@ export async function generateQuerySources
     for ( const querySpec of queryGroupSpec.querySpecs )
     {
       const resReprSqls = sqlGen.generateSqls(querySpec);
-      const sqlPaths = sqlOutputDir ? await writeResultReprSqls(querySpec.queryName, resReprSqls, sqlOutputDir) : [];
+      const sqlPaths = opts.sqlOutputDir ? await writeResultReprSqls(querySpec.queryName, resReprSqls, opts.sqlOutputDir) : [];
 
-      if ( srcOutputDir && valueOr(querySpec.generateResultTypes, true) )
+      if ( valueOr(querySpec.generateResultTypes, true) )
       {
-        const outputFileName = makeResultTypesFileName(querySpec.queryName, srcLang);
-        const resultTypesSrc = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, outputFileName, opts);
-        await writeTextFile(path.join(srcOutputDir, outputFileName), resultTypesSrc);
+        const gen = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
+        const outFile = path.join(opts.resultTypesOutputDir, `${gen.compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`);
+
+        await writeTextFile(outFile, gen.sourceCode);
       }
     }
   }
@@ -132,16 +126,6 @@ async function writeResultReprSqls
   return res;
 }
 
-function makeResultTypesFileName(queryName: string, srcLang: SourceLanguage): string
-{
-  switch (srcLang)
-  {
-    case 'TS': return queryName.replace(/ /g, '-').toLowerCase() + ".ts";
-    case 'Java': return upperCamelCase(queryName) + ".java";
-    default: return missingCase(srcLang);
-  }
-}
-
 function makeSpecLocationError(e: SpecError): Error
 {
   return new Error(
@@ -153,4 +137,3 @@ function makeSpecLocationError(e: SpecError): Error
     "-----------------------------\n"
   );
 }
-

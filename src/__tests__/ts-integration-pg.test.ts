@@ -1,6 +1,4 @@
 import * as path from 'path';
-import * as child_process from 'child_process';
-import * as util from 'util';
 import {Client} from 'pg';
 import {
   makeTempDir,
@@ -14,7 +12,7 @@ import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
 import {ResultTypesSourceGenerator} from '../result-types-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
-import {generateQuerySources} from '../mod';
+import {generateQuerySources, SourceGenerationOptions} from '../mod';
 import {getDbClient} from './db/db-client-pg';
 import {spawnSync} from 'child_process';
 
@@ -39,14 +37,15 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -67,14 +66,15 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows[0].json, null, 2) + ";"
   );
@@ -104,14 +104,15 @@ test('table field property names specified by jsonProperty attributes', async ()
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -140,14 +141,15 @@ test('parent reference', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -175,21 +177,22 @@ test('table field properties from inline parent tables', async () => {
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Compound[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('table field properties from an inlined parent and its own inlined parent', async () => {
@@ -220,21 +223,22 @@ test('table field properties from an inlined parent and its own inlined parent',
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Drug[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('referenced parent property from an inlined parent', async () => {
@@ -260,21 +264,22 @@ test('referenced parent property from an inlined parent', async () => {
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Drug[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('child collection property from an inlined parent', async () => {
@@ -299,21 +304,22 @@ test('child collection property from an inlined parent', async () => {
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Drug[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child collection property from an inlined parent', async () => {
@@ -339,21 +345,22 @@ test('unwrapped child collection property from an inlined parent', async () => {
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Drug[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Drug[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('child collection', async () => {
@@ -377,14 +384,15 @@ test('child collection', async () => {
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -411,21 +419,22 @@ test('unwrapped child table collection of table field property', async () => {
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Analyst[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Analyst[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child table collection of field expression property', async () => {
@@ -448,21 +457,22 @@ test('unwrapped child table collection of field expression property', async () =
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Analyst[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Analyst[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child table collection of field expression property with lang-specific type', async () => {
@@ -489,14 +499,15 @@ test('unwrapped child table collection of field expression property with lang-sp
 
   const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
   const dbClient: Client = await getDbClient();
 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc + "\n" +
+    resTypesModuleSrc.sourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -527,21 +538,22 @@ test('unwrapped child table collection of parent reference property', async () =
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Compound[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child table collection of inlined parent property', async () => {
@@ -567,21 +579,22 @@ test('unwrapped child table collection of inlined parent property', async () => 
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Compound[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child collection of child collection property', async () => {
@@ -609,21 +622,22 @@ test('unwrapped child collection of child collection property', async () => {
       }
     };
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Compound[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('unwrapped child collection of unwrapped child collection property', async () => {
@@ -652,21 +666,22 @@ test('unwrapped child collection of unwrapped child collection property', async 
       }
     };
 
-    const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
 
-    const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, []);
+  const opts = { sourceLanguage: 'TS' } as const;
+  const resTypesModuleSrc = await resTypesSrcGen.makeQueryResultTypesSource(querySpec, [], opts);
 
-    const dbClient: Client = await getDbClient();
+  const dbClient: Client = await getDbClient();
 
-    const queryRes = await dbClient.query(sql);
+  const queryRes = await dbClient.query(sql);
 
-    await compile(
-      resTypesModuleSrc + "\n" +
-      "const rowVals: Compound[] = " +
-      JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
-    );
+  await compile(
+    resTypesModuleSrc.sourceCode + "\n" +
+    "const rowVals: Compound[] = " +
+    JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
+  );
 
-    dbClient.end();
+  dbClient.end();
 });
 
 test('generateQueries() produces expected output files', async () => {
@@ -696,17 +711,18 @@ test('generateQueries() produces expected output files', async () => {
 
   const tmpDir = await makeTempDir('sjq-tests-');
   const sqlOutputDir = path.join(tmpDir, 'sql');
-  const tsOutputDir = path.join(tmpDir, 'ts');
+  const resultTypesOutputDir = path.join(tmpDir, 'ts');
   const dbmdFile = path.join(tmpDir, 'dbmd.json');
 
   await makeDir(sqlOutputDir);
-  await makeDir(tsOutputDir);
+  await makeDir(resultTypesOutputDir);
   await writeTextFile(dbmdFile, JSON.stringify(dbmdStoredProps));
 
-  await generateQuerySources(queryGroupSpec, dbmdFile, tsOutputDir, sqlOutputDir);
+  const opts: SourceGenerationOptions = { sourceLanguage: 'TS', resultTypesOutputDir, sqlOutputDir } as const;
+  await generateQuerySources(queryGroupSpec, dbmdFile, opts);
 
   const sqlFiles = Array.from(readDirSync(sqlOutputDir)).map(f => f.name);
-  const tsFiles = Array.from(readDirSync(tsOutputDir)).map(f => f.name);
+  const tsFiles = Array.from(readDirSync(resultTypesOutputDir)).map(f => f.name);
 
   expect(new Set(sqlFiles)).toEqual(new Set([
     'test-query-1(json array row).sql',

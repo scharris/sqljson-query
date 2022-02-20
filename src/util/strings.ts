@@ -35,7 +35,7 @@ function camelCase(name: string, upperFirst: boolean): string
 {
   const parts: string[] = [];
 
-  for ( const word of name.split(/[_ -]/) )
+  for ( const word of name.split(/[^a-zA-Z0-9]/) )
   {
     const wordStartChar = word.charAt(0);
 
