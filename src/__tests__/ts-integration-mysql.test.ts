@@ -750,5 +750,5 @@ async function compile(testSource: string): Promise<void>
   );
 
   expect(cp.error).toBeUndefined();
-  expect(cp.stderr || '').toEqual('');
+  expect(cp.stderr == null || cp.stderr === '' || cp.stderr.match(/^Debugger attached.\n..*to disconnect\.\.\./));
 }
