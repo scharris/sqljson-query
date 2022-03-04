@@ -1,5 +1,5 @@
 import {caseNormalizeName, relIdDescr} from './util/mod';
-import {DatabaseMetadata, RelId, RelMetadata} from './database-metadata';
+import {DatabaseMetadata, makeRelId, RelId, RelMetadata} from './database-metadata';
 import {CustomJoinCondition, SpecError, SpecLocation, TableJsonSpec} from './query-specs';
 
 export function identifyTable
@@ -99,7 +99,7 @@ function getRelMetadata
   )
   : RelMetadata
 {
-  const relMd = dbmd.getRelationMetadata(RelId.make(table, defaultSchema, dbmd.caseSensitivity));
+  const relMd = dbmd.getRelationMetadata(makeRelId(table, defaultSchema, dbmd.caseSensitivity));
 
   if ( relMd == null )
     throw new SpecError(specLoc, `Table '${table}' was not found in database metadata.`);

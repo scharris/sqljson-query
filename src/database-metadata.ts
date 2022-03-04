@@ -1,88 +1,88 @@
+import { z } from "zod";
 import {
   computeIfAbsent,
   setsEqual,
   caseNormalizeName,
-  unDoubleQuote,
   relIdDescr,
   splitSchemaAndRelationNames,
-  exactUnquotedName
+  exactUnquotedName,
+  readTextFile,
 } from './util/mod';
 
-/// The stored part of the database metadata.
-export interface DatabaseMetadataStoredProperties
-{
-  readonly dbmsName: string;
-  readonly dbmsVersion: string;
-  readonly caseSensitivity: CaseSensitivity;
-  readonly relationMetadatas: RelMetadata[];
-  readonly foreignKeys: ForeignKey[];
-}
+const CaseSensitivityDef =
+  z.union([
+    z.literal('INSENSITIVE_STORED_LOWER'), 
+    z.literal('INSENSITIVE_STORED_UPPER'),
+    z.literal('INSENSITIVE_STORED_MIXED'),
+    z.literal('SENSITIVE')
+  ]);
+export type CaseSensitivity = z.infer<typeof CaseSensitivityDef>;
 
-export interface RelMetadata
-{
-  readonly relationId: RelId;
-  readonly relationType: RelType;
-  readonly fields: Field[];
-}
+const RelTypeDef =
+  z.union([
+    z.literal('Table'),
+    z.literal('View'),
+    z.literal('Unknown')
+  ]);
+export type RelType = z.infer<typeof RelTypeDef>;
 
-export interface ForeignKey
-{
-  readonly constraintName?: string | null;
-  readonly foreignKeyRelationId: RelId;
-  readonly primaryKeyRelationId: RelId;
-  readonly foreignKeyComponents: ForeignKeyComponent[];
-}
+const RelIdDef = 
+  z.object({
+    schema: z.string().nullable().optional(),
+    name: z.string().nonempty()
+  }).strict();
+export type RelId = z.infer<typeof RelIdDef>;
 
-export interface ForeignKeyComponent
-{
-  readonly foreignKeyFieldName: string;
-  readonly primaryKeyFieldName: string;
-}
+const FieldDef =
+  z.object({
+    name: z.string().nonempty(),
+    databaseType: z.string().nonempty(),
+    nullable: z.boolean().nullable().optional(),
+    primaryKeyPartNumber: z.number().nullable().optional(),
+    length: z.number().nullable().optional(),
+    precision: z.number().nullable().optional(),
+    precisionRadix: z.number().nullable().optional(),
+    fractionalDigits: z.number().nullable().optional(),
+  }).strict();
+export type Field = z.infer<typeof FieldDef>;
 
-export class RelId
-{
-  private __nominal: void;
+const RelMetadataDef =
+  z.object({
+    relationId: RelIdDef,
+    relationType: RelTypeDef,
+    fields: z.array(FieldDef),
+  }).strict();
+export type RelMetadata = z.infer<typeof RelMetadataDef>;
 
-  private constructor(public schema: string | null, public name: string) {};
+const ForeignKeyComponentDef =
+  z.object({
+    foreignKeyFieldName: z.string(),
+    primaryKeyFieldName: z.string(),
+  })
+  .strict();
+export type ForeignKeyComponent = z.infer<typeof ForeignKeyComponentDef>;
 
-  public static make(table: string, defaultSchema: string | null, caseSensitivity: CaseSensitivity): RelId
-  {
-    const [schemaName, tableName] = splitSchemaAndRelationNames(table);
+const ForeignKeyDef =
+  z.object({
+    constraintName: z.string().nullable().optional(),
+    foreignKeyRelationId: RelIdDef,
+    primaryKeyRelationId: RelIdDef,
+    foreignKeyComponents: z.array(ForeignKeyComponentDef),
+  }).strict();
+export type ForeignKey = z.infer<typeof ForeignKeyDef>;
 
-    if ( !tableName )
-      throw new Error(`Invalid table name: '${table}''.` );
+const StoredDatabaseMetadataDef =
+  z.object({
+    dbmsName: z.string().nonempty(),
+    dbmsVersion: z.string().nonempty(),
+    caseSensitivity: CaseSensitivityDef,
+    relationMetadatas: z.array(RelMetadataDef),
+    foreignKeys: z.array(ForeignKeyDef),
+  }).strict();
 
-    return new RelId(
-      (schemaName ?  exactUnquotedName(schemaName, caseSensitivity):
-      defaultSchema ? exactUnquotedName(defaultSchema, caseSensitivity):
-      null),
-      exactUnquotedName(tableName, caseSensitivity)
-    );
-  }
-}
+type StoredDatabaseMetadata = z.infer<typeof StoredDatabaseMetadataDef>;
 
-export type RelType = 'Table' | 'View' | 'Unknown';
-
-export interface Field
-{
-  readonly name: string;
-  readonly databaseType: string;
-  readonly nullable?: boolean | null;
-  readonly primaryKeyPartNumber?: number | null;
-  readonly length?: number | null;
-  readonly precision?: number | null;
-  readonly precisionRadix?: number | null;
-  readonly fractionalDigits?: number | null;
-}
-
-export type CaseSensitivity =
-  'INSENSITIVE_STORED_LOWER' |
-  'INSENSITIVE_STORED_UPPER' |
-  'INSENSITIVE_STORED_MIXED' |
-  'SENSITIVE';
-
-
-export class DatabaseMetadata implements DatabaseMetadataStoredProperties
+export class DatabaseMetadata implements StoredDatabaseMetadata
 {
   readonly schemaName?: string | null;
   readonly relationMetadatas: RelMetadata[];
@@ -96,7 +96,7 @@ export class DatabaseMetadata implements DatabaseMetadataStoredProperties
 
   constructor
     (
-      storedProps: DatabaseMetadataStoredProperties
+      storedProps: StoredDatabaseMetadata
     )
   {
     this.relationMetadatas = storedProps.relationMetadatas;
@@ -291,12 +291,41 @@ export function foreignKeyFieldNames(fk: ForeignKey): string[]
 
 function relIdKey(relId: RelId): string
 {
-  const relName = unDoubleQuote(relId.name);
-  const schema = relId.schema ? unDoubleQuote(relId.schema) : null;
-  return schema ? schema + '.' + relName : relName;
+  return relId.schema ? `${relId.schema}.${relId.name}` : relId.name;
 }
 
 export function relIdsEqual(relId1: RelId, relId2: RelId)
 {
   return relId1.schema === relId2.schema && relId1.name === relId2.name;
+}
+
+// Convert a maybe-qualified table to RelId respecting database case normalization.
+export function makeRelId
+  (
+    tableMaybeQualified: string,
+    defaultSchema: string | null,
+    caseSensitivity: CaseSensitivity
+  )
+  : RelId
+{
+  const [schemaName, tableName] = splitSchemaAndRelationNames(tableMaybeQualified);
+
+  if ( !tableName )
+    throw new Error(`Invalid table name: '${tableMaybeQualified}''.` );
+
+  const schema = (
+    schemaName ?  exactUnquotedName(schemaName, caseSensitivity):
+    defaultSchema ? exactUnquotedName(defaultSchema, caseSensitivity):
+    null
+  );
+  const name = exactUnquotedName(tableName, caseSensitivity);
+
+  return { schema, name };
+}
+
+export async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
+{
+  const obj = JSON.parse(await readTextFile(dbmdFile));
+  const dbmdStoredProps = StoredDatabaseMetadataDef.parse(obj);
+  return new DatabaseMetadata(dbmdStoredProps);
 }

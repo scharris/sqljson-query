@@ -5,10 +5,9 @@ import {
   requireDirExists,
   requireFileExists,
   writeTextFile,
-  readTextFile,
   cwd
 } from './util/mod';
-import {DatabaseMetadata} from './database-metadata';
+import {readDatabaseMetadata} from './database-metadata';
 import {SourceGenerationOptions} from './source-generation-options';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {QuerySqlGenerator} from './query-sql-generator';
@@ -74,13 +73,6 @@ async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<
   }
   else
     return querySpecs;
-}
-
-async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
-{
-  const dbmdStoredPropsJson = await readTextFile(dbmdFile);
-  // TODO: Validate the dbmd file contents somehow here.
-  return new DatabaseMetadata(JSON.parse(dbmdStoredPropsJson));
 }
 
 async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
