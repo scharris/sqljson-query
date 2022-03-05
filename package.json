@@ -38,8 +38,8 @@
   },
   "devDependencies": {
     "@types/ajv": "^1.0.0",
-    "@types/jest": "^26.0.23",
-    "@types/lodash": "^4.14.178",
+    "@types/jest": "^27.4.1",
+    "@types/lodash": "^4.14.179",
     "@types/minimist": "^1.2.1",
     "@types/node": "^16.11.25",
     "@types/pg": "^8.6.4",
