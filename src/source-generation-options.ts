@@ -1,4 +1,4 @@
-import {ResultType, TableFieldProperty} from './result-types';
+import {ResultType, TableFieldProperty} from './result-types-generator';
 
 export type SourceLanguage = 'TS' | 'Java';
 

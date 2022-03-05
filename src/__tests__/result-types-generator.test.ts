@@ -2,8 +2,7 @@ import * as path from 'path';
 import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
 import {TableJsonSpec} from '../query-specs';
 import {DatabaseMetadata} from '../database-metadata';
-import {ResultTypesGenerator} from '../result-types-generator';
-import {propertiesCount} from '../result-types';
+import {ResultTypesGenerator, propertiesCount} from '../result-types-generator';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));

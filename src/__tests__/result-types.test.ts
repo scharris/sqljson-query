@@ -1,4 +1,4 @@
-import {propertiesCount, ResultType, resultTypesEqual} from '../result-types';
+import {propertiesCount, ResultType, resultTypesEqual} from '../result-types-generator';
 
 const emptyResultType: ResultType = {
   queryName: 'query',

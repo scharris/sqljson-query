@@ -7,7 +7,7 @@ import {
   CustomJoinCondition, ParentSpec, ReferencedParentSpec, InlineParentSpec, getInlineParentSpecs,
   getReferencedParentSpecs,
 } from './query-specs';
-import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-spec-validations';
+import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-specs';
 import {SqlDialect, getSqlDialect} from './sql-dialects';
 import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId} from './database-metadata';
 

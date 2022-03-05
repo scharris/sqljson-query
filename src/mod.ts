@@ -11,12 +11,11 @@ import {readDatabaseMetadata} from './database-metadata';
 import {SourceGenerationOptions} from './source-generation-options';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {QuerySqlGenerator} from './query-sql-generator';
-import {QueryReprSqlPath} from './query-repr-sql-path';
-import {ResultTypesSourceGenerator} from './result-types-source-generator';
+import {ResultTypesSourceGenerator, QueryReprSqlPath} from './result-types-source-generator';
 
 export * from './source-generation-options';
 export * from './query-specs';
-export * from './result-types';
+export * from './result-types-source-generator';
 export * from './relations-md-source-generator';
 
 export async function generateQuerySources

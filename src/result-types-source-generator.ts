@@ -11,16 +11,14 @@ import {
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
   ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty, propertiesCount, resultTypesEqual
-} from './result-types';
-import {QueryReprSqlPath} from './query-repr-sql-path';
+  ParentReferenceProperty, propertiesCount, resultTypesEqual, ResultTypesGenerator
+} from './result-types-generator';
 import {
   SourceLanguage,
   JavaSourceGenerationOptions,
   ResultTypesSourceGenerationOptions
 } from './source-generation-options';
 import {DatabaseMetadata} from './database-metadata';
-import {ResultTypesGenerator} from './result-types-generator';
 
 export class ResultTypesSourceGenerator
 {
@@ -577,6 +575,13 @@ function makeCompilationUnitName(queryName: string, srcLang: SourceLanguage): st
 type JavaResultTypesSourceGenerationOptions =
   ResultTypesSourceGenerationOptions &
   { javaOptions?: JavaSourceGenerationOptions };
+
+export interface QueryReprSqlPath
+{
+  readonly queryName: string;
+  readonly resultRepr: ResultRepr;
+  readonly sqlPath: string;
+}
 
 export interface ResultTypesSource
 {
