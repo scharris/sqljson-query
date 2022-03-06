@@ -10,9 +10,9 @@ import {
 } from './util/mod';
 import {getQueryParamNames, QuerySpec, ResultRepr} from './query-specs';
 import {
-  ResultType, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty, propertiesCount, resultTypesEqual, ResultTypesGenerator
-} from './result-types-generator';
+  ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
+  ParentReferenceProperty, propertiesCount, resultTypeDecriptorsEqual, ResultTypeDescriptorGenerator
+} from './result-type-descriptors';
 import {
   SourceLanguage,
   JavaSourceGenerationOptions,
@@ -20,9 +20,9 @@ import {
 } from './source-generation-options';
 import {DatabaseMetadata} from './database-metadata';
 
-export class ResultTypesSourceGenerator
+export class ResultTypeSourceGenerator
 {
-  readonly resultTypesGen: ResultTypesGenerator;
+  readonly resTypeDescGen: ResultTypeDescriptorGenerator;
 
   constructor
     (
@@ -31,7 +31,7 @@ export class ResultTypesSourceGenerator
       defaultPropertyNameFn : (fieldName: string) => string
     )
   {
-    this.resultTypesGen = new ResultTypesGenerator(dbmd, defaultSchema, defaultPropertyNameFn);
+    this.resTypeDescGen = new ResultTypeDescriptorGenerator(dbmd, defaultSchema, defaultPropertyNameFn);
   }
 
   makeQueryResultTypesSource
@@ -43,22 +43,22 @@ export class ResultTypesSourceGenerator
     : ResultTypesSource
   {
     const qName = querySpec.queryName;
-    const qResTypes = this.resultTypesGen.generateResultTypes(querySpec.tableJson, qName);
+    const resTypeDescrs = this.resTypeDescGen.generateResultTypeDescriptors(querySpec.tableJson, qName);
     const qParams = getQueryParamNames(querySpec);
     const qTypesHdr = querySpec.typesFileHeader;
 
     switch (opts.sourceLanguage)
     {
-      case 'TS':   return makeTypeScriptSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
-      case 'Java': return makeJavaSource(qName, qResTypes, qTypesHdr, qParams, sqlPaths, opts);
+      case 'TS':   return makeTypeScriptSource(qName, resTypeDescrs, qTypesHdr, qParams, sqlPaths, opts);
+      case 'Java': return makeJavaSource(qName, resTypeDescrs, qTypesHdr, qParams, sqlPaths, opts);
     }
   }
-} // ends class ResultTypesSourceGenerator
+} // ends class ResultTypeSourceGenerator
 
 function makeTypeScriptSource
   (
     queryName: string,
-    resultTypes: ResultType[],
+    resultTypes: ResultTypeDescriptor[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
@@ -83,7 +83,7 @@ function makeTypeScriptSource
 function makeJavaSource
   (
     queryName: string,
-    resultTypes: ResultType[],
+    resultTypes: ResultTypeDescriptor[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
@@ -119,7 +119,7 @@ function makeJavaSource
 
 function generalTypesFileHeader(typesHeaderFile: string | undefined): string
 {
-  if ( typesHeaderFile != null ) return readTextFileSync(typesHeaderFile) + "\n";
+  if (typesHeaderFile != null) return readTextFileSync(typesHeaderFile) + "\n";
   else return '';
 }
 
@@ -160,25 +160,25 @@ function queryParamDefinitions(paramNames: string[], srcLang: SourceLanguage): s
 
 function resultTypeDeclarations
   (
-    resultTypes: ResultType[],
+    resultTypes: ResultTypeDescriptor[],
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  if ( resultTypes.length === 0 ) return '';
+  if (resultTypes.length === 0) return '';
 
   const typeDecls: string[] = [];
   const writtenTypeNames = new Set();
 
-  const resultTypeNameAssignments: Map<ResultType,string> = assignResultTypeNames(resultTypes);
+  const resultTypeNameAssignments: Map<ResultTypeDescriptor,string> = assignResultTypeNames(resultTypes);
 
   const makeTypeDecl =
     opts.sourceLanguage === 'TS' ? makeTSResultTypeDeclaration : makeJavaResultTypeDeclaration;
 
-  for ( const resType of resultTypes )
+  for (const resType of resultTypes)
   {
     const resTypeName = resultTypeNameAssignments.get(resType);
-    if ( resTypeName == null )
+    if (resTypeName == null)
       throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
 
     if ( !writtenTypeNames.has(resTypeName) )
@@ -193,8 +193,8 @@ function resultTypeDeclarations
 
 function makeTSResultTypeDeclaration
   (
-    resType: ResultType,
-    resTypeNameAssignments: Map<ResultType,string>,
+    resType: ResultTypeDescriptor,
+    resTypeNameAssignments: Map<ResultTypeDescriptor,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -207,7 +207,7 @@ function makeTSResultTypeDeclaration
   resType.tableFieldProperties.forEach(f => lines.push('  ' +
     `${f.name}: ${tableFieldPropertyType(f, resType, opts)};`
   ));
-  resType.tableExpressionProperty.forEach(f => lines.push('  ' +
+  resType.tableExpressionProperties.forEach(f => lines.push('  ' +
     `${f.name}: ${tableExpressionPropertyType(f, opts)};`
   ));
   resType.parentReferenceProperties.forEach(f => lines.push('  ' +
@@ -223,13 +223,13 @@ function makeTSResultTypeDeclaration
 
 function makeJavaResultTypeDeclaration
   (
-    resType: ResultType,
-    resTypeNameAssignments: Map<ResultType,string>,
+    resType: ResultTypeDescriptor,
+    resTypeNameAssignments: Map<ResultTypeDescriptor,string>,
     opts: JavaResultTypesSourceGenerationOptions
   )
   : string
 {
-  if ( opts.sourceLanguage !== 'Java' )
+  if (opts.sourceLanguage !== 'Java')
     throw new Error('Logic error: wrong source type found in options.');
 
   const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
@@ -241,7 +241,7 @@ function makeJavaResultTypeDeclaration
     const fieldType = tableFieldPropertyType(f, resType, opts);
     fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
-  resType.tableExpressionProperty.forEach(f => {
+  resType.tableExpressionProperties.forEach(f => {
     const fieldType = tableExpressionPropertyType(f, opts);
     fieldDecls.push(`${vis}${fieldType} ${f.name}`);
   });
@@ -256,7 +256,7 @@ function makeJavaResultTypeDeclaration
 
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
-  if ( emitRecords ) return (
+  if (emitRecords) return (
     `public record ${resTypeName}(\n` +
       indentLines(fieldDecls.join(',\n'), 2) + '\n' +
     '){}'
@@ -273,16 +273,16 @@ function makeJavaResultTypeDeclaration
 function tableFieldPropertyType
   (
     tfp: TableFieldProperty,
-    inResType: ResultType,
+    inResType: ResultTypeDescriptor,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  if ( tfp.specifiedSourceCodeFieldType != null )
+  if (tfp.specifiedSourceCodeFieldType != null)
     return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, opts);
 
   const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType);
-  if ( customizedType )
+  if (customizedType)
     return customizedType;
 
   const lcDbFieldType = tfp.databaseType.toLowerCase();
@@ -364,7 +364,7 @@ function specifiedSourceCodeFieldType
 function parentReferencePropertyType
   (
     f: ParentReferenceProperty,
-    resTypeNames: Map<ResultType,string>,
+    resTypeNames: Map<ResultTypeDescriptor,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -376,7 +376,7 @@ function parentReferencePropertyType
 function childCollectionPropertyType
   (
     p: ChildCollectionProperty,
-    resTypeNames: Map<ResultType,string>,
+    resTypeNames: Map<ResultTypeDescriptor,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -395,8 +395,8 @@ function childCollectionPropertyType
 
 function getSolePropertyType
   (
-    resType: ResultType,
-    resTypeNames: Map<ResultType,string>,
+    resType: ResultTypeDescriptor,
+    resTypeNames: Map<ResultTypeDescriptor,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -406,8 +406,8 @@ function getSolePropertyType
 
   if (resType.tableFieldProperties.length === 1)
     return tableFieldPropertyType(resType.tableFieldProperties[0], resType, opts);
-  else if (resType.tableExpressionProperty.length === 1)
-    return tableExpressionPropertyType(resType.tableExpressionProperty[0], opts);
+  else if (resType.tableExpressionProperties.length === 1)
+    return tableExpressionPropertyType(resType.tableExpressionProperties[0], opts);
   else if (resType.childCollectionProperties.length === 1)
     return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, opts);
   else if (resType.parentReferenceProperties.length === 1)
@@ -423,7 +423,7 @@ function generalNumericTableFieldPropertyType(fp: TableFieldProperty, srcLang: S
     case 'TS':
       return withNullability(fp.nullable, 'number', 'TS');
     case 'Java':
-      if ( fp.fractionalDigits == null || fp.fractionalDigits > 0 )
+      if (fp.fractionalDigits == null || fp.fractionalDigits > 0)
         return withNullability(fp.nullable, 'BigDecimal', 'Java');
       else // no fractional part
       {
@@ -509,17 +509,17 @@ function toJavaReferenceType(typeName: string): string
   }
 }
 
-function assignResultTypeNames(resTypes: ResultType[]): Map<ResultType,string>
+function assignResultTypeNames(resTypes: ResultTypeDescriptor[]): Map<ResultTypeDescriptor,string>
 {
-  const rtHash = (rt: ResultType) => hashString(rt.table) +
+  const rtHash = (rt: ResultTypeDescriptor) => hashString(rt.table) +
     3 * rt.tableFieldProperties.length +
     17 * rt.parentReferenceProperties.length +
     27 * rt.childCollectionProperties.length;
 
-  const m = new Map<ResultType,string>();
+  const m = new Map<ResultTypeDescriptor,string>();
   const typeNames = new Set<string>();
 
-  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypesEqual) )
+  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypeDecriptorsEqual) )
   {
     const typeName = makeNameNotInSet(upperCamelCase(eqGrp[0].table), typeNames, '_');
     for (const resType of eqGrp)
@@ -538,9 +538,9 @@ function makeQueryResultReprToSqlPathMap
   : Map<ResultRepr, string>
 {
   const res = new Map<ResultRepr, string>();
-  for ( const qrp of queryReprPathsAllQueries )
+  for (const qrp of queryReprPathsAllQueries)
   {
-    if ( qrp.queryName === queryName )
+    if (qrp.queryName === queryName)
     {
       if ( res.has(qrp.resultRepr) )
         throw new Error(`Duplicate query representation path encountered for query ${qrp.queryName}.`);

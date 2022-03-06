@@ -11,7 +11,7 @@ import {
 
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
-import {ResultTypesSource, ResultTypesSourceGenerator} from '../result-types-source-generator';
+import {ResultTypesSource, ResultTypeSourceGenerator} from '../result-type-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources, SourceGenerationOptions} from '../mod';
 import {getDbConnection} from './db/db-connection-mysql';
@@ -22,7 +22,7 @@ const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
-const srcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
+const srcGen = new ResultTypeSourceGenerator(dbmd, 'drugs', ccPropNameFn);
 
 test('results match generated class types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =

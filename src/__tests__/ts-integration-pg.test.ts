@@ -10,7 +10,7 @@ import {
 } from '../util/mod';
 import {DatabaseMetadata} from '../database-metadata';
 import {QuerySqlGenerator} from '../query-sql-generator';
-import {ResultTypesSourceGenerator} from '../result-types-source-generator';
+import {ResultTypeSourceGenerator} from '../result-type-source-generator';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources, SourceGenerationOptions} from '../mod';
 import {getDbClient} from './db/db-client-pg';
@@ -22,7 +22,7 @@ const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
 
-const resTypesSrcGen = new ResultTypesSourceGenerator(dbmd, 'drugs', ccPropNameFn);
+const resTypesSrcGen = new ResultTypeSourceGenerator(dbmd, 'drugs', ccPropNameFn);
 
 test('results match generated types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =

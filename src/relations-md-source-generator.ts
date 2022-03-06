@@ -53,7 +53,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata, preferLowercaseNames: b
   {
     parts.push(`export const Schema_${ident(schema, dbmd.caseSensitivity, preferLowercaseNames)} = {\n`);
 
-    for ( const relMd of relMds )
+    for (const relMd of relMds)
     {
       parts.push(indentLines(
         relationMetadataTSSource(relMd, dbmd.caseSensitivity, preferLowercaseNames),
@@ -90,7 +90,7 @@ function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boole
     parts.push(`  public static class Schema_${ident(schema, dbmd.caseSensitivity, preferLowercaseNames)}`);
     parts.push('  {');
 
-    for ( const relMd of relMds )
+    for (const relMd of relMds)
     {
       parts.push(indentLines(
         relationMetadataJavaSource(relMd, dbmd.caseSensitivity, preferLowercaseNames),
@@ -121,7 +121,7 @@ function relationMetadataTSSource
   const relName = ident(relMd.relationId.name, dbCaseSensitivity, preferLowercaseNames);
   parts.push(`"${relName}": { // relation ${relName}`);
 
-  for ( const f of relMd.fields )
+  for (const f of relMd.fields)
   {
     parts.push(
       `   ${lit(ident(f.name, dbCaseSensitivity, preferLowercaseNames))}: { ` +
@@ -159,7 +159,7 @@ function relationMetadataJavaSource
   parts.push(`  public static String tableId() { return "${relId}"; }`);
   parts.push(`  public static String tableName() { return "${relName}"; }`);
 
-  for ( const f of relMd.fields )
+  for (const f of relMd.fields)
   {
     const pkPartNum = f.primaryKeyPartNumber;
     const fName = ident(f.name, dbCaseSensitivity, preferLowercaseNames);

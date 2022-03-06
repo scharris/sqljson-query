@@ -6,42 +6,20 @@ import {
 } from './query-specs';
 import { identifyTable } from './query-specs';
 
-export interface ResultType
+
+export interface ResultTypeDescriptor extends Properties
 {
   readonly queryName: string;
   readonly table: string;
-  readonly tableFieldProperties: TableFieldProperty[];
-  readonly tableExpressionProperty: TableExpressionProperty[];
-  readonly parentReferenceProperties: ParentReferenceProperty[];
-  readonly childCollectionProperties: ChildCollectionProperty[];
   readonly unwrapped: boolean;
 }
 
-export function propertiesCount(gt: ResultType): number
+interface Properties
 {
-  return (
-    gt.tableFieldProperties.length +
-    gt.tableExpressionProperty.length +
-    gt.parentReferenceProperties.length +
-    gt.childCollectionProperties.length
-  );
-}
-
-export function resultTypesEqual
-  (
-    rt1: ResultType,
-    rt2: ResultType
-  )
-  : boolean
-{
-  return (
-    rt1.table === rt2.table &&
-    deepEquals(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
-    deepEquals(rt1.tableExpressionProperty,    rt2.tableExpressionProperty) &&
-    deepEquals(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
-    deepEquals(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
-    rt1.unwrapped === rt2.unwrapped
-  );
+  readonly tableFieldProperties: TableFieldProperty[];
+  readonly tableExpressionProperties: TableExpressionProperty[];
+  readonly parentReferenceProperties: ParentReferenceProperty[];
+  readonly childCollectionProperties: ChildCollectionProperty[];
 }
 
 export interface TableFieldProperty
@@ -66,18 +44,18 @@ export interface TableExpressionProperty
 export interface ParentReferenceProperty
 {
   readonly name: string;
-  readonly refResultType: ResultType
+  readonly refResultType: ResultTypeDescriptor
   readonly nullable: boolean | null;
 }
 
 export interface ChildCollectionProperty
 {
   readonly name: string;
-  readonly elResultType: ResultType; // Just the collection element type without the collection type itself.
+  readonly elResultType: ResultTypeDescriptor; // Just the collection element type without the collection type itself.
   readonly nullable: boolean | null; // Nullable when the field is inlined from a parent with a record condition.
 }
 
-export class ResultTypesGenerator
+export class ResultTypeDescriptorGenerator
 {
   constructor
   (
@@ -90,55 +68,53 @@ export class ResultTypesGenerator
   /// Generates result type structures for the top table and all parent and child tables
   /// which are included transitively in the passed table json specification. No attempt
   /// is made to remove duplicate result type structures.
-  public generateResultTypes
+  public generateResultTypeDescriptors
     (
       tjs: TableJsonSpec,
       queryName: string
     )
-    : ResultType[]
+    : ResultTypeDescriptor[]
   {
-    const typeBuilder = new ResultTypeBuilder(queryName);
-    const resultTypes: ResultType[] = [];
+    const rtdBuilder = new ResultTypeDescriptorBuilder(queryName);
+    const resultTypes: ResultTypeDescriptor[] = [];
 
     const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, {queryName});
 
-    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(relId);
-
     // Add the table's own fields and expressions involving those fields.
-    typeBuilder.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions, dbFieldsByName));
-    typeBuilder.addTableExpressionProperties(getTableExpressionProperties(relId, tjs.fieldExpressions));
+    rtdBuilder.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions));
+    rtdBuilder.addTableExpressionProperties(this.getTableExpressionProperties(relId, tjs.fieldExpressions));
 
     // Inline parents can contribute fields to any primary field category (table field,
     // expression, parent ref, child collection). Get the inline parent fields, and the result
     // types from the tables themselves and recursively from their specified related tables.
     const inlineParentSpecs = getInlineParentSpecs(tjs);
-    if ( inlineParentSpecs.length > 0 )
+    if (inlineParentSpecs.length > 0)
     {
       const inlineParentsContr = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
-      typeBuilder.addFieldsFromTypeBuilder(inlineParentsContr.typeBuilder);
+      rtdBuilder.addProperties(inlineParentsContr.properties);
       resultTypes.push(...inlineParentsContr.resultTypes);
     }
 
     // Get referenced parent fields and result types, with result types from related tables.
     const refdParentSpecs = getReferencedParentSpecs(tjs);
-    if ( refdParentSpecs.length > 0 )
+    if (refdParentSpecs.length > 0)
     {
       const refdParentsContr = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
-      typeBuilder.addParentReferenceProperties(refdParentsContr.parentReferenceProperties);
+      rtdBuilder.addParentReferenceProperties(refdParentsContr.referenceProperties);
       resultTypes.push(...refdParentsContr.resultTypes);
     }
 
     // Get the child collection fields and result types, with result types from related tables.
-    if ( tjs.childTables )
+    if (tjs.childTables)
     {
       const childCollsContr = this.getChildCollectionContrs(tjs.childTables, queryName);
-      typeBuilder.addChildCollectionProperties(childCollsContr.childCollectionProperties);
+      rtdBuilder.addChildCollectionProperties(childCollsContr.collectionProperties);
       resultTypes.push(...childCollsContr.resultTypes);
     }
 
     // The top table's type must be added at leading position in the returned list, followed
     // by any other supporting types that were generated.
-    resultTypes.splice(0, 0, typeBuilder.build(tjs.table));
+    resultTypes.splice(0, 0, rtdBuilder.build(tjs.table));
 
     return resultTypes;
   }
@@ -147,24 +123,55 @@ export class ResultTypesGenerator
     (
       relId: RelId,
       tableFieldExpressions: (string | TableFieldExpr)[] | undefined,
-      dbFieldsByName: Map<string,Field>
     )
     : TableFieldProperty[]
   {
-    if ( !tableFieldExpressions ) return [];
+    if (!tableFieldExpressions) return [];
+
+    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(relId);
 
     const fields: TableFieldProperty[] = [];
 
-    for ( const tfe of tableFieldExpressions )
+    for (const tfe of tableFieldExpressions)
     {
-      const fieldName = getFieldName(tfe);
+      const fieldName = typeof tfe === 'string' ? tfe : tfe.field ?? null;
 
-      if ( fieldName != null )
+      if (fieldName != null)
       {
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
-        if ( dbField == undefined )
+        if (dbField == undefined)
           throw new Error(`No metadata found for field ${relIdDescr(relId)}.${fieldName}.`);
         fields.push(this.makeTableFieldProperty(tfe, dbField));
+      }
+    }
+
+    return fields;
+  }
+
+  getTableExpressionProperties
+    (
+      relId: RelId,
+      tableFieldExpressions: (string | TableFieldExpr)[] | undefined
+    )
+    : TableExpressionProperty[]
+  {
+    if (!tableFieldExpressions) return [];
+
+    const fields: TableExpressionProperty[]  = [];
+
+    for (const tfe of tableFieldExpressions)
+    {
+      if (typeof tfe !== 'string' && tfe.expression != null)
+      {
+        const jsonProperty = tfe.jsonProperty;
+        if (jsonProperty == null)
+          throw new Error(`Expression field ${relIdDescr(relId)}.${tfe.expression} requires a json property.`)
+
+        fields.push({
+          name: jsonProperty,
+          fieldExpression: tfe.expression,
+          specifiedSourceCodeFieldType: tfe.fieldTypeInGeneratedSource || null
+        });
       }
     }
 
@@ -180,25 +187,25 @@ export class ResultTypesGenerator
     )
     : InlineParentContrs
   {
-    const typeBuilder = new ResultTypeBuilder(queryName);
-    const resultTypes: ResultType[] = [];
+    const props: Properties = { tableFieldProperties: [], tableExpressionProperties: [], parentReferenceProperties: [], childCollectionProperties: [] };
+    const resultTypes: ResultTypeDescriptor[] = [];
 
-    for ( const parentSpec of parentSpecs )
+    for (const parentSpec of parentSpecs)
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypes(parentSpec, queryName);
-      const parentType = parentResultTypes[0]; // will not be generated
+      const parentResTypeDescs = this.generateResultTypeDescriptors(parentSpec, queryName);
+      const parentType = parentResTypeDescs[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
       const nullable =
         parentSpec.recordCondition != null ||
         !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
-      typeBuilder.addFieldsFromResultType(parentType, nullable);
-      resultTypes.push(...parentResultTypes.slice(1));
+      addToPropertiesFromResultType(props, parentType, nullable);
+      resultTypes.push(...parentResTypeDescs.slice(1)); // omit "wrapper" parentType
     }
 
-    return { typeBuilder, resultTypes };
+    return { properties: props, resultTypes };
   }
 
   /// Get fields and types from the given referenced parents.
@@ -210,13 +217,13 @@ export class ResultTypesGenerator
     )
     : RefdParentContrs
   {
-    const parentReferenceProperties: ParentReferenceProperty[] = [];
-    const resultTypes: ResultType[] = [];
+    const parentRefProps: ParentReferenceProperty[] = [];
+    const resTypeDecrs: ResultTypeDescriptor[] = [];
 
-    for ( const parentSpec of refdParentSpecs )
+    for (const parentSpec of refdParentSpecs)
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypes(parentSpec, queryName);
+      const parentResultTypes = this.generateResultTypeDescriptors(parentSpec, queryName);
       const resultType = parentResultTypes[0]; // parent object type
 
       // If the parent record might be absent, then all inline fields must be nullable.
@@ -225,11 +232,11 @@ export class ResultTypesGenerator
         !!parentSpec.recordCondition ||
         !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
-      parentReferenceProperties.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
-      resultTypes.push(...parentResultTypes);
+      parentRefProps.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
+      resTypeDecrs.push(...parentResultTypes);
     }
 
-    return { parentReferenceProperties, resultTypes };
+    return { referenceProperties: parentRefProps, resultTypes: resTypeDecrs };
   }
 
   private getChildCollectionContrs
@@ -239,33 +246,33 @@ export class ResultTypesGenerator
     )
     : ChildCollectionContrs
   {
-    const childCollectionProperties: ChildCollectionProperty[]  = [];
-    const resultTypes: ResultType[] = [];
+    const collProps: ChildCollectionProperty[]  = [];
+    const resTypeDescs: ResultTypeDescriptor[] = [];
 
-    for ( const childCollSpec of childSpecs )
+    for (const childCollSpec of childSpecs)
     {
       // Generate types for the child table and any related tables it includes recursively.
-      const childResultTypes = this.generateResultTypes(childCollSpec, queryName);
+      const childResultTypes = this.generateResultTypeDescriptors(childCollSpec, queryName);
       const elType = childResultTypes[0];
 
       // Mark the child collection element type as unwrapped if specified.
-      if ( childCollSpec.unwrap )
+      if (childCollSpec.unwrap)
       {
         if ( propertiesCount(elType) !== 1 )
           throw new Error("Unwrapped child collection elements must have exactly one property.");
-        resultTypes.push(...childResultTypes.slice(1)); // unwrapped types are not added to result types list
+        resTypeDescs.push(...childResultTypes.slice(1)); // unwrapped types are not added to result types list
       }
       else
-        resultTypes.push(...childResultTypes);
+        resTypeDescs.push(...childResultTypes);
 
-      childCollectionProperties.push({
+      collProps.push({
         name: childCollSpec.collectionName,
         elResultType: childCollSpec.unwrap ? {...elType, unwrapped: true} : elType,
         nullable: false
       });
     }
 
-    return { childCollectionProperties, resultTypes };
+    return { collectionProperties: collProps, resultTypes: resTypeDescs };
   }
 
   private makeTableFieldProperty
@@ -301,7 +308,7 @@ export class ResultTypesGenerator
   private getTableFieldsByName (relId: RelId): Map<string,Field>
   {
     const relMd = this.dbmd.getRelationMetadata(relId);
-    if ( relMd == null ) throw new Error(`Metadata for table ${relIdDescr(relId)} not found.`);
+    if (relMd == null) throw new Error(`Metadata for table ${relIdDescr(relId)} not found.`);
 
     return makeMap(relMd.fields, f => f.name, f => f);
   }
@@ -317,41 +324,48 @@ export class ResultTypesGenerator
     const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, {queryName});
     const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
-    if ( !fk ) throw new Error(`Foreign key from ${relIdDescr(childRelId)} to parent ${relIdDescr(parentRelId)} not found.`);
+    if (!fk) throw new Error(`Foreign key from ${relIdDescr(childRelId)} to parent ${relIdDescr(parentRelId)} not found.`);
 
     const childFieldsByName = this.getTableFieldsByName(childRelId);
 
     for ( const fkFieldName of foreignKeyFieldNames(fk) )
     {
       const fkField = childFieldsByName.get(fkFieldName);
-      if ( !fkField ) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdDescr(childRelId)}.`);
-      if ( fkField.nullable != null && !fkField.nullable ) return true;
+      if (!fkField) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdDescr(childRelId)}.`);
+      if (fkField.nullable != null && !fkField.nullable) return true;
     }
 
     return false;
   }
+} // ResultTypesGenerator
+
+
+function addToPropertiesFromResultType
+  (
+    props: Properties, // MUTATED in the call!
+    resultType: ResultTypeDescriptor,
+    forceNullable: boolean
+  )
+{
+  props.tableExpressionProperties.push(...resultType.tableExpressionProperties);
+  if (forceNullable)
+  {
+    // Add nullable form of each field.
+    props.tableFieldProperties.push(...resultType.tableFieldProperties.map(toNullableField)); 
+    props.tableExpressionProperties.push(...resultType.tableExpressionProperties);
+    props.parentReferenceProperties.push(...resultType.parentReferenceProperties.map(toNullableField));
+    props.childCollectionProperties.push(...resultType.childCollectionProperties.map(toNullableField));
+  }
+  else
+  {
+    props.tableFieldProperties.push(...resultType.tableFieldProperties);
+    props.tableExpressionProperties.push(...resultType.tableExpressionProperties);
+    props.parentReferenceProperties.push(...resultType.parentReferenceProperties);
+    props.childCollectionProperties.push(...resultType.childCollectionProperties);
+  }
 }
 
-/// Holds result properties (in the type builder) and types contributed from inline parent tables.
-interface InlineParentContrs
-{
-  typeBuilder: ResultTypeBuilder;
-  resultTypes: ResultType[];
-}
-/// Holds result properties and types contributed from referenced parent tables.
-interface RefdParentContrs
-{
-  parentReferenceProperties: ParentReferenceProperty[];
-  resultTypes: ResultType[];
-}
-/// Holds result properties and types contributed from child tables.
-interface ChildCollectionContrs
-{
-  childCollectionProperties: ChildCollectionProperty[];
-  resultTypes: ResultType[];
-}
-
-class ResultTypeBuilder
+class ResultTypeDescriptorBuilder
 {
   constructor
     (
@@ -383,85 +397,45 @@ class ResultTypeBuilder
     fs.forEach(f => this.childCollectionProperties.push(f));
   }
 
-  addFieldsFromResultType
-    (
-      resultType: ResultType,
-      forceNullable: boolean
-    )
+  addProperties(props: Properties)
   {
-    if ( forceNullable )
-    {
-      // Add nullable form of each field, as considered prior to any field
-      // type overrides which are applied elsewhere (writing stage).
-      // Expression fields are already nullable so need no transformation.
-      this.addTableFieldProperties(resultType.tableFieldProperties.map(toNullableField));
-      this.addTableExpressionProperties(resultType.tableExpressionProperty);
-      this.addParentReferenceProperties(resultType.parentReferenceProperties.map(toNullableField));
-      this.addChildCollectionProperties(resultType.childCollectionProperties.map(toNullableField));
-    }
-    else
-    {
-      this.addTableFieldProperties(resultType.tableFieldProperties);
-      this.addTableExpressionProperties(resultType.tableExpressionProperty);
-      this.addParentReferenceProperties(resultType.parentReferenceProperties);
-      this.addChildCollectionProperties(resultType.childCollectionProperties);
-    }
+    this.addTableFieldProperties(props.tableFieldProperties);
+    this.addTableExpressionProperties(props.tableExpressionProperties);
+    this.addParentReferenceProperties(props.parentReferenceProperties);
+    this.addChildCollectionProperties(props.childCollectionProperties);
   }
 
-  addFieldsFromTypeBuilder(resultTypeBuilder: ResultTypeBuilder)
-  {
-    this.addTableFieldProperties(resultTypeBuilder.tableFieldProperties);
-    this.addTableExpressionProperties(resultTypeBuilder.tableExpressionProperties);
-    this.addParentReferenceProperties(resultTypeBuilder.parentReferenceProperties);
-    this.addChildCollectionProperties(resultTypeBuilder.childCollectionProperties);
-  }
-
-  build
-    (
-      table: string
-    )
-    : ResultType
+  build(table: string): ResultTypeDescriptor
   {
     return {
       queryName: this.queryName,
       table,
       tableFieldProperties: this.tableFieldProperties,
-      tableExpressionProperty: this.tableExpressionProperties,
+      tableExpressionProperties: this.tableExpressionProperties,
       parentReferenceProperties: this.parentReferenceProperties,
       childCollectionProperties: this.childCollectionProperties,
       unwrapped: false
     };
   }
-}
+} // ResultTypeDescriptorBuilder
 
-function getTableExpressionProperties
-  (
-    relId: RelId,
-    tableFieldExpressions: (string | TableFieldExpr)[] | undefined
-  )
-  : TableExpressionProperty[]
+/// Holds result properties (in the type builder) and types contributed from inline parent tables.
+interface InlineParentContrs
 {
-  if ( !tableFieldExpressions ) return [];
-
-  const fields: TableExpressionProperty[]  = [];
-
-  for ( const tfe of tableFieldExpressions )
-  {
-    if ( typeof tfe !== 'string' && tfe.expression != null )
-    {
-      const jsonProperty = tfe.jsonProperty;
-      if ( jsonProperty == null )
-        throw new Error(`Expression field ${relIdDescr(relId)}.${tfe.expression} requires a json property.`)
-
-      fields.push({
-        name: jsonProperty,
-        fieldExpression: tfe.expression,
-        specifiedSourceCodeFieldType: tfe.fieldTypeInGeneratedSource || null
-      });
-    }
-  }
-
-  return fields;
+  properties: Properties;
+  resultTypes: ResultTypeDescriptor[];
+}
+/// Holds result properties and types contributed from referenced parent tables.
+interface RefdParentContrs
+{
+  referenceProperties: ParentReferenceProperty[];
+  resultTypes: ResultTypeDescriptor[];
+}
+/// Holds result properties and types contributed from child tables.
+interface ChildCollectionContrs
+{
+  collectionProperties: ChildCollectionProperty[];
+  resultTypes: ResultTypeDescriptor[];
 }
 
 /// Return nullable variant of a database field, for any of the above field types
@@ -471,7 +445,29 @@ function toNullableField<T extends {nullable: boolean|null}>(f: T): T
   return (f.nullable != null && f.nullable) ? f : {...f, nullable: true};
 }
 
-function getFieldName(tfe: string | TableFieldExpr): string | null
+export function propertiesCount(gt: ResultTypeDescriptor): number
 {
-  return typeof tfe === 'string' ? <string>tfe : tfe.field != null ? tfe.field : null;
+  return (
+    gt.tableFieldProperties.length +
+    gt.tableExpressionProperties.length +
+    gt.parentReferenceProperties.length +
+    gt.childCollectionProperties.length
+  );
+}
+
+export function resultTypeDecriptorsEqual
+  (
+    rt1: ResultTypeDescriptor,
+    rt2: ResultTypeDescriptor
+  )
+  : boolean
+{
+  return (
+    rt1.table === rt2.table &&
+    deepEquals(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
+    deepEquals(rt1.tableExpressionProperties,    rt2.tableExpressionProperties) &&
+    deepEquals(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
+    deepEquals(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
+    rt1.unwrapped === rt2.unwrapped
+  );
 }

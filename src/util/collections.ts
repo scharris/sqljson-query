@@ -8,7 +8,7 @@ export function computeIfAbsent<K,V>
   : V
 {
   const maybeVal: V | undefined = m.get(k);
-  if ( maybeVal != undefined )
+  if (maybeVal != undefined)
     return maybeVal;
 
   const newVal = valueMaker(k);
@@ -21,7 +21,7 @@ export function setsEqual<T>(s1: Set<T>, s2: Set<T>): boolean
   if ( s1.size !== s2.size)
     return false;
 
-  for ( const x of s1 )
+  for (const x of s1)
   {
     if ( !s2.has(x) )
       return false;
@@ -34,7 +34,7 @@ export function mapSet<T,U>(ts: Set<T>, f: (t: T) => U): Set<U>
 {
   const us = new Set<U>();
 
-  for ( const t of ts )
+  for (const t of ts)
     us.add(f(t));
 
   return us;
@@ -50,7 +50,7 @@ export function makeMap<T,K,V>
 {
   const m = new Map<K,V>();
 
-  for ( const t of ts )
+  for (const t of ts)
   {
     const key = keyFn(t);
     const val = valFn(t);
@@ -70,7 +70,7 @@ export function makeArrayValuesMap<T,K,V>
 {
   const m = new Map<K,V[]>();
 
-  for ( const t of ts )
+  for (const t of ts)
   {
     const key = keyFn(t);
     const vals = computeIfAbsent(m, key, (_k) => []);
@@ -113,14 +113,14 @@ export function partitionByEquality<T>
         {
           eqGroup.push(t);
           const grpMin = eqGroupToMinItemIx.get(eqGroup) || 0;
-          if ( itemIx < grpMin )
+          if (itemIx < grpMin)
             eqGroupToMinItemIx.set(eqGroup, itemIx);
           added = true;
           break;
         }
       }
 
-      if ( !added )
+      if (!added)
       {
         const eqGroup = [t];
         equalityGroups.push(eqGroup);

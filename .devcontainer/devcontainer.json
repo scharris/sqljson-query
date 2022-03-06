@@ -18,7 +18,10 @@
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"dbaeumer.vscode-eslint"
+		"dbaeumer.vscode-eslint",
+    "stevencl.addDocComments",
+    "DavidAnson.vscode-markdownlint",
+    "WallabyJs.quokka-vscode"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -33,7 +36,6 @@
 		"docker-in-docker": "20.10",
 		"git": "os-provided",
 		"java": "17",
-		"maven": "3.8",
-		"powershell": "7.1"
+		"maven": "3.8"
 	}
 }

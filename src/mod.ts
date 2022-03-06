@@ -11,11 +11,11 @@ import {readDatabaseMetadata} from './database-metadata';
 import {SourceGenerationOptions} from './source-generation-options';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {QuerySqlGenerator} from './query-sql-generator';
-import {ResultTypesSourceGenerator, QueryReprSqlPath} from './result-types-source-generator';
+import {ResultTypeSourceGenerator, QueryReprSqlPath} from './result-type-source-generator';
 
 export * from './source-generation-options';
 export * from './query-specs';
-export * from './result-types-source-generator';
+export * from './result-type-source-generator';
 export * from './relations-md-source-generator';
 
 export async function generateQuerySources
@@ -31,7 +31,7 @@ export async function generateQuerySources
     await requireFileExists(dbmdFile, 'The database metadata file was not found.');
     await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
     await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
-    if ( opts?.typesHeaderFile )
+    if (opts?.typesHeaderFile)
       await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
@@ -40,9 +40,9 @@ export async function generateQuerySources
     const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
     const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
-    const resultTypesSrcGen = new ResultTypesSourceGenerator(dbmd, defaultSchema, propNameFn);
+    const resultTypesSrcGen = new ResultTypeSourceGenerator(dbmd, defaultSchema, propNameFn);
 
-    for ( const querySpec of queryGroupSpec.querySpecs )
+    for (const querySpec of queryGroupSpec.querySpecs)
     {
       const resReprSqls = sqlGen.generateSqls(querySpec);
       const sqlPaths = opts.sqlOutputDir ? await writeResultReprSqls(querySpec.queryName, resReprSqls, opts.sqlOutputDir) : [];
@@ -58,7 +58,7 @@ export async function generateQuerySources
   }
   catch (e)
   {
-    if ( e instanceof SpecError ) throw makeSpecLocationError(e);
+    if (e instanceof SpecError) throw makeSpecLocationError(e);
     else throw e;
   }
 }
@@ -77,7 +77,7 @@ async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<
 async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
 {
   const fileExt = path.extname(filePath).toLowerCase();
-  if ( fileExt === '.ts' || fileExt === '.js' ) // .ts only supported when running via ts-node or deno.
+  if (fileExt === '.ts' || fileExt === '.js') // .ts only supported when running via ts-node or deno.
   {
     const modulePath = filePath.startsWith('./') ? cwd() + filePath.substring(1) : filePath;
     const mod = await import(modulePath);

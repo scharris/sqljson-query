@@ -203,7 +203,7 @@ export class MySQLDialect implements SqlDialect
     )
     : string
   {
-    if ( orderBy != null  )
+    if (orderBy != null )
       throw new Error(`MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
@@ -221,7 +221,7 @@ export class MySQLDialect implements SqlDialect
     )
     : string
   {
-    if ( orderBy != null  )
+    if (orderBy != null )
       throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
@@ -269,6 +269,6 @@ function getDbmsType(dbmsName: string): DbmsType
   const dbmsLower = dbmsName.toLowerCase();
   if ( dbmsLower.startsWith('postgres') ) return 'PG';
   else if ( dbmsLower.startsWith('oracle') ) return 'ORA';
-  else if ( dbmsLower === 'mysql' ) return 'MYSQL';
+  else if (dbmsLower === 'mysql') return 'MYSQL';
   else return 'ISO';
 }

@@ -56,7 +56,7 @@ export class QuerySqlGenerator
   {
     const tjs = querySpec.tableJson;
     const specLoc = { queryName: querySpec.queryName }; // for error reporting
-    if ( querySpec.forUpdate && resultRepr !== 'MULTI_COLUMN_ROWS' )
+    if (querySpec.forUpdate && resultRepr !== 'MULTI_COLUMN_ROWS')
       throw specError(querySpec, 'for update clause', 'FOR UPDATE only allowed with MULTI_COLUMN_ROWS results');
 
     switch ( resultRepr )
@@ -90,10 +90,10 @@ export class QuerySqlGenerator
     const alias = q.makeNewAliasFor(relId.name);
     q.fromEntries.push(`${this.minimalRelIdentifier(relId)} ${alias}`);
 
-    if ( parentChildCond )
+    if (parentChildCond)
       q.aliasesInScope.add(parentChildCond.otherTableAlias());
 
-    if ( exportPkFieldsHidden )
+    if (exportPkFieldsHidden)
       q.selectEntries.push(
         ...this.hiddenPkSelectEntries(relId, alias)
       );
@@ -115,16 +115,16 @@ export class QuerySqlGenerator
     );
 
     // Add parent/child relationship filter condition if any to the where clause.
-    if ( parentChildCond )
+    if (parentChildCond)
       q.whereEntries.push(
         parentChildCond.asEquationConditionOn(alias, this.dbmd)
       );
 
     const recordCond = recordConditionSql(tableSpec, alias);
-    if ( recordCond )
+    if (recordCond)
       q.whereEntries.push(recordCond);
 
-    if ( orderBy != null )
+    if (orderBy != null)
       q.orderBy = orderBy;
 
     const columnNames = q.selectEntries.filter(e => e.source !== 'HIDDEN_PK').map(e => e.name);
@@ -152,7 +152,7 @@ export class QuerySqlGenerator
   {
     verifyTableFieldExpressionsValid(tableSpec, this.defaultSchema, this.dbmd, specLoc);
 
-    if ( !tableSpec.fieldExpressions )
+    if (!tableSpec.fieldExpressions)
       return [];
     else return tableSpec.fieldExpressions.map((tfe,ix) => {
       const loc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tableSpec.table}`);
@@ -240,9 +240,9 @@ export class QuerySqlGenerator
   {
     const customJoinCond = parentSpec.customJoinCondition;
 
-    if ( customJoinCond != undefined )
+    if (customJoinCond != undefined)
     {
-      if ( parentSpec.viaForeignKeyFields != undefined )
+      if (parentSpec.viaForeignKeyFields != undefined)
         throw new SpecError(specLoc, 'Parent with customJoinCondition cannot specify foreignKeyFields.');
 
       const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
@@ -340,7 +340,7 @@ export class QuerySqlGenerator
     )
     : SelectEntry[]
   {
-    if ( !tableSpec.childTables )
+    if (!tableSpec.childTables)
       return [];
     return tableSpec.childTables.map(childCollSpec => {
       const childLoc = addLocPart(specLoc, `child collection '${childCollSpec.collectionName}'`);
@@ -391,9 +391,9 @@ export class QuerySqlGenerator
   {
     const customJoinCond = childCollectionSpec.customJoinCondition;
 
-    if ( customJoinCond != undefined ) // custom join condition specified
+    if (customJoinCond != undefined) // custom join condition specified
     {
-      if ( childCollectionSpec.foreignKeyFields )
+      if (childCollectionSpec.foreignKeyFields)
         throw new SpecError(specLoc, 'Child collection that specifies customJoinCondition cannot specify foreignKeyFields.');
       validateCustomJoinCondition(customJoinCond, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, 'custom join condition'));
       return this.customJoinChildFkCondition(customJoinCond, parentAlias);
@@ -438,7 +438,7 @@ export class QuerySqlGenerator
   {
     const baseQuery = this.baseQuery(tableSpec, parentChildCond, false, null, propNameFn, specLoc);
 
-    if ( unwrap && baseQuery.resultColumnNames.length != 1 )
+    if (unwrap && baseQuery.resultColumnNames.length != 1)
       throw new SpecError(specLoc, 'Unwrapped child collections cannot have multiple field expressions.');
 
     return (
@@ -494,7 +494,7 @@ export class QuerySqlGenerator
   {
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, foreignKeyFields);
 
-    if ( fk == null )
+    if (fk == null)
       throw new SpecError(specLoc, `No foreign key found from ${childRelId.name} to ${parentRelId.name} via ` +
         (foreignKeyFields != undefined ? `foreign keys [${Array.from(foreignKeyFields)}]`
          : 'implicit foreign key fields') + '.');
@@ -673,15 +673,15 @@ function jsonPropertyName
   )
   : string
 {
-  if ( typeof tfe === 'string' )
+  if (typeof tfe === 'string')
     return propNameFn(tfe);
-  else if ( tfe.field )
+  else if (tfe.field)
     return tfe.jsonProperty || propNameFn(tfe.field);
   else
   {
-    if ( !tfe.expression )
+    if (!tfe.expression)
       throw new SpecError(specLoc, `'field' or 'expression' must be provided`);
-    if ( !tfe.jsonProperty )
+    if (!tfe.jsonProperty)
       throw new SpecError(specLoc, `Json property name is required for expression field ${tfe.expression}.`);
     return tfe.jsonProperty;
   }
@@ -697,11 +697,11 @@ function tableFieldExpressionSql
 {
   if ( typeof tableFieldExpr === 'string')
     return `${tableAlias}.${tableFieldExpr}`;
-  else if ( tableFieldExpr.field )
+  else if (tableFieldExpr.field)
     return `${tableAlias}.${tableFieldExpr.field}`;
   else // general expression
   {
-    if ( !tableFieldExpr.expression )
+    if (!tableFieldExpr.expression)
       throw new SpecError(specLoc, `'field' or 'expression' must be provided`);
     const tableAliasVarInExpr = tableFieldExpr.withTableAliasAs || DEFAULT_TABLE_ALIAS_VAR;
     return replaceAll(tableFieldExpr.expression, tableAliasVarInExpr, tableAlias);
@@ -716,7 +716,7 @@ function recordConditionSql
   : string | null
 {
   const cond = tableSpec.recordCondition;
-  if ( cond )
+  if (cond)
   {
     const tableAliasVar = valueOr(cond.withTableAliasAs, DEFAULT_TABLE_ALIAS_VAR);
     return `(${replaceAll(cond.sql, tableAliasVar, tableAlias)})`;

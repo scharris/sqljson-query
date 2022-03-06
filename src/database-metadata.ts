@@ -122,7 +122,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
   {
     const relMd = this.getRelationMetadata(relId);
 
-    if ( relMd == null )
+    if (relMd == null)
        throw new Error(`Relation metadata not found for relation id '${relIdDescr(relId)}'.`);
 
     return getPrimaryKeyFields(relMd).map(f => alias != null ? `${alias}.${f.name}` : f.name);
@@ -146,7 +146,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     {
       if ( normdFkFieldNames == null || foreignKeyFieldNamesSetEquals(fk, normdFkFieldNames) )
       {
-        if ( soughtFk != null ) // already found an fk satisfying requirements?
+        if (soughtFk != null) // already found an fk satisfying requirements?
           throw new Error(
             `Multiple foreign key constraints exist from table ${relIdDescr(fromRelId)} to table ${relIdDescr(toRelId)}` +
             (fieldNames != null ?
@@ -170,7 +170,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
   {
     const res: ForeignKey[] = [];
 
-    if ( childRelId != null )
+    if (childRelId != null)
     {
       for ( const fk of this.derivedData.getFksFromChild(childRelId) || [] )
       {
@@ -178,7 +178,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
           res.push(fk);
       }
     }
-    else if ( parentRelId != null )
+    else if (parentRelId != null)
     {
       for ( const fk of this.derivedData.getFksReferencingParent(parentRelId) || [] )
         res.push(fk);
@@ -227,10 +227,10 @@ function makeDerivedData
   const fksByParentRelId = new Map<string, ForeignKey[]>();
   const fksByChildRelId = new Map<string, ForeignKey[]>();
 
-  for ( const relMd of relationMetadatas )
+  for (const relMd of relationMetadatas)
     relMDsByRelId.set(relIdKey(relMd.relationId), relMd);
 
-  for ( const fk of foreignKeys )
+  for (const fk of foreignKeys)
   {
     const fksFromChild = computeIfAbsent(fksByChildRelId, relIdKey(fk.foreignKeyRelationId), _k => [])
     fksFromChild.push(fk);
@@ -250,9 +250,9 @@ function getPrimaryKeyFields
 {
   const pks: Field[] = [];
 
-  for ( const f of relMd.fields )
+  for (const f of relMd.fields)
   {
-    if ( f.primaryKeyPartNumber != null )
+    if (f.primaryKeyPartNumber != null)
       pks.push(f);
   }
 
@@ -268,12 +268,12 @@ function foreignKeyFieldNamesSetEquals
   )
   : boolean
 {
-  if ( fk.foreignKeyComponents.length != normalizedFkFieldNames.size )
+  if (fk.foreignKeyComponents.length != normalizedFkFieldNames.size)
     return false;
 
   const fkFieldNames = new Set<string>();
 
-  for ( const fkComp of fk.foreignKeyComponents )
+  for (const fkComp of fk.foreignKeyComponents)
     fkFieldNames.add(fkComp.foreignKeyFieldName);
 
   return setsEqual(fkFieldNames, normalizedFkFieldNames);
@@ -283,7 +283,7 @@ export function foreignKeyFieldNames(fk: ForeignKey): string[]
 {
   const fkFieldNames: string[] = [];
 
-  for ( const fkComp of fk.foreignKeyComponents )
+  for (const fkComp of fk.foreignKeyComponents)
     fkFieldNames.push(fkComp.foreignKeyFieldName);
 
   return fkFieldNames;
@@ -310,7 +310,7 @@ export function makeRelId
 {
   const [schemaName, tableName] = splitSchemaAndRelationNames(tableMaybeQualified);
 
-  if ( !tableName )
+  if (!tableName)
     throw new Error(`Invalid table name: '${tableMaybeQualified}''.` );
 
   const schema = (

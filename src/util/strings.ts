@@ -13,7 +13,7 @@ export function lowerCaseInitials(name: string, sep: string): string
 
   for ( const word of name.split(sep) )
   {
-    if ( word.length > 0 )
+    if (word.length > 0)
       parts.push(word.charAt(0).toLowerCase());
   }
 
@@ -39,7 +39,7 @@ function camelCase(name: string, upperFirst: boolean): string
   {
     const wordStartChar = word.charAt(0);
 
-    if ( parts.length === 0 && !upperFirst )
+    if (parts.length === 0 && !upperFirst)
       parts.push(word.toLowerCase());
     else
     {
@@ -85,7 +85,7 @@ export function indentLines
   let pastFirst = false;
   for ( const line of linesStr.split('\n') )
   {
-    if ( pastFirst )
+    if (pastFirst)
       sb.push('\n');
 
     if ( (pastFirst || indentFirstLine) && line.length > 0 )
@@ -93,7 +93,7 @@ export function indentLines
 
     sb.push(line);
 
-    if ( !pastFirst )
+    if (!pastFirst)
       pastFirst = true;
   }
 

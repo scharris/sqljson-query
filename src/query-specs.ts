@@ -169,23 +169,23 @@ export function verifyTableFieldExpressionsValid
     specLoc: SpecLocation
   )
 {
-  if ( !tableSpec.fieldExpressions )
+  if (!tableSpec.fieldExpressions)
     return;
 
   const simpleSelectFields : string[] = [];
   for ( const [ix, fieldExpr] of tableSpec.fieldExpressions.entries() )
   {
-    if ( typeof fieldExpr === 'string' )
+    if (typeof fieldExpr === 'string')
       simpleSelectFields.push(fieldExpr);
     else
     {
       if ( (fieldExpr.field == null) === (fieldExpr.expression == null) )
         throw new SpecError(specLoc, `fieldExpressions entry #${ix+1} is invalid: ` +
           "exactly one of 'field' or 'expression' properties must be provided.");
-      if ( fieldExpr.expression != null && fieldExpr.fieldTypeInGeneratedSource == null )
+      if (fieldExpr.expression != null && fieldExpr.fieldTypeInGeneratedSource == null)
         throw new SpecError(specLoc, `fieldExpressions entry #${ix+1} is invalid: ` +
           "field type in generated source must be specified with the 'expression' property.");
-      if ( fieldExpr.field )
+      if (fieldExpr.field)
         simpleSelectFields.push(fieldExpr.field);
     }
   }
@@ -207,9 +207,9 @@ export function validateCustomJoinCondition
   const parentMd = dbmd.getRelationMetadata(parentRelId);
   const childMd = dbmd.getRelationMetadata(childRelId);
 
-  if ( parentMd == null )
+  if (parentMd == null)
     throw new SpecError({...specLoc, queryPart: "custom join condition"}, "Parent table not found.");
-  if ( childMd == null )
+  if (childMd == null)
     throw new SpecError({...specLoc, queryPart: "custom join condition"}, "Child table not found.");
 
   const parentMatchFields = customJoinCond.equatedFields.map(fieldPair => fieldPair.parentPrimaryKeyField);
@@ -231,7 +231,7 @@ function verifyFieldsExistInRelMd
 
   const missing = fieldNames.filter(fieldName => !mdFields.has(caseNormalizeName(fieldName, dbmd.caseSensitivity)));
 
-  if ( missing.length !== 0 )
+  if (missing.length !== 0)
     throw new SpecError(specLoc,
       `Field(s) not found in table ${relIdDescr(relMd.relationId)}: ${missing.join(', ')}.`
     );
@@ -248,7 +248,7 @@ function getRelMetadata
 {
   const relMd = dbmd.getRelationMetadata(makeRelId(table, defaultSchema, dbmd.caseSensitivity));
 
-  if ( relMd == null )
+  if (relMd == null)
     throw new SpecError(specLoc, `Table '${table}' was not found in database metadata.`);
 
   return relMd;

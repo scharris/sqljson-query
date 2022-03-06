@@ -12,9 +12,9 @@ export function caseNormalizeName
 {
   if ( quotedStringRegex.test(id) )
     return id;
-  else if ( caseSensitivity === 'INSENSITIVE_STORED_LOWER' )
+  else if (caseSensitivity === 'INSENSITIVE_STORED_LOWER')
     return id.toLowerCase();
-  else if ( caseSensitivity === 'INSENSITIVE_STORED_UPPER' )
+  else if (caseSensitivity === 'INSENSITIVE_STORED_UPPER')
     return id.toUpperCase();
   else
     return id;
@@ -33,11 +33,11 @@ export function relIdDescr(relId: RelId): string
 export function getSchemaName(rel: string) : string | null
 {
   const unquotedSchemaMatch = rel.match(/^([^."]+)\./);
-  if ( unquotedSchemaMatch )
+  if (unquotedSchemaMatch)
     return unquotedSchemaMatch[1];
 
-  const quotedSchemaMatch = rel.match(/^("[^"]+")\./);
-  if ( quotedSchemaMatch )
+  const quotedSchemaMatch = rel.match(/^("[^"]+")\./); // TODO: Allow escaped quotes in the name group.
+  if (quotedSchemaMatch)
     return quotedSchemaMatch[1];
 
   return null;
@@ -47,11 +47,11 @@ export function getSchemaName(rel: string) : string | null
 export function getRelationName(rel: string) : string | null
 {
   const unquotedTableMatch = rel.match(/([^".]+)$/);
-  if ( unquotedTableMatch )
+  if (unquotedTableMatch)
     return unquotedTableMatch[1];
 
-  const quotedTableMatch = rel.match(/("[^"]+")$/);
-  if ( quotedTableMatch )
+  const quotedTableMatch = rel.match(/("[^"]+")$/); // TODO: Allow escaped quotes in the name group.
+  if (quotedTableMatch)
     return quotedTableMatch[1];
 
   return null;

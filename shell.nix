@@ -7,6 +7,7 @@ mkShell {
     openjdk17
     maven
     graphviz-nox
+    nushell
   ];
 
   shellHook = ''
