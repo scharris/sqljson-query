@@ -1,15 +1,15 @@
 import {
   makeMap, mapSet, caseNormalizeName, valueOr, propertyNameDefaultFunction, indentLines,
   lowerCaseInitials, makeNameNotInSet, replaceAll, exactUnquotedName
-} from './util/mod';
+} from '../util/mod';
+import { DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId } from '../dbmd';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
   CustomJoinCondition, ParentSpec, ReferencedParentSpec, InlineParentSpec, getInlineParentSpecs,
-  getReferencedParentSpecs,
-} from './query-specs';
-import {identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid} from './query-specs';
-import {SqlDialect, getSqlDialect} from './sql-dialects';
-import {DatabaseMetadata, ForeignKey, ForeignKeyComponent, RelId} from './database-metadata';
+  getReferencedParentSpecs, identifyTable, validateCustomJoinCondition, verifyTableFieldExpressionsValid
+} from '../query-specs';
+import { SqlDialect, getSqlDialect } from './sql-dialects';
+
 
 export class QuerySqlGenerator
 {
@@ -40,8 +40,10 @@ export class QuerySqlGenerator
 
     const resReprs = querySpec.resultRepresentations || QuerySqlGenerator.DEFAULT_RESULT_REPRS;
 
-    return makeMap(resReprs, rrep => rrep, resRepr =>
-      this.queryResultReprSql(querySpec, resRepr, propNameFn)
+    return makeMap(
+      resReprs,
+      rrep => rrep,
+      resRepr => this.queryResultReprSql(querySpec, resRepr, propNameFn)
     );
   }
 
@@ -127,7 +129,7 @@ export class QuerySqlGenerator
     if (orderBy != null)
       q.orderBy = orderBy;
 
-    const columnNames = q.selectEntries.filter(e => e.source !== 'HIDDEN_PK').map(e => e.name);
+    const columnNames = q.selectEntries.filter(e => !e.isHiddenPk).map(e => e.name);
 
     return { sql: q.toSql(this.indentSpaces), resultColumnNames: columnNames };
   }
@@ -137,7 +139,7 @@ export class QuerySqlGenerator
     return this.dbmd.getPrimaryKeyFieldNames(relId).map(pkFieldName => {
       const pkFieldDbName = this.sqlDialect.quoteColumnNameIfNeeded(pkFieldName);
       const pkFieldOutputName = this.sqlDialect.quoteColumnNameIfNeeded(QuerySqlGenerator.HIDDEN_PK_PREFIX + pkFieldName);
-      return {valueExpr: `${alias}.${pkFieldDbName}`, name: pkFieldOutputName, source: 'HIDDEN_PK'};
+      return {valueExpr: `${alias}.${pkFieldDbName}`, name: pkFieldOutputName, isHiddenPk: true};
     });
   }
 
@@ -157,7 +159,7 @@ export class QuerySqlGenerator
     else return tableSpec.fieldExpressions.map((tfe,ix) => {
       const loc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tableSpec.table}`);
       const name = this.sqlDialect.quoteColumnNameIfNeeded(jsonPropertyName(tfe, propNameFn, loc));
-      return { valueExpr: tableFieldExpressionSql(tfe, alias, loc), name, source: 'NATIVE_FIELD' };
+      return { valueExpr: tableFieldExpressionSql(tfe, alias, loc), name };
     });
   }
 
@@ -210,7 +212,6 @@ export class QuerySqlGenerator
       q.selectEntries.push({
         valueExpr: `${fromClauseQueryAlias }.${parentColumnName}`,
         name: parentColumnName,
-        source: 'INLINE_PARENT',
         comment: (i == 0 ? lineCommentInlineParentFieldsBegin(parentSpec): null)
       });
     }
@@ -324,7 +325,6 @@ export class QuerySqlGenerator
           ) + '\n' +
         ')',
       name: this.sqlDialect.quoteColumnNameIfNeeded(parentSpec.referenceName),
-      source: 'PARENT_REFERENCE'
     }];
 
     return new SqlParts(selectEntries, [], [], new Set(), null);
@@ -353,7 +353,6 @@ export class QuerySqlGenerator
             ) + '\n' +
           ')',
         name: this.sqlDialect.quoteColumnNameIfNeeded(childCollSpec.collectionName),
-        source: 'CHILD_COLLECTION'
       };
    });
   }
@@ -656,12 +655,9 @@ interface SelectEntry
 {
   readonly valueExpr: string;
   readonly name: string;
-  readonly source: SelectEntrySource;
+  readonly isHiddenPk?: boolean;
   readonly comment?: string | null;
 }
-
-type SelectEntrySource = 'NATIVE_FIELD' | 'INLINE_PARENT' | 'PARENT_REFERENCE' | 'CHILD_COLLECTION' | 'HIDDEN_PK';
-
 
 const DEFAULT_TABLE_ALIAS_VAR = '$$';
 

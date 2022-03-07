@@ -1,5 +1,5 @@
-import {caseNormalizeName, relIdDescr} from './util/mod';
-import {DatabaseMetadata, makeRelId, RelId, RelMetadata} from './database-metadata';
+import {caseNormalizeName, relIdDescn} from './util/mod';
+import {DatabaseMetadata, makeRelId, RelId, RelMetadata} from './dbmd';
 
 export interface QueryGroupSpec
 {
@@ -233,7 +233,7 @@ function verifyFieldsExistInRelMd
 
   if (missing.length !== 0)
     throw new SpecError(specLoc,
-      `Field(s) not found in table ${relIdDescr(relMd.relationId)}: ${missing.join(', ')}.`
+      `Field(s) not found in table ${relIdDescn(relMd.relationId)}: ${missing.join(', ')}.`
     );
 }
 

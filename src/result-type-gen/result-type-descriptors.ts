@@ -1,10 +1,10 @@
-import {caseNormalizeName, makeMap, relIdDescr, deepEquals} from './util/mod';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId} from './database-metadata';
+import {caseNormalizeName, makeMap, relIdDescn, deepEquals} from '../util/mod';
+import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId} from '../dbmd';
 import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec
-} from './query-specs';
-import { identifyTable } from './query-specs';
+} from '../query-specs';
+import { identifyTable } from '../query-specs';
 
 
 export interface ResultTypeDescriptor extends Properties
@@ -75,46 +75,46 @@ export class ResultTypeDescriptorGenerator
     )
     : ResultTypeDescriptor[]
   {
-    const rtdBuilder = new ResultTypeDescriptorBuilder(queryName);
-    const resultTypes: ResultTypeDescriptor[] = [];
+    const topTypeDesc = new ResultTypeDescriptorBuilder(queryName);
+    const resultTypes: ResultTypeDescriptor[] = []; // Top result type *and* supporting types.
 
     const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, {queryName});
 
     // Add the table's own fields and expressions involving those fields.
-    rtdBuilder.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions));
-    rtdBuilder.addTableExpressionProperties(this.getTableExpressionProperties(relId, tjs.fieldExpressions));
+    topTypeDesc.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions));
+    topTypeDesc.addTableExpressionProperties(this.getTableExpressionProperties(relId, tjs.fieldExpressions));
 
-    // Inline parents can contribute fields to any primary field category (table field,
-    // expression, parent ref, child collection). Get the inline parent fields, and the result
-    // types from the tables themselves and recursively from their specified related tables.
+    // Get contributions from inline parents (processed recursively), which may include (only)
+    // properties in any of the other categories (table fields and expressions, parent references,
+    // and child collections).
     const inlineParentSpecs = getInlineParentSpecs(tjs);
     if (inlineParentSpecs.length > 0)
     {
-      const inlineParentsContr = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
-      rtdBuilder.addProperties(inlineParentsContr.properties);
-      resultTypes.push(...inlineParentsContr.resultTypes);
+      const inlineParentContrs = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
+      topTypeDesc.addProperties(inlineParentContrs.properties);
+      resultTypes.push(...inlineParentContrs.resultTypes);
     }
 
     // Get referenced parent fields and result types, with result types from related tables.
     const refdParentSpecs = getReferencedParentSpecs(tjs);
     if (refdParentSpecs.length > 0)
     {
-      const refdParentsContr = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
-      rtdBuilder.addParentReferenceProperties(refdParentsContr.referenceProperties);
-      resultTypes.push(...refdParentsContr.resultTypes);
+      const refdParentContrs = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
+      topTypeDesc.addParentReferenceProperties(refdParentContrs.referenceProperties);
+      resultTypes.push(...refdParentContrs.resultTypes);
     }
 
     // Get the child collection fields and result types, with result types from related tables.
     if (tjs.childTables)
     {
-      const childCollsContr = this.getChildCollectionContrs(tjs.childTables, queryName);
-      rtdBuilder.addChildCollectionProperties(childCollsContr.collectionProperties);
-      resultTypes.push(...childCollsContr.resultTypes);
+      const childCollContrs = this.getChildCollectionContrs(tjs.childTables, queryName);
+      topTypeDesc.addChildCollectionProperties(childCollContrs.collectionProperties);
+      resultTypes.push(...childCollContrs.resultTypes);
     }
 
     // The top table's type must be added at leading position in the returned list, followed
     // by any other supporting types that were generated.
-    resultTypes.splice(0, 0, rtdBuilder.build(tjs.table));
+    resultTypes.splice(0, 0, topTypeDesc.build(tjs.table));
 
     return resultTypes;
   }
@@ -140,7 +140,7 @@ export class ResultTypeDescriptorGenerator
       {
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
-          throw new Error(`No metadata found for field ${relIdDescr(relId)}.${fieldName}.`);
+          throw new Error(`No metadata found for field ${relIdDescn(relId)}.${fieldName}.`);
         fields.push(this.makeTableFieldProperty(tfe, dbField));
       }
     }
@@ -165,7 +165,7 @@ export class ResultTypeDescriptorGenerator
       {
         const jsonProperty = tfe.jsonProperty;
         if (jsonProperty == null)
-          throw new Error(`Expression field ${relIdDescr(relId)}.${tfe.expression} requires a json property.`)
+          throw new Error(`Expression field ${relIdDescn(relId)}.${tfe.expression} requires a json property.`)
 
         fields.push({
           name: jsonProperty,
@@ -308,7 +308,7 @@ export class ResultTypeDescriptorGenerator
   private getTableFieldsByName (relId: RelId): Map<string,Field>
   {
     const relMd = this.dbmd.getRelationMetadata(relId);
-    if (relMd == null) throw new Error(`Metadata for table ${relIdDescr(relId)} not found.`);
+    if (relMd == null) throw new Error(`Metadata for table ${relIdDescn(relId)} not found.`);
 
     return makeMap(relMd.fields, f => f.name, f => f);
   }
@@ -324,14 +324,14 @@ export class ResultTypeDescriptorGenerator
     const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, {queryName});
     const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
     const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
-    if (!fk) throw new Error(`Foreign key from ${relIdDescr(childRelId)} to parent ${relIdDescr(parentRelId)} not found.`);
+    if (!fk) throw new Error(`Foreign key from ${relIdDescn(childRelId)} to parent ${relIdDescn(parentRelId)} not found.`);
 
     const childFieldsByName = this.getTableFieldsByName(childRelId);
 
     for ( const fkFieldName of foreignKeyFieldNames(fk) )
     {
       const fkField = childFieldsByName.get(fkFieldName);
-      if (!fkField) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdDescr(childRelId)}.`);
+      if (!fkField) throw new Error(`Field not found for fk field ${fkFieldName} of table ${relIdDescn(childRelId)}.`);
       if (fkField.nullable != null && !fkField.nullable) return true;
     }
 

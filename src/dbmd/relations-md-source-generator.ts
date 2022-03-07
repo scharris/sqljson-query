@@ -1,7 +1,7 @@
 import * as path from 'path';
-import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from './util/mod';
+import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from '../util/mod';
 import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata';
-import {SourceLanguage} from './source-generation-options';
+import {SourceLanguage} from '../source-gen-options';
 
 export async function generateRelationsMetadataSource
   (

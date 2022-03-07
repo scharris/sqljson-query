@@ -1,6 +1,6 @@
-import {propertiesCount, ResultTypeDescriptor, resultTypeDecriptorsEqual} from '../result-type-descriptors';
+import {propertiesCount, ResultTypeDescriptor, resultTypeDecriptorsEqual} from '../result-type-gen';
 
-const emptyResultTypeDescr: ResultTypeDescriptor = {
+const emptyResultTypeDesc: ResultTypeDescriptor = {
   queryName: 'query',
   table: 'table',
   tableFieldProperties: [],
@@ -58,65 +58,65 @@ function makeExampleResultTypeDescriptor(): ResultTypeDescriptor
   };
 }
 
-const exampleResultTypeDescr = makeExampleResultTypeDescriptor();
+const exampleResultTypeDesc = makeExampleResultTypeDescriptor();
 
 test('result type fields counts', () => {
-  expect(propertiesCount(emptyResultTypeDescr)).toBe(0);
-  expect(propertiesCount(exampleResultTypeDescr)).toBe(7);
+  expect(propertiesCount(emptyResultTypeDesc)).toBe(0);
+  expect(propertiesCount(exampleResultTypeDesc)).toBe(7);
 });
 
 test('result types equality', () => {
   
-  expect(resultTypeDecriptorsEqual(exampleResultTypeDescr, exampleResultTypeDescr)).toBe(true);
+  expect(resultTypeDecriptorsEqual(exampleResultTypeDesc, exampleResultTypeDesc)).toBe(true);
 
   const exampleCopy = makeExampleResultTypeDescriptor();
-  expect(resultTypeDecriptorsEqual(exampleResultTypeDescr, exampleCopy)).toBe(true);
+  expect(resultTypeDecriptorsEqual(exampleResultTypeDesc, exampleCopy)).toBe(true);
   
-  expect(resultTypeDecriptorsEqual(exampleResultTypeDescr, {...exampleResultTypeDescr, table: "other_table"})).toBe(false);
+  expect(resultTypeDecriptorsEqual(exampleResultTypeDesc, {...exampleResultTypeDesc, table: "other_table"})).toBe(false);
 
   expect(
     resultTypeDecriptorsEqual(
-      exampleResultTypeDescr,
+      exampleResultTypeDesc,
       {
-        ...exampleResultTypeDescr, 
+        ...exampleResultTypeDesc, 
         tableFieldProperties:
-          exampleResultTypeDescr.tableFieldProperties.map(p => ({...p, name: p.name + "_2"}))
+          exampleResultTypeDesc.tableFieldProperties.map(p => ({...p, name: p.name + "_2"}))
       }
     )).toBe(false);
 
   expect(
     resultTypeDecriptorsEqual(
-      exampleResultTypeDescr,
+      exampleResultTypeDesc,
       {
-        ...exampleResultTypeDescr, 
+        ...exampleResultTypeDesc, 
         tableExpressionProperties: 
-          exampleResultTypeDescr.tableExpressionProperties.map(p => ({...p, name: p.name + "_2"})) 
+          exampleResultTypeDesc.tableExpressionProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
     )).toBe(false);
 
   expect(
     resultTypeDecriptorsEqual(
-      exampleResultTypeDescr,
+      exampleResultTypeDesc,
       {
-        ...exampleResultTypeDescr, 
+        ...exampleResultTypeDesc, 
         parentReferenceProperties: 
-          exampleResultTypeDescr.parentReferenceProperties.map(p => ({...p, name: p.name + "_2"})) 
+          exampleResultTypeDesc.parentReferenceProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
     )).toBe(false);
 
   expect(
     resultTypeDecriptorsEqual(
-      exampleResultTypeDescr,
+      exampleResultTypeDesc,
       {
-        ...exampleResultTypeDescr, 
+        ...exampleResultTypeDesc, 
         childCollectionProperties: 
-          exampleResultTypeDescr.childCollectionProperties.map(p => ({...p, name: p.name + "_2"})) 
+          exampleResultTypeDesc.childCollectionProperties.map(p => ({...p, name: p.name + "_2"})) 
       }
     )).toBe(false);
 
   expect(
     resultTypeDecriptorsEqual(
-      exampleResultTypeDescr,
-      {...exampleResultTypeDescr, unwrapped: !exampleResultTypeDescr.unwrapped}
+      exampleResultTypeDesc,
+      {...exampleResultTypeDesc, unwrapped: !exampleResultTypeDesc.unwrapped}
     )).toBe(false);
 });

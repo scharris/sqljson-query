@@ -1,13 +1,13 @@
-import { z } from "zod";
+import { z } from 'zod';
 import {
   computeIfAbsent,
   setsEqual,
   caseNormalizeName,
-  relIdDescr,
+  relIdDescn,
   splitSchemaAndRelationNames,
   exactUnquotedName,
   readTextFile,
-} from './util/mod';
+} from '../util/mod';
 
 const CaseSensitivityDef =
   z.union([
@@ -123,7 +123,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     const relMd = this.getRelationMetadata(relId);
 
     if (relMd == null)
-       throw new Error(`Relation metadata not found for relation id '${relIdDescr(relId)}'.`);
+       throw new Error(`Relation metadata not found for relation id '${relIdDescn(relId)}'.`);
 
     return getPrimaryKeyFields(relMd).map(f => alias != null ? `${alias}.${f.name}` : f.name);
   }
@@ -148,7 +148,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
       {
         if (soughtFk != null) // already found an fk satisfying requirements?
           throw new Error(
-            `Multiple foreign key constraints exist from table ${relIdDescr(fromRelId)} to table ${relIdDescr(toRelId)}` +
+            `Multiple foreign key constraints exist from table ${relIdDescn(fromRelId)} to table ${relIdDescn(toRelId)}` +
             (fieldNames != null ?
               ' with the same specified foreign key fields.'
               : ' and no foreign key fields were specified to disambiguate.'));

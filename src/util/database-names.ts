@@ -1,4 +1,4 @@
-import { CaseSensitivity, RelId } from '../database-metadata';
+import { CaseSensitivity, RelId } from '../dbmd';
 import { unDoubleQuote } from './strings';
 
 const quotedStringRegex = /^(["`]).*\1$/;
@@ -24,7 +24,7 @@ export function caseNormalizeName
     for displaying in prose to identify a table. Use relIdKey() instead to form a string intended to
     be used as a lookup key.
  */
-export function relIdDescr(relId: RelId): string
+export function relIdDescn(relId: RelId): string
 {
   return relId.schema ? relId.schema + '.' + relId.name : relId.name;
 }

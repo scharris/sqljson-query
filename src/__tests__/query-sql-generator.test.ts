@@ -1,7 +1,7 @@
 import * as path from 'path';
 import {QuerySpec} from '../query-specs';
-import {DatabaseMetadata} from '../database-metadata';
-import {QuerySqlGenerator} from '../query-sql-generator';
+import {DatabaseMetadata} from '../dbmd';
+import {QuerySqlGenerator} from '../sql-gen/sql-generator';
 import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');

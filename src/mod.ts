@@ -7,16 +7,16 @@ import {
   writeTextFile,
   cwd
 } from './util/mod';
-import {readDatabaseMetadata} from './database-metadata';
-import {SourceGenerationOptions} from './source-generation-options';
+import {readDatabaseMetadata} from './dbmd';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
-import {QuerySqlGenerator} from './query-sql-generator';
-import {ResultTypeSourceGenerator, QueryReprSqlPath} from './result-type-source-generator';
+import {SourceGenerationOptions} from './source-gen-options';
+import {QuerySqlGenerator} from './sql-gen';
+import {ResultTypeSourceGenerator, QueryReprSqlPath} from './result-type-gen';
 
-export * from './source-generation-options';
+export * from './source-gen-options';
 export * from './query-specs';
-export * from './result-type-source-generator';
-export * from './relations-md-source-generator';
+export * from './result-type-gen';
+export * from './dbmd/relations-md-source-generator';
 
 export async function generateQuerySources
   (
@@ -101,8 +101,8 @@ async function writeResultReprSqls
   for (const [resultRepr, sql] of resultReprToSqlMap.entries())
   {
     const modQueryName = queryName.replace(/ /g, '-').toLowerCase();
-    const reprDescr = resultRepr.toLowerCase().replace(/_/g, ' ');
-    const sqlFileName = multReprs ? `${modQueryName}(${reprDescr}).sql` : `${modQueryName}.sql`;
+    const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
+    const sqlFileName = multReprs ? `${modQueryName}(${reprDescn}).sql` : `${modQueryName}.sql`;
     const sqlPath = path.join(outputDir, sqlFileName);
 
     await writeTextFile(sqlPath,

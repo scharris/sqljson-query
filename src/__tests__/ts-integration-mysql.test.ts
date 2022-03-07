@@ -7,9 +7,9 @@ import {
   readTextFileSync,
   writeTextFile
 } from '../util/mod';
-import {DatabaseMetadata} from '../database-metadata';
-import {QuerySqlGenerator} from '../query-sql-generator';
-import {ResultTypeSourceGenerator} from '../result-type-source-generator';
+import {DatabaseMetadata} from '../dbmd';
+import {QuerySqlGenerator} from '../sql-gen/sql-generator';
+import {ResultTypeSourceGenerator} from '../result-type-gen';
 import {QueryGroupSpec, QuerySpec} from '../query-specs';
 import {generateQuerySources, SourceGenerationOptions} from '../mod';
 import {getDbConnection} from './db/db-connection-mysql';

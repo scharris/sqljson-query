@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import {DatabaseMetadata, foreignKeyFieldNames, makeRelId, RelId, relIdsEqual} from '../database-metadata';
-import { relIdDescr } from '../util/database-names';
+import {DatabaseMetadata, foreignKeyFieldNames, makeRelId, relIdsEqual} from '../dbmd';
+import { relIdDescn } from '../util/database-names';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(fs.readFileSync(dbmdPath, 'utf8'));
@@ -115,10 +115,10 @@ test('make rel id by parsing qualified name with quoted parts', () => {
 });
 
 test('rel id string', () => {
-  expect(relIdDescr(makeRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))).toEqual('drugs.authority');
-  expect(relIdDescr(makeRelId('Authority', 'Drugs', 'INSENSITIVE_STORED_UPPER'))).toEqual('DRUGS.AUTHORITY');
-  expect(relIdDescr(makeRelId('authority', null, 'INSENSITIVE_STORED_UPPER'))).toEqual('AUTHORITY');
-  expect(relIdDescr(makeRelId('authority', null, 'INSENSITIVE_STORED_LOWER'))).toEqual('authority');
+  expect(relIdDescn(makeRelId('AUTHORITY', 'DRUGS', 'INSENSITIVE_STORED_LOWER'))).toEqual('drugs.authority');
+  expect(relIdDescn(makeRelId('Authority', 'Drugs', 'INSENSITIVE_STORED_UPPER'))).toEqual('DRUGS.AUTHORITY');
+  expect(relIdDescn(makeRelId('authority', null, 'INSENSITIVE_STORED_UPPER'))).toEqual('AUTHORITY');
+  expect(relIdDescn(makeRelId('authority', null, 'INSENSITIVE_STORED_LOWER'))).toEqual('authority');
 });
 
 test('rel ids equal', () => {
