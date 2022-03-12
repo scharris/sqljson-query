@@ -1,9 +1,11 @@
 import * as path from 'path';
-import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
-import {QuerySpec} from '../mod';
-import {DatabaseMetadata} from '../dbmd';
-import {QuerySqlGenerator} from '../sql-gen/sql-generator';
-import {getDbConnection} from './db/db-connection-mysql';
+import { propertyNameDefaultFunction, readTextFileSync } from '../util/mod';
+import { QuerySpec } from '../mod';
+import { DatabaseMetadata } from '../dbmd';
+import { getDbConnection } from './db/db-connection-mysql';
+import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
+import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';
+import { getSqlDialect } from '../sql-gen';
 
 const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -11,7 +13,9 @@ const dbmd = new DatabaseMetadata(dbmdStoredProps);
 const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
 
 test('query of single table for json object rows results', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -22,7 +26,7 @@ test('query of single table for json object rows results', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(5);
@@ -35,7 +39,9 @@ test('query of single table for json object rows results', async () => {
 });
 
 test('query of single table for json array row results', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -46,7 +52,7 @@ test('query of single table for json array row results', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_ARRAY_ROW') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_ARRAY_ROW')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -59,7 +65,9 @@ test('query of single table for json array row results', async () => {
 });
 
 test('query of single table for multi column rows results', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -70,7 +78,7 @@ test('query of single table for multi column rows results', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('MULTI_COLUMN_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('MULTI_COLUMN_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBeGreaterThan(1);
@@ -82,7 +90,9 @@ test('query of single table for multi column rows results', async () => {
 });
 
 test('record condition properly restricts results for top level table', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -93,7 +103,7 @@ test('record condition properly restricts results for top level table', async ()
       },
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -104,7 +114,9 @@ test('record condition properly restricts results for top level table', async ()
 });
 
 test('table field property names specified by jsonProperty', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -124,7 +136,7 @@ test('table field property names specified by jsonProperty', async () => {
       },
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -136,7 +148,9 @@ test('table field property names specified by jsonProperty', async () => {
 
 test('table field property names default according to the provided naming function', async () => {
   const appendX = (fieldName: string) => fieldName + "X";
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), appendX, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', appendX);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -147,7 +161,7 @@ test('table field property names default according to the provided naming functi
       },
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -158,7 +172,9 @@ test('table field property names default according to the provided naming functi
 });
 
 test('non-unwrapped child table collection', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -176,7 +192,7 @@ test('non-unwrapped child table collection', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -189,7 +205,9 @@ test('non-unwrapped child table collection', async () => {
 });
 
 test('unwrapped child table collection of table field property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -208,7 +226,7 @@ test('unwrapped child table collection of table field property', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -218,7 +236,9 @@ test('unwrapped child table collection of table field property', async () => {
 });
 
 test('unwrapped child table collection of field exression property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -239,7 +259,7 @@ test('unwrapped child table collection of field exression property', async () =>
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -249,7 +269,9 @@ test('unwrapped child table collection of field exression property', async () =>
 });
 
 test('unwrapped child table collection of parent reference property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -273,7 +295,7 @@ test('unwrapped child table collection of parent reference property', async () =
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -286,7 +308,9 @@ test('unwrapped child table collection of parent reference property', async () =
 });
 
 test('unwrapped child table collection of inlined parent property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -309,7 +333,7 @@ test('unwrapped child table collection of inlined parent property', async () => 
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -319,7 +343,9 @@ test('unwrapped child table collection of inlined parent property', async () => 
 });
 
 test('unwrapped child collection of child collection property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -344,7 +370,7 @@ test('unwrapped child collection of child collection property', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -360,7 +386,9 @@ test('unwrapped child collection of child collection property', async () => {
 });
 
 test('unwrapped child collection of unwrapped child collection property', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -385,7 +413,7 @@ test('unwrapped child collection of unwrapped child collection property', async 
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -397,7 +425,7 @@ test('unwrapped child collection of unwrapped child collection property', async 
 });
 
 test('unwrapped child collection with element type containing more than one property should cause error', () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -414,14 +442,16 @@ test('unwrapped child collection with element type containing more than one prop
       }
     };
 
-  expect(() => sqlGen.generateSqls(querySpec)).toThrowError(
-    /incompatible with multiple field expressions/i
+  expect(() => sqlSpecGen.generateSqlSpecs(querySpec)).toThrowError(
+    /cannot have multiple field expressions/i
   );
 });
 
 /* MySQL doesn't support order by in json_arrayagg currently.
 test('order-by specification determines ordering in a child table collection', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -440,7 +470,7 @@ test('order-by specification determines ordering in a child table collection', a
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -453,7 +483,9 @@ test('order-by specification determines ordering in a child table collection', a
 */
 
 test('referenced parent table', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -472,7 +504,7 @@ test('referenced parent table', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -484,7 +516,9 @@ test('referenced parent table', async () => {
 });
 
 test('table field properties from inline parent tables', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -505,7 +539,7 @@ test('table field properties from inline parent tables', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -518,7 +552,9 @@ test('table field properties from inline parent tables', async () => {
 });
 
 test('table field properties from an inlined parent and its own inlined parent', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -547,7 +583,7 @@ test('table field properties from an inlined parent and its own inlined parent',
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);
@@ -566,7 +602,9 @@ test('table field properties from an inlined parent and its own inlined parent',
 });
 
 test('referenced parent property from an inlined parent', async () => {
-  const sqlGen = new QuerySqlGenerator(dbmd, 'drugs', new Set(), ccPropNameFn, 2);
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
   const querySpec: QuerySpec =
     {
       queryName: 'test query',
@@ -590,7 +628,7 @@ test('referenced parent property from an inlined parent', async () => {
       }
     };
 
-  const sql = sqlGen.generateSqls(querySpec).get('JSON_OBJECT_ROWS') || '';
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
   const dbConn = await getDbConnection();
   const res: [any[], any] = await dbConn.execute(sql);
   expect(res[0].length).toBe(1);

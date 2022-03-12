@@ -11,7 +11,7 @@ import {
 
 const CaseSensitivityDef =
   z.union([
-    z.literal('INSENSITIVE_STORED_LOWER'), 
+    z.literal('INSENSITIVE_STORED_LOWER'),
     z.literal('INSENSITIVE_STORED_UPPER'),
     z.literal('INSENSITIVE_STORED_MIXED'),
     z.literal('SENSITIVE')
@@ -26,7 +26,7 @@ const RelTypeDef =
   ]);
 export type RelType = z.infer<typeof RelTypeDef>;
 
-const RelIdDef = 
+const RelIdDef =
   z.object({
     schema: z.string().nullable().optional(),
     name: z.string().nonempty()
@@ -136,6 +136,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     )
     : ForeignKey | null
   {
+    // TODO: Probably should use exactUnquoted() here instead of caseNormalizeName(), to remove quotes but leave a quotable name (which is how the dbmd stores names).
     const normdFkFieldNames = fieldNames != null ?
       new Set(Array.from(fieldNames).map(n => caseNormalizeName(n, this.caseSensitivity)))
       : null;

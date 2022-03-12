@@ -16,7 +16,6 @@ export interface QuerySpec
   resultRepresentations?: ResultRepr[];
   generateResultTypes?: boolean;
   generateSource?: boolean;
-  propertyNameDefault?: PropertyNameDefault;
   orderBy?: string;
   forUpdate?: boolean;
   typesFileHeader?: string;

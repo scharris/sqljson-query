@@ -1,5 +1,5 @@
 import * as path from 'path';
-import {makeArrayValuesMap, valueOr, indentLines, missingCase, readTextFile, writeTextFile} from '../util/mod';
+import {makeArrayValuesMap, indentLines, missingCase, readTextFile, writeTextFile} from '../util/mod';
 import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata';
 import {SourceLanguage} from '../source-gen-options';
 
@@ -45,7 +45,7 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata, preferLowercaseNames: b
 
   const schemaToRelMdsMap =
     makeArrayValuesMap(dbmd.relationMetadatas,
-      relMd => valueOr(relMd.relationId.schema, "DEFAULT"),
+      relMd => relMd.relationId.schema ?? "DEFAULT",
       relMd => relMd
     );
 
@@ -76,7 +76,7 @@ function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boole
 
   const schemaToRelMdsMap =
     makeArrayValuesMap(dbmd.relationMetadatas,
-      relMd => valueOr(relMd.relationId.schema, "DEFAULT"),
+      relMd => relMd.relationId.schema ?? "DEFAULT",
       relMd => relMd
     );
 

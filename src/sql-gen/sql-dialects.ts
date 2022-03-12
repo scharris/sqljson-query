@@ -20,6 +20,8 @@ export interface SqlDialect
   quoteObjectNameIfNeeded(name: string): string;
 
   quoteColumnNameIfNeeded(name: string): string;
+
+  indentSpaces: number;
 }
 
 export class PostgresDialect implements SqlDialect
@@ -27,13 +29,14 @@ export class PostgresDialect implements SqlDialect
   readonly quotedStringRegex = /^".*"$/;
   readonly lowercaseNameRegex = /^[a-z_]+$/;
 
-  constructor(private indentSpaces: number) {}
+  constructor(readonly indentSpaces: number) {}
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
   {
+    // TODO: Should not need to unDoubleQuote colName here, since it should always be in exact-unquoted form (verify).
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
+      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (
@@ -68,7 +71,7 @@ export class PostgresDialect implements SqlDialect
     : string
   {
     return (
-      `coalesce(jsonb_agg(${srcAlias}.${columnName}` +
+      `coalesce(jsonb_agg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
         (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
       '))'
     );
@@ -100,13 +103,14 @@ export class OracleDialect implements SqlDialect
   readonly uppercaseNameRegex = /^[A-Z_]+$/;
   readonly quotedStringRegex = /^".*"$/;
 
-  constructor(private indentSpaces: number) {}
+  constructor(readonly indentSpaces: number) {}
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
   {
+    // TODO: Shouldn't need to unDoubleQuote here.
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}' value ${srcAlias}.${colName}`)
+      .map(colName => `'${unDoubleQuote(colName)}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (
@@ -141,7 +145,7 @@ export class OracleDialect implements SqlDialect
     : string
   {
     return (
-      `treat(coalesce(json_arrayagg(${srcAlias}.${columnName}` +
+      `treat(coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
         (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
         ` returning clob), to_clob('[]')) as json)`
     );
@@ -174,7 +178,7 @@ export class MySQLDialect implements SqlDialect
   readonly backtickQuotedStringRegex = /^`.*`$/;
   readonly doubleQuotedStringRegex = /^".*"$/;
 
-  constructor(private indentSpaces: number) {}
+  constructor(readonly indentSpaces: number) {}
 
   getRowObjectExpression
     (
@@ -183,9 +187,10 @@ export class MySQLDialect implements SqlDialect
     )
     : string
   {
+    // TODO: Shouldn't need to unDoubleQuote here.
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${colName}`)
+      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (
@@ -225,7 +230,7 @@ export class MySQLDialect implements SqlDialect
       throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
 
     return (
-      `cast(coalesce(json_arrayagg(${srcAlias}.${columnName}), json_type('[]')) as json)`
+      `cast(coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}), json_type('[]')) as json)`
     );
   }
 

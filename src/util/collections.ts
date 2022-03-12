@@ -60,6 +60,21 @@ export function makeMap<T,K,V>
   return m;
 }
 
+export function mapValues<K,V,U>
+  (
+    map: Map<K,V>,
+    f: (v: V) => U
+  )
+  : Map<K,U>
+{
+  const m = new Map<K,U>();
+
+  for (const [k,v] of map.entries())
+    m.set(k, f(v));
+
+  return m;
+}
+
 export function makeArrayValuesMap<T,K,V>
   (
     ts: T[],
@@ -140,4 +155,9 @@ function getItemIndexMap<T>(ts: T[])
   const m = new Map<T, number>();
   ts.forEach((t, ix) => m.set(t, ix));
   return m;
+}
+
+export function nonEmpty<T>(ts: T[] | null | undefined): ts is NonNullable<T[]>
+{
+  return (ts != null && ts.length > 0);
 }

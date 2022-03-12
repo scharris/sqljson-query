@@ -9,6 +9,7 @@ export interface CommonSourceGenerationOptions
   sourceLanguage?: SourceLanguage;
   resultTypesOutputDir: string;
   sqlOutputDir: string;
+  sqlSpecOutputDir?: string;
   sqlResourcePathPrefix?: string;
   typesHeaderFile?: string;
   customPropertyTypeFn?: CustomPropertyTypeFn;

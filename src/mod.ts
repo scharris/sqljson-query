@@ -1,17 +1,20 @@
 import * as path from 'path';
 import {
-  valueOr,
   propertyNameDefaultFunction,
   requireDirExists,
   requireFileExists,
   writeTextFile,
-  cwd
+  cwd,
+  mapValues
 } from './util/mod';
-import {readDatabaseMetadata} from './dbmd';
-import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
-import {SourceGenerationOptions} from './source-gen-options';
-import {QuerySqlGenerator} from './sql-gen';
-import {ResultTypeSourceGenerator, QueryReprSqlPath} from './result-type-gen';
+import { readDatabaseMetadata } from './dbmd';
+import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
+import { SourceGenerationOptions } from './source-gen-options';
+import { ResultTypeSourceGenerator, QueryReprSqlPath } from './result-type-gen';
+import { SqlSourceGenerator } from './sql-gen/sql-src-generator';
+import { SqlSpecGenerator } from './sql-gen/sql-spec-generator';
+import { SqlSpec } from './sql-gen/sql-specs';
+import { getSqlDialect } from './sql-gen';
 
 export * from './source-gen-options';
 export * from './query-specs';
@@ -31,28 +34,41 @@ export async function generateQuerySources
     await requireFileExists(dbmdFile, 'The database metadata file was not found.');
     await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
     await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
+    if (opts.sqlSpecOutputDir)
+      await requireDirExists(opts.sqlSpecOutputDir, 'The SQL specifications output directory was not found.');
     if (opts?.typesHeaderFile)
       await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
     const defaultSchema = queryGroupSpec.defaultSchema || null;
-    const unqualifiedNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
+    const unqualNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
-    const sqlGen = new QuerySqlGenerator(dbmd, defaultSchema, unqualifiedNameSchemas, propNameFn);
+
+    // generators
+    const sqlSpecGen = new SqlSpecGenerator(dbmd, defaultSchema, propNameFn);
+    const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, unqualNameSchemas);
     const resultTypesSrcGen = new ResultTypeSourceGenerator(dbmd, defaultSchema, propNameFn);
 
     for (const querySpec of queryGroupSpec.querySpecs)
     {
-      const resReprSqls = sqlGen.generateSqls(querySpec);
-      const sqlPaths = opts.sqlOutputDir ? await writeResultReprSqls(querySpec.queryName, resReprSqls, opts.sqlOutputDir) : [];
+      const sqlSpecsByRepr = sqlSpecGen.generateSqlSpecs(querySpec);
+      if (opts.sqlSpecOutputDir)
+        await writeSqlSpecs(querySpec.queryName, sqlSpecsByRepr, opts.sqlSpecOutputDir);
 
-      if ( valueOr(querySpec.generateResultTypes, true) )
+      const sqlsByRepr = mapValues(sqlSpecsByRepr, sqlSpec => sqlSrcGen.makeSql(sqlSpec));
+
+      const sqlPaths = await writeSqls(querySpec.queryName, sqlsByRepr, opts.sqlOutputDir);
+
+      if (querySpec.generateResultTypes ?? true)
       {
-        const gen = await resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
-        const outFile = path.join(opts.resultTypesOutputDir, `${gen.compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`);
+        const { sourceCode, compilationUnitName } =
+          resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
 
-        await writeTextFile(outFile, gen.sourceCode);
+        const fileName = `${compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
+        const resultTypesOutputFile = path.join(opts.resultTypesOutputDir, fileName);
+
+        await writeTextFile(resultTypesOutputFile, sourceCode);
       }
     }
   }
@@ -87,7 +103,32 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
     throw new Error('Unrecognized file extension for query specs file.');
 }
 
-async function writeResultReprSqls
+async function writeSqlSpecs
+  (
+    queryName: string,
+    resultReprToSqlSpecMap: Map<ResultRepr,SqlSpec>,
+    outputDir: string
+  )
+  : Promise<void>
+{
+  const multReprs = resultReprToSqlSpecMap.size > 1;
+
+  for (const [resultRepr, sqlSpec] of resultReprToSqlSpecMap.entries())
+  {
+    const modQueryName = queryName.replace(/ /g, '-').toLowerCase();
+    const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
+    const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
+    const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
+
+    await writeTextFile(sqlSpecPath,
+      "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
+      "-- " + resultRepr + " results representation for " + queryName + "\n" +
+      JSON.stringify(sqlSpec, null, 2) + "\n"
+    );
+  }
+}
+
+async function writeSqls
   (
     queryName: string,
     resultReprToSqlMap: Map<ResultRepr,string>,
