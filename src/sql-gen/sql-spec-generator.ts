@@ -7,8 +7,8 @@ import {
   verifyTableFieldExpressionsValid
 } from '../query-specs';
 import {
-  SqlSpec, SqlParts, PropertySelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
-  ParentPrimaryKeyCondition, HiddenPrimaryKeySelectEntry
+  SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
+  ParentPrimaryKeyCondition, HiddenPrimaryKeySelectEntry, getPropertySelectEntries
 } from './sql-specs';
 
 export class SqlSpecGenerator
@@ -78,15 +78,15 @@ export class SqlSpecGenerator
       sqlb.addAlias(parentChildCond.condType === 'fk' ? parentChildCond.parentAlias : parentChildCond.childAlias);
 
     if (exportPkFieldsHidden)
-      sqlb.addHiddenPrimaryKeySelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
+      sqlb.addSelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
 
-    sqlb.addPropertySelectEntries(this.tableFieldExpressionSelectEntries(tj, alias, specLoc));
+    sqlb.addSelectEntries(this.tableFieldExpressionSelectEntries(tj, alias, specLoc));
 
     sqlb.addParts(this.inlineParentsSqlParts(tj, relId, alias, sqlb.getAliases(), specLoc));
 
     sqlb.addParts(this.referencedParentsSqlParts(tj, relId, alias, specLoc));
 
-    sqlb.addPropertySelectEntries(this.childCollectionSelectEntries(tj, relId, alias, specLoc));
+    sqlb.addSelectEntries(this.childCollectionSelectEntries(tj, relId, alias, specLoc));
 
     if (parentChildCond)
       sqlb.addWhereEntry({...parentChildCond, fromAlias: alias });
@@ -104,8 +104,8 @@ export class SqlSpecGenerator
 
     const sqlSpec = sqlb.toSqlSpec();
 
-    if (sqlSpec.propertySelectEntries.length === 0)
-      throw new SpecError(specLoc, 'At least one property must be specified.');
+    if (sqlSpec.selectEntries.length === 0)
+      throw new SpecError(specLoc, 'At least one select entry must be specified.');
 
     return sqlSpec;
   }
@@ -143,7 +143,7 @@ export class SqlSpecGenerator
   {
     const baseSql = this.baseSql(tj, childFkCond, orderBy, specLoc);
 
-    if (unwrap && baseSql.propertySelectEntries.length != 1)
+    if (unwrap && getPropertySelectEntries(baseSql).length != 1)
       throw new SpecError(specLoc, 'Unwrapped child collections cannot have multiple field expressions.');
 
     return {
@@ -162,6 +162,7 @@ export class SqlSpecGenerator
     : HiddenPrimaryKeySelectEntry[]
   {
     return this.dbmd.getPrimaryKeyFieldNames(relId).map(pkField => ({
+      entryType: 'hidden-pkf',
       pkFieldName: pkField,
       projectedName: HIDDEN_PK_PREFIX + pkField,
       tableAlias
@@ -174,7 +175,7 @@ export class SqlSpecGenerator
       tableAlias: string,
       specLoc: SpecLocation
     )
-    : PropertySelectEntry[]
+    : SelectEntry[]
   {
     verifyTableFieldExpressionsValid(tj, this.defaultSchema, this.dbmd, specLoc);
 
@@ -262,11 +263,11 @@ export class SqlSpecGenerator
       comment: `parent table '${parent.table}', joined for inlined fields`
     });
 
-    for (const [ix, parentSelectEntry] of parentPropsSql.propertySelectEntries.entries())
+    for (const [ix, parentPropertySelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
-      sqlParts.addPropertySelectEntry({
+      sqlParts.addSelectEntry({
         entryType: 'inline-parent-prop',
-        projectedName: parentSelectEntry.projectedName,
+        projectedName: parentPropertySelectEntry.projectedName,
         parentAlias: parentAlias,
         comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null
       });

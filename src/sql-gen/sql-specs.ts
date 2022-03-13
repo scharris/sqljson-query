@@ -3,24 +3,24 @@ import { lowerCaseInitials, makeNameNotInSet } from "../util/strings";
 
 export interface SqlSpec
 {
-  selectEntriesLeadingComment?: string;
-  propertySelectEntries: PropertySelectEntry[];
-  hiddenPrimaryKeySelectEntries?: HiddenPrimaryKeySelectEntry[] | null;
-  fromEntriesLeadingComment?: string;
+  selectEntries: SelectEntry[];
   fromEntries: FromEntry[];
   whereEntries?: WhereEntry[] | null;
   orderBy?: OrderBy | null;
   forUpdate?: boolean | null;
   wrapPropertiesInJsonObject?: boolean;
   aggregateToArray?: boolean;
+  selectEntriesLeadingComment?: string;
+  fromEntriesLeadingComment?: string;
 }
 
-export type PropertySelectEntry =
+export type SelectEntry =
   FieldSelectEntry |
   ExpressionSelectEntry |
   InlineParentSelectEntry |
   ParentReferenceSelectEntry |
-  ChildCollectionSelectEntry;
+  ChildCollectionSelectEntry |
+  HiddenPrimaryKeySelectEntry;
 
 export interface FieldSelectEntry
 {
@@ -65,6 +65,7 @@ export interface ChildCollectionSelectEntry
 
 export interface HiddenPrimaryKeySelectEntry
 {
+  entryType: 'hidden-pkf'
   pkFieldName: string;
   projectedName: string;
   tableAlias: string;
@@ -137,8 +138,7 @@ export class SqlParts
   constructor
   (
     private aliases: Set<string> = new Set(),
-    private propertySelectEntries: PropertySelectEntry[] = [],
-    private hiddenPrimaryKeySelectEntries: HiddenPrimaryKeySelectEntry[] = [],
+    private selectEntries: SelectEntry[] = [],
     private fromEntries: FromEntry[] = [],
     private whereEntries: WhereEntry[] = [],
     private orderBy: OrderBy | null = null,
@@ -160,26 +160,15 @@ export class SqlParts
     this.aliases.add(alias);
   }
 
-  addPropertySelectEntry(entry: PropertySelectEntry)
+  addSelectEntry(entry: SelectEntry)
   {
-    this.propertySelectEntries.push(entry);
+    this.selectEntries.push(entry);
   }
 
-  addPropertySelectEntries(entries: PropertySelectEntry[])
+  addSelectEntries(entries: SelectEntry[])
   {
     if (entries.length > 0)
-      this.propertySelectEntries.push(...entries);
-  }
-
-  addHiddenPrimaryKeySelectEntry(entry: HiddenPrimaryKeySelectEntry)
-  {
-    this.hiddenPrimaryKeySelectEntries.push(entry);
-  }
-
-  addHiddenPrimaryKeySelectEntries(entries: HiddenPrimaryKeySelectEntry[])
-  {
-    if (entries.length > 0)
-      this.hiddenPrimaryKeySelectEntries.push(...entries);
+      this.selectEntries.push(...entries);
   }
 
   getAliases(): Set<string>
@@ -196,8 +185,7 @@ export class SqlParts
 
   addParts(otherParts: SqlParts)
   {
-    this.propertySelectEntries.push(...otherParts.propertySelectEntries);
-    this.hiddenPrimaryKeySelectEntries.push(...otherParts.hiddenPrimaryKeySelectEntries);
+    this.selectEntries.push(...otherParts.selectEntries);
     this.fromEntries.push(...otherParts.fromEntries);
     this.whereEntries.push(...otherParts.whereEntries);
     this.addAliasesToScope(otherParts.aliases);
@@ -214,16 +202,14 @@ export class SqlParts
   toSqlSpec(): SqlSpec
   {
     const sqlSpec = {
-      propertySelectEntries: this.propertySelectEntries,
-      hiddenPrimaryKeySelectEntries: this.hiddenPrimaryKeySelectEntries,
+      selectEntries: this.selectEntries,
       fromEntries: this.fromEntries,
       whereEntries: this.whereEntries,
       orderBy: this.orderBy
     };
 
     // Re-init to transfer ownership of our arrays to the sqlSpec object.
-    this.propertySelectEntries = [];
-    this.hiddenPrimaryKeySelectEntries = [];
+    this.selectEntries = [];
     this.fromEntries = [];
     this.whereEntries = [];
     this.orderBy = null;
@@ -233,7 +219,7 @@ export class SqlParts
   }
 }
 
-export function getPropertySelectEntries(sql: SqlSpec): PropertySelectEntry[]
+export function getPropertySelectEntries(sql: SqlSpec): SelectEntry[]
 {
-  return sql.propertySelectEntries.filter(e => e.projectedName != null);
+  return sql.selectEntries.filter(e => e.entryType !== 'hidden-pkf');
 }

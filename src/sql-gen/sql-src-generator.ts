@@ -2,7 +2,7 @@ import { indentLines, replaceAll } from "../util/strings";
 import { mapSet, nonEmpty } from "../util/collections";
 import { exactUnquotedName } from "../util/database-names";
 import { CaseSensitivity, RelId } from "../dbmd";
-import { FromEntry, HiddenPrimaryKeySelectEntry, OrderBy, ParentChildCondition, PropertySelectEntry, SqlSpec, WhereEntry }
+import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry }
   from "./sql-specs";
 import { SqlDialect } from "./sql-dialects";
 
@@ -33,7 +33,7 @@ export class SqlSourceGenerator
     }
     else // at least one of aggregation and object wrapping of properties will be done
     {
-      const propertyNames = spec.propertySelectEntries.map(se => se.projectedName);
+      const propertyNames = getPropertySelectEntries(spec).map(e => e.projectedName);
       const baseTable = baseTableDescn(spec); // only used for comments
 
       if (!spec.aggregateToArray) // no aggregation but do object wrapping
@@ -51,10 +51,7 @@ export class SqlSourceGenerator
   {
     const selectComment = this.genComments && spec.selectEntriesLeadingComment ?
       `-- ${spec.selectEntriesLeadingComment}\n` : '';
-    const hiddenPkFields = nonEmpty(spec.hiddenPrimaryKeySelectEntries)
-      ? spec.hiddenPrimaryKeySelectEntries.map(e => this.hiddenPkSelectEntrySql(e)).join(',\n') + ',\n'
-      : '';
-    const properties = spec.propertySelectEntries.map(e => this.selectEntrySql(e)).join(',\n') + '\n';
+    const selectEntries = spec.selectEntries.map(e => this.selectEntrySql(e)).join(',\n') + '\n';
     const fromComment = this.genComments && spec.fromEntriesLeadingComment ?
       `-- ${spec.fromEntriesLeadingComment}\n` : '';
     const fromEntries = spec.fromEntries.map(e => this.fromEntrySql(e)).join('\n') + '\n';
@@ -66,7 +63,7 @@ export class SqlSourceGenerator
       : '';
 
     return (
-      'select\n' + this.indent(selectComment + hiddenPkFields + properties) +
+      'select\n' + this.indent(selectComment + selectEntries) +
       'from\n' + this.indent(fromComment + fromEntries) +
       whereClause +
       orderByClause
@@ -126,7 +123,7 @@ export class SqlSourceGenerator
     );
   }
 
-  private selectEntrySql(selectEntry: PropertySelectEntry): string
+  private selectEntrySql(selectEntry: SelectEntry): string
   {
     const projectedName = this.maybeQuoteColumn(selectEntry.projectedName);
     const isProjectedNameQuoted = projectedName !== selectEntry.projectedName;
@@ -171,16 +168,15 @@ export class SqlSourceGenerator
             this.indent(collectionSql) + '\n' +
           `) ${projectedName}`;
       }
+      case 'hidden-pkf':
+      {
+        const fieldName = this.maybeQuoteColumn(selectEntry.pkFieldName);
+        const isFieldNameQuoted = fieldName !== selectEntry.pkFieldName;
+        const sep = isFieldNameQuoted ? ' ' : ' as ';
+        const exportedName = this.maybeQuoteColumn(selectEntry.projectedName);
+        return `${selectEntry.tableAlias}.${fieldName}${sep}${exportedName}`;
+      }
     }
-  }
-
-  private hiddenPkSelectEntrySql(pkEntry: HiddenPrimaryKeySelectEntry): string
-  {
-      const fieldName = this.maybeQuoteColumn(pkEntry.pkFieldName);
-      const isFieldNameQuoted = fieldName !== pkEntry.pkFieldName;
-      const sep = isFieldNameQuoted ? ' ' : ' as ';
-      const exportedName = this.maybeQuoteColumn(pkEntry.projectedName);
-      return `${pkEntry.tableAlias}.${fieldName}${sep}${exportedName}`;
   }
 
   private fromEntrySql(fromEntry: FromEntry): string
