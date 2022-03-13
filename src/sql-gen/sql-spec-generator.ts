@@ -150,7 +150,6 @@ export class SqlSpecGenerator
       ...baseSql,
       aggregateToArray: true,
       wrapPropertiesInJsonObject: !unwrap,
-      selectEntriesLeadingComment: `aggregated row objects for table '${tj.table}'`,
       fromEntriesLeadingComment: `base query for table '${tj.table}'`,
     };
   }
@@ -260,7 +259,7 @@ export class SqlSpecGenerator
         joinType: 'LEFT',
         parentChildCondition: { condType: 'fk', fromAlias: childAlias, parentAlias, matchedFields }
       },
-      comment: `parent table ${parent.table}, joined for inlined fields`
+      comment: `parent table '${parent.table}', joined for inlined fields`
     });
 
     for (const [ix, parentSelectEntry] of parentPropsSql.propertySelectEntries.entries())
@@ -269,7 +268,7 @@ export class SqlSpecGenerator
         entryType: 'inline-parent-prop',
         projectedName: parentSelectEntry.projectedName,
         parentAlias: parentAlias,
-        comment: ix === 0 ? `field(s) inlined from parent table ${parent.table}` : null
+        comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null
       });
     }
 
@@ -349,7 +348,7 @@ export class SqlSpecGenerator
       entryType: 'parent-ref',
       projectedName: parent.referenceName,
       parentRowObjectSql,
-      comment: `parent table ${parent.table} referenced via ${parent.referenceName}`
+      comment: `reference '${parent.referenceName}' to parent table '${parent.table}'`
     }]);
   }
 
@@ -383,7 +382,7 @@ export class SqlSpecGenerator
         entryType: 'child-coll',
         projectedName: child.collectionName,
         collectionSql,
-        comment: `records from child table '${child.table}' as collection '${child.collectionName}'`,
+        comment: `collection '${child.collectionName}' of records from child table '${child.table}'`,
       };
     });
   }

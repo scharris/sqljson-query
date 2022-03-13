@@ -85,12 +85,12 @@ export class SqlSourceGenerator
     return (
       'select\n' +
         this.indent(
-          (baseTableDesc ? `-- row object for table ${baseTableDesc}\n` : '') +
+          (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
           this.sqlDialect.getRowObjectExpression(propertyNames, 'q') + ' json'
         ) + '\n' +
       'from (\n' +
         nlterm(this.indent(
-          (baseTableDesc ? `-- base query for table ${baseTableDesc}\n` : '') +
+          (baseTableDesc ? `-- base query for table '${baseTableDesc}'\n` : '') +
           baseSql
         )) +
       ') q' +
@@ -102,7 +102,7 @@ export class SqlSourceGenerator
     (
       sql: string,
       propertyNames: string[],
-      wrapPropertiesInJsonObject: boolean,
+      wrapProps: boolean,
       orderBy: OrderBy | null | undefined,
       baseTableDesc: string | null, // for comments
     )
@@ -112,14 +112,14 @@ export class SqlSourceGenerator
     return (
       'select\n' +
         this.indent(
-          (this.genComments ? `-- aggregated values for table ${baseTableDesc}\n` : '') +
-          (wrapPropertiesInJsonObject
+          (this.genComments ? `-- aggregated ${wrapProps? 'rows' : 'values'} from table '${baseTableDesc}'\n`: '') +
+          (wrapProps
             ? this.sqlDialect.getAggregatedRowObjectsExpression(propertyNames, ordby, 'q')
             : this.sqlDialect.getAggregatedColumnValuesExpression(propertyNames[0], ordby, 'q')) + ' json\n'
         ) +
       'from (\n' +
         nlterm(this.indent(
-          (this.genComments ? `-- base query for table ${baseTableDesc}\n` : '') +
+          (this.genComments ? `-- base query for table '${baseTableDesc}'\n` : '') +
           sql
         )) +
       ') q'
