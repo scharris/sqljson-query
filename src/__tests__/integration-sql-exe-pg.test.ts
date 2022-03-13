@@ -1,9 +1,9 @@
 import * as path from 'path';
 import {Client} from 'pg';
+import {getDbClient} from './db/db-client-pg';
 import {propertyNameDefaultFunction, readTextFileSync} from '../util/mod';
 import {QuerySpec} from '../mod';
 import {DatabaseMetadata} from '../dbmd';
-import {getDbClient} from './db/db-client-pg';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
 import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';
 import { getSqlDialect } from '../sql-gen';

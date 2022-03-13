@@ -1,8 +1,8 @@
 import * as path from 'path';
+import { getDbConnection } from './db/db-connection-mysql';
 import { propertyNameDefaultFunction, readTextFileSync } from '../util/mod';
 import { QuerySpec } from '../mod';
 import { DatabaseMetadata } from '../dbmd';
-import { getDbConnection } from './db/db-connection-mysql';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
 import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';
 import { getSqlDialect } from '../sql-gen';

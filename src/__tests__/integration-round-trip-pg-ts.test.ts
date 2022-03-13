@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { Client } from 'pg';
+import { getDbClient } from './db/db-client-pg';
 import {
   makeTempDir,
   makeDir,
@@ -12,7 +13,6 @@ import { DatabaseMetadata } from '../dbmd';
 import { ResultTypeSourceGenerator } from '../result-type-gen';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources, SourceGenerationOptions } from '../mod';
-import { getDbClient } from './db/db-client-pg';
 import { spawnSync } from 'child_process';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
 import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';

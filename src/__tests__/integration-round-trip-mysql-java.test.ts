@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { getDbConnection } from './db/db-connection-mysql';
 import {
   indentLines,
   propertyNameDefaultFunction,
@@ -12,7 +13,6 @@ import { DatabaseMetadata } from '../dbmd';
 import { ResultTypesSource, ResultTypeSourceGenerator } from '../result-type-gen';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources, SourceGenerationOptions } from '../mod';
-import { getDbConnection } from './db/db-connection-mysql';
 import { spawnSync } from 'child_process';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
 import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';

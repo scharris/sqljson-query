@@ -45,6 +45,7 @@ export interface InlineParentSelectEntry
   projectedName: string;
   parentAlias: string;
   comment?: string | null;
+  parentSelectEntry: SelectEntry;
 }
 
 export interface ParentReferenceSelectEntry

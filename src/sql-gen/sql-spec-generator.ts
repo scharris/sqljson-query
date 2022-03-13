@@ -269,7 +269,8 @@ export class SqlSpecGenerator
         entryType: 'inline-parent-prop',
         projectedName: parentPropertySelectEntry.projectedName,
         parentAlias: parentAlias,
-        comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null
+        comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null,
+        parentSelectEntry: parentPropertySelectEntry
       });
     }
 

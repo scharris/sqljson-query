@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { Client } from 'pg';
+import { getDbClient } from './db/db-client-pg';
 import {
   indentLines,
   propertyNameDefaultFunction,
@@ -13,7 +14,6 @@ import { DatabaseMetadata } from '../dbmd';
 import { ResultTypesSource, ResultTypeSourceGenerator } from '../result-type-gen';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources } from '../mod';
-import { getDbClient } from './db/db-client-pg';
 import { spawnSync } from 'child_process';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
 import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';
