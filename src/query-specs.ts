@@ -1,5 +1,5 @@
-import {caseNormalizeName, relIdDescn} from './util/mod';
-import {DatabaseMetadata, makeRelId, RelId, RelMetadata} from './dbmd';
+import { caseNormalizeName, relIdDescn } from './util/mod';
+import { DatabaseMetadata, makeRelId, RelId, RelMetadata } from './dbmd';
 
 export interface QueryGroupSpec
 {

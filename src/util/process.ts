@@ -1,4 +1,3 @@
-
 export function exit(code: number): never
 {
   return process.exit(code);

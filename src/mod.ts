@@ -120,11 +120,7 @@ async function writeSqlSpecs
     const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
     const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
 
-    await writeTextFile(sqlSpecPath,
-      "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
-      "-- " + resultRepr + " results representation for " + queryName + "\n" +
-      JSON.stringify(sqlSpec, null, 2) + "\n"
-    );
+    await writeTextFile(sqlSpecPath, JSON.stringify(sqlSpec, null, 2) + "\n");
   }
 }
 

@@ -13,4 +13,3 @@ export function missingCase(caseVal: never): never
   console.log(_ = caseVal);
   return _;
 }
-

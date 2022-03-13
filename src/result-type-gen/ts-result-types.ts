@@ -6,7 +6,7 @@ import {
   makeNameNotInSet,
   readTextFileSync
 } from '../util/mod';
-import {ResultRepr} from '../query-specs';
+import { ResultRepr } from '../query-specs';
 import {
   ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount, resultTypeDecriptorsEqual,

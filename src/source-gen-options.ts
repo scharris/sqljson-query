@@ -1,4 +1,4 @@
-import {ResultTypeDescriptor, TableFieldProperty} from './result-type-gen';
+import { ResultTypeDescriptor, TableFieldProperty } from './result-type-gen';
 
 export type SourceLanguage = 'TS' | 'Java';
 

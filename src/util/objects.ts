@@ -1,4 +1,3 @@
-
 export function deepEquals(o1: any, o2: any): boolean
 {
   if (typeof o1 !== 'object' || o1 == null)

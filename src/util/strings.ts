@@ -69,7 +69,6 @@ export function makeNameNotInSet
   }
 }
 
-// TODO: Leave blank lines alone here.
 export function indentLines
   (
     linesStr: string,

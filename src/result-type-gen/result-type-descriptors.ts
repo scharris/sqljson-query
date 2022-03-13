@@ -1,5 +1,5 @@
-import {caseNormalizeName, makeMap, relIdDescn, deepEquals} from '../util/mod';
-import {DatabaseMetadata, Field, foreignKeyFieldNames, RelId} from '../dbmd';
+import { caseNormalizeName, makeMap, relIdDescn, deepEquals } from '../util/mod';
+import { DatabaseMetadata, Field, foreignKeyFieldNames, RelId } from '../dbmd';
 import {
   ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
   TableFieldExpr, TableJsonSpec

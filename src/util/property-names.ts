@@ -1,5 +1,5 @@
-import {PropertyNameDefault} from '../query-specs';
-import {lowerCamelCase} from './strings';
+import { PropertyNameDefault } from '../query-specs';
+import { lowerCamelCase } from './strings';
 
 export function propertyNameDefaultFunction
   (

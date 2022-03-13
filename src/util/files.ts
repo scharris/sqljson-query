@@ -1,6 +1,6 @@
 import path from 'path';
 import * as os from 'os';
-import {Dirent, promises as fs} from 'fs'; // for some older node versions (e.g. v10)
+import { Dirent, promises as fs } from 'fs'; // for some older node versions (e.g. v10)
 import * as cbfs from 'fs';
 
 export async function writeTextFile(path: string, data: string): Promise<void>
