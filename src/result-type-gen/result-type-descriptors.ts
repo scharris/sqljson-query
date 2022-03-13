@@ -347,11 +347,10 @@ function addToPropertiesFromResultType
     forceNullable: boolean
   )
 {
-  props.tableExpressionProperties.push(...resultType.tableExpressionProperties);
   if (forceNullable)
   {
     // Add nullable form of each field.
-    props.tableFieldProperties.push(...resultType.tableFieldProperties.map(toNullableField)); 
+    props.tableFieldProperties.push(...resultType.tableFieldProperties.map(toNullableField));
     props.tableExpressionProperties.push(...resultType.tableExpressionProperties);
     props.parentReferenceProperties.push(...resultType.parentReferenceProperties.map(toNullableField));
     props.childCollectionProperties.push(...resultType.childCollectionProperties.map(toNullableField));
