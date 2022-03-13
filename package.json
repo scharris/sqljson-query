@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -23,7 +23,7 @@
     "build-mysql": "docker build --platform linux/x86_64 -t drugs-mysql src/__tests__/db/mysql",
     "start-mysql": "npm run build-mysql && docker run --platform linux/x86_64 -d --name drugs-mysql --rm -p 127.0.0.1:3306:3306 drugs-mysql",
     "mysql-cli": "docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs",
-    "start-test-dbs": "npm run start-pg && npm run start-mysql",
+    "start-test-dbs": "docker rm -vf drugs-mysql drugs-pg && npm run start-pg && npm run start-mysql",
     "typecheck": "tsc --noEmit # (compile without emitting outputs)",
     "build": "npm run clean && tsc",
     "test": "jest",
