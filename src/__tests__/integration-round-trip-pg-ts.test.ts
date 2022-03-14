@@ -21,7 +21,7 @@ import { getSqlDialect } from '../sql-gen';
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
-const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
+const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE', dbmd.caseSensitivity);
 const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
 const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
 

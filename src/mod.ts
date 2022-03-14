@@ -43,7 +43,7 @@ export async function generateQuerySources
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
     const defaultSchema = queryGroupSpec.defaultSchema || null;
     const unqualNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
-    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault);
+    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault, dbmd.caseSensitivity);
 
     // generators
     const sqlSpecGen = new SqlSpecGenerator(dbmd, defaultSchema, propNameFn);

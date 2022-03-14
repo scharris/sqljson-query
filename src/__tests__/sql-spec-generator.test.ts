@@ -8,7 +8,7 @@ import { ChildCollectionSelectEntry, InlineParentSelectEntry, ParentReferenceSel
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
-const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
+const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE', dbmd.caseSensitivity);
 
 test('unqualified tables are rejected when no default schema specified', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, null, ccPropNameFn);

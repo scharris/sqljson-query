@@ -10,7 +10,7 @@ import { getSqlDialect } from '../sql-gen';
 const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
 const dbmd = new DatabaseMetadata(dbmdStoredProps);
-const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE');
+const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE', dbmd.caseSensitivity);
 
 test('query of single table for json object rows results', async () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
