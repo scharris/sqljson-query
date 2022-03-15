@@ -8,7 +8,8 @@ export interface SqlSpec
   whereEntries?: WhereEntry[] | null;
   orderBy?: OrderBy | null;
   forUpdate?: boolean | null;
-  wrapPropertiesInJsonObject?: boolean;
+  objectWrapProperties?: boolean;
+  additionalObjectPropertyColumns?: string[];
   aggregateToArray?: boolean;
   selectEntriesLeadingComment?: string;
   fromEntriesLeadingComment?: string;

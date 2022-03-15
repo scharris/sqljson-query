@@ -33,10 +33,9 @@ export class PostgresDialect implements SqlDialect
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
   {
-    // TODO: Should not need to unDoubleQuote colName here, since it should always be in exact-unquoted form (verify).
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      .map(colName => `'${colName}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (
@@ -107,10 +106,9 @@ export class OracleDialect implements SqlDialect
 
   getRowObjectExpression(columnNames: string[], srcAlias: string): string
   {
-    // TODO: Shouldn't need to unDoubleQuote here.
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      .map(colName => `'${colName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (
@@ -187,10 +185,9 @@ export class MySQLDialect implements SqlDialect
     )
     : string
   {
-    // TODO: Shouldn't need to unDoubleQuote here.
     const objectFieldDecls =
       columnNames
-      .map(colName => `'${unDoubleQuote(colName)}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      .map(colName => `'${colName}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
       .join(',\n');
 
     return (

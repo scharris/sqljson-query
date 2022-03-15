@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { QuerySpec, TableJsonSpec } from '../query-specs';
+import { QuerySpec } from '../query-specs';
 import { DatabaseMetadata } from '../dbmd';
 import { propertyNameDefaultFunction, readTextFileSync } from '../util/mod';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
@@ -144,6 +144,29 @@ test('table field property names should default according to the provided naming
     ['name', 'compoundId', 'the_mesh_id', 'compoundIdPlus1']
   );
 });
+
+test('additional columns extracted from json row objects for JSON_OBJECT_ROWS query are included properly', () => {
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const querySpec: QuerySpec = {
+    queryName: 'test query',
+    resultRepresentations: ['JSON_OBJECT_ROWS'],
+    additionalObjectPropertyColumns: ['id', 'name'],
+    tableJson: {
+      table: 'drug',
+      fieldExpressions: [
+        'id',
+        'name',
+        'compound_id',
+      ]
+    }
+  };
+
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  expect(sqlSpec.additionalObjectPropertyColumns).toEqual(
+    ['id', 'name']
+  );
+});
+
 
 test('wrapped child collections and their row object properties are included properly', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
@@ -399,7 +422,7 @@ test('unwrapped child collection of field expression property is represented pro
   const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
-  expect(childCollProp.collectionSql.wrapPropertiesInJsonObject).toBe(false);
+  expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.projectedName).toEqual('lowercaseNamesOfCompoundsEntered');
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('lcName');
@@ -434,7 +457,7 @@ test('unwrapped child collection of parent reference property is represented pro
   const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
-  expect(childCollProp.collectionSql.wrapPropertiesInJsonObject).toBe(false);
+  expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.projectedName).toEqual('drugAnalysts');
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('registeredBy');
@@ -471,7 +494,7 @@ test('unwrapped child collection of inlined parent property is represented prope
   const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
-  expect(childCollProp.collectionSql.wrapPropertiesInJsonObject).toBe(false);
+  expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.projectedName).toEqual('drugRegisteringAnalystIds');
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('id');
@@ -507,7 +530,7 @@ test('unwrapped child collection of child collection property is represented pro
   const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
-  expect(childCollProp.collectionSql.wrapPropertiesInJsonObject).toBe(false);
+  expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.projectedName).toEqual('drugAdvisories');
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('advisories');
@@ -544,7 +567,7 @@ test('unwrapped child collection of unwrapped child collection property is repre
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.projectedName).toEqual('drugAdvisoryTypeIdLists');
-  expect(childCollProp.collectionSql.wrapPropertiesInJsonObject).toBe(false);
+  expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('advisoryTypeIds');
   expect(childCollProp.collectionSql.selectEntries[0].entryType).toEqual('child-coll');

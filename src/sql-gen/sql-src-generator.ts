@@ -1,5 +1,5 @@
 import { indentLines, replaceAll } from "../util/strings";
-import { mapSet, nonEmpty } from "../util/collections";
+import { mapSet, isNonEmpty } from "../util/collections";
 import { exactUnquotedName } from "../util/database-names";
 import { CaseSensitivity, RelId } from "../dbmd";
 import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry }
@@ -25,7 +25,7 @@ export class SqlSourceGenerator
   {
     const baseSql = this.baseSql(spec);
 
-    const wrapPropsInObj = spec.wrapPropertiesInJsonObject ?? false;
+    const wrapPropsInObj = spec.objectWrapProperties ?? false;
 
     if (!spec.aggregateToArray && !wrapPropsInObj) // no aggregation nor object wrapping
     {
@@ -38,7 +38,8 @@ export class SqlSourceGenerator
 
       if (!spec.aggregateToArray) // no aggregation but do object wrapping
       {
-        return this.jsonRowObjectsSql(baseSql, propertyNames, spec.orderBy, baseTable);
+        const additionalCols = spec.additionalObjectPropertyColumns ?? [];
+        return this.jsonRowObjectsSql(baseSql, propertyNames, additionalCols, spec.orderBy, baseTable);
       }
       else // aggregation and maybe object wrapping
       {
@@ -55,7 +56,7 @@ export class SqlSourceGenerator
     const fromComment = this.genComments && spec.fromEntriesLeadingComment ?
       `-- ${spec.fromEntriesLeadingComment}\n` : '';
     const fromEntries = spec.fromEntries.map(e => this.fromEntrySql(e)).join('\n') + '\n';
-    const whereClause = nonEmpty(spec.whereEntries)
+    const whereClause = isNonEmpty(spec.whereEntries)
       ? `where (\n${this.indent(spec.whereEntries.map(e => this.whereEntrySql(e)).join(' and\n'))}\n)\n`
       : '';
     const orderByClause = spec.orderBy
@@ -74,6 +75,7 @@ export class SqlSourceGenerator
     (
       baseSql: string,
       propertyNames: string[],
+      additionalPropertyColumns: string[],
       orderBy: OrderBy | null | undefined,
       baseTableDesc: string | null, // for comments
     )
@@ -83,7 +85,10 @@ export class SqlSourceGenerator
       'select\n' +
         this.indent(
           (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
-          this.sqlDialect.getRowObjectExpression(propertyNames, 'q') + ' json'
+          this.sqlDialect.getRowObjectExpression(propertyNames, 'q') + ' json' +
+          (isNonEmpty(additionalPropertyColumns)
+            ? `,\n${additionalPropertyColumns.map(n => this.sqlDialect.quoteColumnNameIfNeeded(n)).join(',\n')}`
+            : '')
         ) + '\n' +
       'from (\n' +
         nlterm(this.indent(

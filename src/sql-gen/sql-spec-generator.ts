@@ -47,7 +47,8 @@ export class SqlSpecGenerator
         const baseSql = this.baseSql(query.tableJson, null, query.orderBy, specLoc);
         return query.forUpdate ? { ...baseSql, forUpdate: true }: baseSql;
       case 'JSON_OBJECT_ROWS':
-        return this.jsonObjectRowsSql(query.tableJson, null, query.orderBy, specLoc);
+        const additionalCols = query.additionalObjectPropertyColumns ?? [];
+        return this.jsonObjectRowsSql(query.tableJson, additionalCols, null, query.orderBy, specLoc);
       case 'JSON_ARRAY_ROW':
         return this.jsonArrayRowSql(query.tableJson, null, false, query.orderBy, specLoc);
       default:
@@ -116,6 +117,7 @@ export class SqlSpecGenerator
   private jsonObjectRowsSql
     (
       tj: TableJsonSpec,
+      additionalObjectPropertyColumns: string[],
       pkCond: ParentPrimaryKeyCondition | null,
       orderBy: string | null | undefined,
       specLoc: SpecLocation
@@ -124,7 +126,8 @@ export class SqlSpecGenerator
   {
     return {
       ...this.baseSql(tj, pkCond, orderBy, specLoc),
-      wrapPropertiesInJsonObject: true
+      objectWrapProperties: true,
+      additionalObjectPropertyColumns
     };
   }
 
@@ -149,7 +152,7 @@ export class SqlSpecGenerator
     return {
       ...baseSql,
       aggregateToArray: true,
-      wrapPropertiesInJsonObject: !unwrap,
+      objectWrapProperties: !unwrap,
       fromEntriesLeadingComment: `base query for table '${tj.table}'`,
     };
   }
@@ -344,7 +347,7 @@ export class SqlSpecGenerator
   {
     const parentPkCond = this.getParentPrimaryKeyCondition(parent, childRelId, childAlias, specLoc);
 
-    const parentRowObjectSql = this.jsonObjectRowsSql(parent, parentPkCond, null, specLoc);
+    const parentRowObjectSql = this.jsonObjectRowsSql(parent, [], parentPkCond, null, specLoc);
 
     return new SqlParts(new Set(), [{
       entryType: 'parent-ref',

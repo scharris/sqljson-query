@@ -14,6 +14,7 @@ export interface QuerySpec
   queryName: string;
   tableJson: TableJsonSpec;
   resultRepresentations?: ResultRepr[];
+  additionalObjectPropertyColumns?: string[];
   generateResultTypes?: boolean;
   generateSource?: boolean;
   orderBy?: string;
