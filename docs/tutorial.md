@@ -26,7 +26,8 @@ initialize it via `npm`:
 
 ```console
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
-(cd query-gen && npm i)
+cd query-gen
+npm i && tsc
 ```
 
 Here we've installed the query generator in subdirectory `query-gen`, but it can be put anywhere,
@@ -46,17 +47,10 @@ via the following command:
 For Postgres:
 
 ```console
-query-gen/scripts/generate-dbmd.sh db/jdbc.props pg
-
+node query-gen/js/gen-dbmd.js --jdbcProps=db/jdbc.props --db=pg
 ```
 
-For MySQL:
-
-```console
-query-gen/scripts/generate-dbmd.sh db/jdbc.props mysql
-```
-
-(On Windows, invoke `query-gen/scripts/generate-dbmd.ps1` from Powershell with the same arguments.)
+For MySQL use `--db=mysql` at the end of the command instead.
 
 The metadata files are generated at `query-gen/dbmd/dbmd.json` and `query-gen/dbmd/relations-metadata.ts`, which
 is where they are expected to be for the query generator. It's good to glance at its contents when you're
@@ -76,7 +70,7 @@ on either of these. There are two database metadata files which should be genera
   table and field names from TypeScript code at compile time. This is done via the command:
 
    ```console
-   npm run --prefix query-gen gen-rels-md
+   node query-gen/js/gen-relsmd.js
    ```
 
    This command depends on the primary database metadata already existing, so these steps need to be run in the
@@ -91,7 +85,7 @@ the SQL and result types sources. We'll start with a simple query of a single ta
 
 We're expected to define our queries in file `query-gen/query-specs.ts`. The `query-gen` folder contains a self-contained
 TypeScript project, so you should be able to get proper support from your favorite IDE as you edit the TypesScript queries
-sources. Create the `query-gen/query-specs.ts` file in an IDE or text editor with the following initial contents:
+sources. Edit the file `query-gen/query-specs.ts` in an IDE or text editor with the following initial contents (which may be present already as an example):
 
 ```typescript
 // query-gen/query-specs.ts
@@ -217,7 +211,8 @@ mkdir -p src/sql src/ts
 Now we can generate the SQL and TypeScript sources as follows:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something like:
@@ -245,8 +240,8 @@ from (
 ```
 
 The SQL shown here is for a Postgres example database, for a MySQL database it will differ slightly. The
-generated SQL is database-specific generally, with the database type having been determined automatically from
-the database metadata that was generated above at `query-gen/dbmd/dbmd.json`.
+generated SQL is database-specific generally, with the database type having been determined automatically
+from the database metadata that was generated above at `query-gen/dbmd/dbmd.json`.
 
 Now open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
 the `catCode` parameter. You should see output like the following:
@@ -360,13 +355,14 @@ export const queryGroupSpec: QueryGroupSpec = {
 Now let's again generate the SQL and TypeScript sources with the same command as before:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
-You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added a new
-subquery projecting a `json_build_object()` expression from within the `SELECT` clause of what was our original
-drugs query. You will also find the additional `Compound` results structure defined in the corresponding result
-types definition module at `src/ts/drugs-query-2.ts`:
+You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added
+a new subquery projecting a `json_build_object()` expression from within the `SELECT` clause of what was
+our original drugs query. You will also find the additional `Compound` results structure defined in the
+corresponding result types definition module at `src/ts/drugs-query-2.ts`:
 
 ```typescript
 export interface Compound
@@ -391,9 +387,9 @@ If we run the query (with 'A' for parameter `catCode`), we'll see result row val
 ```
 
 We see our compound information has been added in property `primaryCompound` as expected, and the registering
-analyst is represented in the string valued property `registeredByAnalyst`.  Notice that the registering analyst
-information does not have a wrapping object (it is "inlined"), because `referenceName` was omitted in its
-parent table entry.
+analyst is represented in the string valued property `registeredByAnalyst`.  Notice that the registering
+analyst information does not have a wrapping object (it is "inlined"), because `referenceName` was omitted
+in its parent table entry.
 
 ## Adding Parent Tables with Explicit Foreign Keys
 
@@ -475,7 +471,8 @@ fields from `compound` itself.
 Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 In the result type declaration module `src/ts/drugs-query-3.ts`, we see that our two analyst fields have been added to
@@ -520,18 +517,19 @@ That covers the main points for obtaining data from parent tables. For more info
 <img align="right" src="img/drug-advisory.svg" alt="drug and advisory tables" width="150" height="380">
 <img align="right" src="img/spacer.png" width="20" height="380" alt="schema diagram">
 
-Next we'll add a collection of related advisories for the drugs. The `advisory` table is a child table of table
-`drug` as seen in the diagram. Child table collection properties are described in a `tableJson` (any `TableJsonSpec`
-instance in fact) via the optional property `childTables`. Each entry in `childTables` can specify any of the
-properties allowed in `tableJson` as described above, to control the translation of the child table's content to
-JSON &mdash; in other words a `childTables` entry is a
-[TableJsonSpec](query-specifications.md#table-json-specification). It also allows a few additional properties: a
-`collectionName` property to name the collection member, and a few optional properties related to customizing or
-disambiguating the join between parent and child, which are needed only infrequently. See the
+Next we'll add a collection of related advisories for the drugs. The `advisory` table is a child table of
+table `drug` as seen in the diagram. Child table collection properties are described in a `tableJson`
+(any `TableJsonSpec` instance in fact) via the optional property `childTables`. Each entry in
+`childTables` can specify any of the properties allowed in `tableJson` as described above, to control
+the translation of the child table's content to JSON &mdash; in other words a `childTables` entry is a
+[TableJsonSpec](query-specifications.md#table-json-specification). It also allows a few additional
+properties: a `collectionName` property to name the collection member, and a few optional properties
+related to customizing or disambiguating the join between parent and child, which are needed only
+infrequently. See the
 [Child Table Specification](query-specifications.md#child-table-specification) documentation for full details.
 
-To add the drug advisories data, add a new query based on the previous one which adds a new `childTables` section
-within `tableJson` as follows:
+To add the drug advisories data, add a new query based on the previous one which adds a new
+`childTables` section within `tableJson` as follows:
 
 <hr>
 <hr>
@@ -598,7 +596,8 @@ const drugsQuery4: QuerySpec = {
 Add `drugsQuery4` to `queryGroupSpec` and run the sources generator with our usual command:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 If you examine the generated result types module for the query at `src/ts/drugs-query-4.ts`, you should see a new
@@ -730,7 +729,8 @@ const drugsQuery5: QuerySpec = {
 Add the new `drugsQuery5` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources again:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 In the generated result types module for the query at `src/ts/drugs-query-5.ts`, we should see new fields for the
@@ -870,7 +870,8 @@ to perform multiple queries to get the same data.
 Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources as before:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 ## Validating Database Object Names in Free-Form Expressions
@@ -991,7 +992,8 @@ name against database metadata in a similar way.
 That completes our final query specification. Add it to the query group spec and generate sources:
 
 ```console
-npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/ts
+tsc -p query-gen
+node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 ## Final Query Review

@@ -335,9 +335,12 @@ will provide more details.
 
   Install the dependencies for the tool via npm:
 
-  ```(cd query-gen && npm i)```
+  ```console
+  cd query-gen
+  npm i && tsc
+  ```
 
-###  Generate database metadata
+### Generate database metadata
 
   Create a properties file containing JDBC connection information for your database, with the format:
   ```
@@ -354,16 +357,14 @@ will provide more details.
   ```
   where `jdbc-props` is the properties file create above and the second argument represents your database type.
 
-  A PowerShell variant of the script taking the same parameters is available in the same folder for Windows users.
-
-  Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be easily avoided.
-  See
+  Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be
+  easily avoided. See
   [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java)
   in the tutorial, if you want to generate database metadata without those dependencies.
 
-  The database metadata files are generated at `query-gen/dbmd/dbmd.json` and `query-gen/dbmd/relations-metadata.ts`,
-  which is where the tool expects to find them when generating queries. On first run of metadata generation, examine
-  the `dbmd.json` file to make sure that the expected tables have been found by the metadata generator.
+  The database metadata files are generated at `query-gen/dbmd/dbmd.json` and
+  `query-gen/dbmd/relations-metadata.ts`, which is where the tool expects to find them when generating queries. On first run of metadata generation, examine the `dbmd.json` file to make sure that the
+  expected tables have been found by the metadata generator.
 
 ### Define application query specifications
 
@@ -391,16 +392,19 @@ will provide more details.
 
   To generate SQL and matching TypeScript result types:
 
-  ```
-  npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --tsQueriesDir=../src/lib
+  ```console
+  tsc query-gen/query-specs.ts
+  node query-gen/js/gen-queries.js --sqlDir=../src/sql --tsQueriesDir=../src/lib
   ```
 
   This will generate the SQL and TypeScript sources for your queries in whatever directories you specify for
   the `sqlDir` and `tsQueriesDir` arguments.
 
   Or for Java result types instead:
-  ```
-  npm run --prefix query-gen gen-queries -- --sqlDir=../src/sql --javaBaseDir=../src/lib --javaQueriesPkg=gen.queries
+
+  ```console
+  tsc query-gen/query-specs.ts
+  node query-gen/js/gen-queries.js --sqlDir=../src/sql --javaBaseDir=../src/lib --javaQueriesPkg=gen.queries
   ```
 
 ## Tutorial
@@ -424,8 +428,8 @@ that support querying (e.g. most object relational mapping tools) do also provid
 UPDATE and DELETE statements in some form. So the question arises, what to do about the need for these
 statements? Our generated SQL statements are checked for validity against the database schema at compile time,
 but don't cover modification statements. Are we to be thrown back to building raw SQL for data modification
-statements, without compile time checks of the tables and fields referenced? Or would we have to include another
-library for the purpose?
+statements, without compile time checks of the tables and fields referenced? Or would we have to include
+another library for the purpose?
 
 One light-weight solution to this is shown here. The idea is for the developer to write the data-modifying
 SQL statements, but to use the relations metadata already made available by SQL/JSON-Query for referencing all

@@ -15,7 +15,7 @@ curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__
 Next create file `db/Dockerfile` with these contents:
 ```dockerfile
 # db/Dockerfile
-FROM postgres:13
+FROM postgres:14
 
 COPY create-schema.sql /docker-entrypoint-initdb.d/01-schema.sql
 COPY create-schema-objects.sql /docker-entrypoint-initdb.d/02-schema-objects.sql
@@ -29,7 +29,7 @@ ENV POSTGRES_DB=drugs
 Now we can build the drugs-pg image and start a container from the image:
 ```shell
 docker build -t drugs-pg db
-docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg
+docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 drugs-pg
 ```
 
 If all goes well with the above, we should be able to start a `psql` client within the running container:
