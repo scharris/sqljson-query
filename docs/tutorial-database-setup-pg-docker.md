@@ -1,8 +1,8 @@
 # Postgres/Docker Tutorial Database Setup
 
 Here we'll setup a small Postgres database for our tutorial, using Docker to easily get the database up and
-running with our test data. For performing the database setup without relying on Docker, please see the main
-[database setup](tutorial-database-setup.md) instructions.
+running with our test data. For performing the database setup without relying on Docker, refer to
+[database setup](tutorial-database-setup.md).
 
 Fetch the SQL scripts which create the database tables and load them with our tutorial example data:
 ```shell

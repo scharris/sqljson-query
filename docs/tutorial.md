@@ -211,8 +211,7 @@ mkdir -p src/sql src/ts
 Now we can generate the SQL and TypeScript sources as follows:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 If you open the generated SQL file at `src/sql/drugs-query-1.sql`, you should see something like:
@@ -355,8 +354,7 @@ export const queryGroupSpec: QueryGroupSpec = {
 Now let's again generate the SQL and TypeScript sources with the same command as before:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 You can examine the generated SQL for our new query at `src/sql/drugs-query-2.sql`. Basically it has added
@@ -471,8 +469,7 @@ fields from `compound` itself.
 Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources as before:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 In the result type declaration module `src/ts/drugs-query-3.ts`, we see that our two analyst fields have been added to
@@ -596,8 +593,7 @@ const drugsQuery4: QuerySpec = {
 Add `drugsQuery4` to `queryGroupSpec` and run the sources generator with our usual command:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 If you examine the generated result types module for the query at `src/ts/drugs-query-4.ts`, you should see a new
@@ -729,8 +725,7 @@ const drugsQuery5: QuerySpec = {
 Add the new `drugsQuery5` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources again:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 In the generated result types module for the query at `src/ts/drugs-query-5.ts`, we should see new fields for the
@@ -870,8 +865,7 @@ to perform multiple queries to get the same data.
 Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources as before:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 ## Validating Database Object Names in Free-Form Expressions
@@ -992,8 +986,7 @@ name against database metadata in a similar way.
 That completes our final query specification. Add it to the query group spec and generate sources:
 
 ```console
-tsc -p query-gen
-node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
+tsc -b query-gen && node query-gen/js/gen-queries.js --sqlDir=src/sql --tsQueriesDir=src/ts
 ```
 
 ## Final Query Review
