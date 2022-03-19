@@ -3,20 +3,20 @@ import {
   upperCamelCase,
   indentLines,
   readTextFileSync,
-} from '../util/mod';
-import { ResultRepr } from '../query-specs';
+} from '../../util/mod';
+import { ResultRepr } from '../../query-specs';
 import {
   ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
-} from './result-type-descriptor-generator';
+} from '../result-type-descriptor-generator';
 import {
   JavaSourceGenerationOptions,
   ResultTypesSourceGenerationOptions
-} from '../source-gen-options';
-import { QueryReprSqlPath, ResultTypesSource } from './common-types';
-import { assignResultTypeNames } from './result-type-names-assignment';
+} from '../../source-gen-options';
+import { QueryReprSqlPath, ResultTypesSource } from '../common-types';
+import { assignResultTypeNames } from '../result-type-names-assignment';
 
-export function makeJavaSource
+export default function makeSource
   (
     queryName: string,
     resultTypes: ResultTypeDescriptor[],

@@ -3,8 +3,8 @@ import { ResultTypeDescriptorGenerator } from './result-type-descriptor-generato
 import { ResultTypesSourceGenerationOptions } from '../source-gen-options';
 import { DatabaseMetadata } from '../dbmd';
 import { QueryReprSqlPath, ResultTypesSource } from './common-types';
-import { makeTypeScriptSource } from './ts-result-types';
-import { makeJavaSource } from './java-result-types';
+import makeTypeScriptSource from './source-emmitters/ts';
+import makeJavaSource from './source-emmitters/java';
 
 export class ResultTypeSourceGenerator
 {

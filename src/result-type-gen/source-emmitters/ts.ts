@@ -1,15 +1,15 @@
 import * as path from 'path';
-import { upperCamelCase, readTextFileSync } from '../util/mod';
-import { ResultRepr } from '../query-specs';
+import { upperCamelCase, readTextFileSync } from '../../util/mod';
+import { ResultRepr } from '../../query-specs';
 import {
   ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount,
-} from './result-type-descriptor-generator';
-import { ResultTypesSourceGenerationOptions } from '../source-gen-options';
-import { QueryReprSqlPath, ResultTypesSource } from './common-types';
-import { assignResultTypeNames } from './result-type-names-assignment';
+} from '../result-type-descriptor-generator';
+import { ResultTypesSourceGenerationOptions } from '../../source-gen-options';
+import { QueryReprSqlPath, ResultTypesSource } from '../common-types';
+import { assignResultTypeNames } from '../result-type-names-assignment';
 
-export function makeTypeScriptSource
+export default function makeSource
   (
     queryName: string,
     resultTypes: ResultTypeDescriptor[],
