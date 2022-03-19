@@ -1,3 +1,3 @@
-export * from './result-type-generator';
-export * from './result-type-descriptors';
+export * from './result-type-source-generator';
+export * from './result-type-descriptor-generator';
 export * from './common-types';

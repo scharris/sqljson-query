@@ -29,6 +29,7 @@ export interface TableJsonSpec
   parentTables?: ParentSpec[];
   childTables?: ChildSpec[];
   recordCondition?: RecordCondition;
+  resultTypeName?: string;
 }
 
 export interface TableFieldExpr

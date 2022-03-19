@@ -11,7 +11,7 @@ import { readDatabaseMetadata } from './dbmd';
 import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
 import { SourceGenerationOptions } from './source-gen-options';
 import { ResultTypeSourceGenerator, QueryReprSqlPath } from './result-type-gen';
-import { SqlSourceGenerator } from './sql-gen/sql-src-generator';
+import { SqlSourceGenerator } from './sql-gen/sql-source-generator';
 import { SqlSpecGenerator } from './sql-gen/sql-spec-generator';
 import { SqlSpec } from './sql-gen/sql-specs';
 import { getSqlDialect } from './sql-gen';

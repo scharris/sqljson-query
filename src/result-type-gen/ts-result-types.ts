@@ -1,18 +1,13 @@
 import * as path from 'path';
-import {
-  hashString,
-  upperCamelCase,
-  partitionByEquality,
-  makeNameNotInSet,
-  readTextFileSync
-} from '../util/mod';
+import { upperCamelCase, readTextFileSync } from '../util/mod';
 import { ResultRepr } from '../query-specs';
 import {
   ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty, propertiesCount, resultTypeDecriptorsEqual,
-} from './result-type-descriptors';
+  ParentReferenceProperty, propertiesCount,
+} from './result-type-descriptor-generator';
 import { ResultTypesSourceGenerationOptions } from '../source-gen-options';
 import { QueryReprSqlPath, ResultTypesSource } from './common-types';
+import { assignResultTypeNames } from './result-type-names-assignment';
 
 export function makeTypeScriptSource
   (
@@ -302,27 +297,6 @@ function withNullability
 {
   const nullable = maybeNullable == null ? true : maybeNullable;
   return typeName + (nullable ? ' | null' : '');
-}
-
-function assignResultTypeNames(resTypes: ResultTypeDescriptor[]): Map<ResultTypeDescriptor,string>
-{
-  const rtHash = (rt: ResultTypeDescriptor) => hashString(rt.table) +
-    3 * rt.tableFieldProperties.length +
-    17 * rt.parentReferenceProperties.length +
-    27 * rt.childCollectionProperties.length;
-
-  const m = new Map<ResultTypeDescriptor,string>();
-  const typeNames = new Set<string>();
-
-  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypeDecriptorsEqual) )
-  {
-    const typeName = makeNameNotInSet(upperCamelCase(eqGrp[0].table), typeNames, '_');
-    for (const resType of eqGrp)
-      m.set(resType, typeName);
-    typeNames.add(typeName);
-  }
-
-  return m;
 }
 
 function makeQueryResultReprToSqlPathMap

@@ -16,7 +16,7 @@ import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources } from '../mod';
 import { spawnSync } from 'child_process';
 import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
-import { SqlSourceGenerator } from '../sql-gen/sql-src-generator';
+import { SqlSourceGenerator } from '../sql-gen/sql-source-generator';
 import { getSqlDialect } from '../sql-gen';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');

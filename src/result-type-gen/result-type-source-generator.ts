@@ -1,5 +1,5 @@
 import { getQueryParamNames, QuerySpec } from '../query-specs';
-import { ResultTypeDescriptorGenerator } from './result-type-descriptors';
+import { ResultTypeDescriptorGenerator } from './result-type-descriptor-generator';
 import { ResultTypesSourceGenerationOptions } from '../source-gen-options';
 import { DatabaseMetadata } from '../dbmd';
 import { QueryReprSqlPath, ResultTypesSource } from './common-types';

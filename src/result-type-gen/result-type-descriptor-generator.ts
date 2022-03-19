@@ -7,14 +7,15 @@ import {
 import { identifyTable } from '../query-specs';
 
 
-export interface ResultTypeDescriptor extends Properties
+export interface ResultTypeDescriptor extends ResultProperties
 {
   readonly queryName: string;
   readonly table: string;
   readonly unwrapped: boolean;
+  readonly resultTypeName?: string;
 }
 
-interface Properties
+interface ResultProperties
 {
   readonly tableFieldProperties: TableFieldProperty[];
   readonly tableExpressionProperties: TableExpressionProperty[];
@@ -70,24 +71,24 @@ export class ResultTypeDescriptorGenerator
   /// is made to remove duplicate result type structures.
   public generateResultTypeDescriptors
     (
-      tjs: TableJsonSpec,
+      tj: TableJsonSpec,
       queryName: string
     )
     : ResultTypeDescriptor[]
   {
-    const topTypeDesc = new ResultTypeDescriptorBuilder(queryName);
+    const topTypeDesc = new ResultTypeDescriptorBuilder(queryName, tj.table, tj.resultTypeName);
     const resultTypes: ResultTypeDescriptor[] = []; // Top result type *and* supporting types.
 
-    const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, {queryName});
+    const relId = identifyTable(tj.table, this.defaultSchema, this.dbmd, {queryName});
 
     // Add the table's own fields and expressions involving those fields.
-    topTypeDesc.addTableFieldProperties(this.getTableFieldProperties(relId, tjs.fieldExpressions));
-    topTypeDesc.addTableExpressionProperties(this.getTableExpressionProperties(relId, tjs.fieldExpressions));
+    topTypeDesc.addTableFieldProperties(this.getTableFieldProperties(relId, tj.fieldExpressions));
+    topTypeDesc.addTableExpressionProperties(this.getTableExpressionProperties(relId, tj.fieldExpressions));
 
     // Get contributions from inline parents (processed recursively), which may include (only)
     // properties in any of the other categories (table fields and expressions, parent references,
     // and child collections).
-    const inlineParentSpecs = getInlineParentSpecs(tjs);
+    const inlineParentSpecs = getInlineParentSpecs(tj);
     if (inlineParentSpecs.length > 0)
     {
       const inlineParentContrs = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
@@ -96,7 +97,7 @@ export class ResultTypeDescriptorGenerator
     }
 
     // Get referenced parent fields and result types, with result types from related tables.
-    const refdParentSpecs = getReferencedParentSpecs(tjs);
+    const refdParentSpecs = getReferencedParentSpecs(tj);
     if (refdParentSpecs.length > 0)
     {
       const refdParentContrs = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
@@ -105,16 +106,16 @@ export class ResultTypeDescriptorGenerator
     }
 
     // Get the child collection fields and result types, with result types from related tables.
-    if (tjs.childTables)
+    if (tj.childTables)
     {
-      const childCollContrs = this.getChildCollectionContrs(tjs.childTables, queryName);
+      const childCollContrs = this.getChildCollectionContrs(tj.childTables, queryName);
       topTypeDesc.addChildCollectionProperties(childCollContrs.collectionProperties);
       resultTypes.push(...childCollContrs.resultTypes);
     }
 
     // The top table's type must be added at leading position in the returned list, followed
     // by any other supporting types that were generated.
-    resultTypes.splice(0, 0, topTypeDesc.build(tjs.table));
+    resultTypes.splice(0, 0, topTypeDesc.build());
 
     return resultTypes;
   }
@@ -187,7 +188,7 @@ export class ResultTypeDescriptorGenerator
     )
     : InlineParentContrs
   {
-    const props: Properties = { tableFieldProperties: [], tableExpressionProperties: [], parentReferenceProperties: [], childCollectionProperties: [] };
+    const props: ResultProperties = { tableFieldProperties: [], tableExpressionProperties: [], parentReferenceProperties: [], childCollectionProperties: [] };
     const resultTypes: ResultTypeDescriptor[] = [];
 
     for (const parentSpec of parentSpecs)
@@ -342,7 +343,7 @@ export class ResultTypeDescriptorGenerator
 
 function addToPropertiesFromResultType
   (
-    props: Properties, // MUTATED in the call!
+    props: ResultProperties, // MUTATED in the call!
     resultType: ResultTypeDescriptor,
     forceNullable: boolean
   )
@@ -369,6 +370,8 @@ class ResultTypeDescriptorBuilder
   constructor
     (
       private readonly queryName: string,
+      private readonly table: string,
+      private readonly resultTypeName: string | undefined,
       private readonly tableFieldProperties: TableFieldProperty[] = [],
       private readonly tableExpressionProperties: TableExpressionProperty[] = [],
       private readonly parentReferenceProperties: ParentReferenceProperty[] = [],
@@ -396,7 +399,7 @@ class ResultTypeDescriptorBuilder
     fs.forEach(f => this.childCollectionProperties.push(f));
   }
 
-  addProperties(props: Properties)
+  addProperties(props: ResultProperties)
   {
     this.addTableFieldProperties(props.tableFieldProperties);
     this.addTableExpressionProperties(props.tableExpressionProperties);
@@ -404,11 +407,12 @@ class ResultTypeDescriptorBuilder
     this.addChildCollectionProperties(props.childCollectionProperties);
   }
 
-  build(table: string): ResultTypeDescriptor
+  build(): ResultTypeDescriptor
   {
     return {
       queryName: this.queryName,
-      table,
+      table: this.table,
+      resultTypeName: this.resultTypeName,
       tableFieldProperties: this.tableFieldProperties,
       tableExpressionProperties: this.tableExpressionProperties,
       parentReferenceProperties: this.parentReferenceProperties,
@@ -421,7 +425,7 @@ class ResultTypeDescriptorBuilder
 /// Holds result properties (in the type builder) and types contributed from inline parent tables.
 interface InlineParentContrs
 {
-  properties: Properties;
+  properties: ResultProperties;
   resultTypes: ResultTypeDescriptor[];
 }
 /// Holds result properties and types contributed from referenced parent tables.
@@ -462,7 +466,9 @@ export function resultTypeDecriptorsEqual
   : boolean
 {
   return (
+    rt1.queryName === rt2.queryName &&
     rt1.table === rt2.table &&
+    rt1.resultTypeName === rt2.resultTypeName &&
     deepEquals(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
     deepEquals(rt1.tableExpressionProperties,    rt2.tableExpressionProperties) &&
     deepEquals(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
