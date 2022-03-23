@@ -72,6 +72,11 @@ export interface ChildSpec extends TableJsonSpec
 export interface CustomJoinCondition
 {
   equatedFields: FieldPair[];
+  // By default a custom join condition for a parent will cause a nullable parent reference or nullable inline
+  // fields from the parent. This option allows asserting that a matching parent record always exists for this
+  // join condition, so the parent reference or inline fields can be non-nullable if other factors don't
+  // prevent it (such as a parent record condition, or an inlined field being nullable in the parent itself).
+  matchAlwaysExists?: boolean;
 }
 
 export interface FieldPair

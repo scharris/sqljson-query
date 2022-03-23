@@ -198,11 +198,12 @@ export class ResultTypeDescriptorGenerator
       const parentType = parentResTypeDescs[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
-      const nullable =
+      const forceNullable =
         parentSpec.recordCondition != null ||
-        !this.someFkFieldNotNullable(parentSpec, relId, queryName);
+        parentSpec.customJoinCondition != null && !parentSpec.customJoinCondition?.matchAlwaysExists ||
+        parentSpec.customJoinCondition == null && !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
-      addToPropertiesFromResultType(props, parentType, nullable);
+      addToPropertiesFromResultType(props, parentType, forceNullable);
       resultTypes.push(...parentResTypeDescs.slice(1)); // omit "wrapper" parentType
     }
 
@@ -227,11 +228,10 @@ export class ResultTypeDescriptorGenerator
       const parentResultTypes = this.generateResultTypeDescriptors(parentSpec, queryName);
       const resultType = parentResultTypes[0]; // parent object type
 
-      // If the parent record might be absent, then all inline fields must be nullable.
       const nullable =
         parentSpec.recordCondition != null ||
-        !!parentSpec.recordCondition ||
-        !this.someFkFieldNotNullable(parentSpec, relId, queryName);
+        parentSpec.customJoinCondition != null && !parentSpec.customJoinCondition?.matchAlwaysExists ||
+        parentSpec.customJoinCondition == null && !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
       parentRefProps.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
       resTypeDecrs.push(...parentResultTypes);

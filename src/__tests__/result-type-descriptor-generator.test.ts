@@ -502,3 +502,20 @@ test('unwrapped child collection with element type containing more than one prop
     /unwrapped child .* exactly one property/i
   );
 });
+
+
+test('a custom join condition for a parent table may be used when no suitable foreign key exists', () => {
+  const tableJsonSpec: TableJsonSpec = {
+    table: 'drug',
+    fieldExpressions: ['id'],
+    parentTables: [
+      {
+        table: 'reference',
+        fieldExpressions: ['id'],
+        customJoinCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'id' }] }
+      }
+    ]
+  };
+
+  expect(resTypeDescGen.generateResultTypeDescriptors(tableJsonSpec, 'test query')).toBeTruthy();
+});
