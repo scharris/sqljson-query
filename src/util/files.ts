@@ -3,9 +3,21 @@ import * as os from 'os';
 import { Dirent, promises as fs } from 'fs'; // for some older node versions (e.g. v10)
 import * as cbfs from 'fs';
 
-export async function writeTextFile(path: string, data: string): Promise<void>
+interface FileWriteOptions { avoidWritingSameContents: boolean };
+
+export async function writeTextFile
+  (
+    path: string,
+    text: string,
+    opts?: FileWriteOptions
+  )
+  : Promise<void>
 {
-  await fs.writeFile(path, data);
+  const exists = await fileExists(path);
+  const write = !exists || (opts?.avoidWritingSameContents ? await readTextFile(path) !== text : true);
+
+  if (write)
+    await fs.writeFile(path, text);
 }
 
 export async function readTextFile(path: string): Promise<string>

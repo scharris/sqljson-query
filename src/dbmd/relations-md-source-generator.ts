@@ -23,7 +23,8 @@ export async function generateRelationsMetadataSource
       const outputFile = path.join(sourceOutputDir, 'relations-metadata.ts');
       return await writeTextFile(
         outputFile,
-        autogenWarning + "\n\n" + relationsTSModuleSource(dbmd, preferLowercaseNames)
+        autogenWarning + "\n\n" + relationsTSModuleSource(dbmd, preferLowercaseNames),
+        { avoidWritingSameContents: true }
       );
     }
     case 'Java':
@@ -32,7 +33,8 @@ export async function generateRelationsMetadataSource
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
       return await writeTextFile(
         relsMdOutputFile,
-        header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames)
+        header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames),
+        { avoidWritingSameContents: true }
       );
     }
     default: return missingCase(srcLang);

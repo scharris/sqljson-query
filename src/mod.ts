@@ -68,7 +68,11 @@ export async function generateQuerySources
         const fileName = `${compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
         const resultTypesOutputFile = path.join(opts.resultTypesOutputDir, fileName);
 
-        await writeTextFile(resultTypesOutputFile, sourceCode);
+        await writeTextFile(
+          resultTypesOutputFile,
+          sourceCode,
+          { avoidWritingSameContents: true }
+        );
       }
     }
   }
@@ -120,7 +124,11 @@ async function writeSqlSpecs
     const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
     const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
 
-    await writeTextFile(sqlSpecPath, JSON.stringify(sqlSpec, null, 2) + "\n");
+    await writeTextFile(
+      sqlSpecPath,
+      JSON.stringify(sqlSpec, null, 2) + "\n",
+      { avoidWritingSameContents: true }
+    );
   }
 }
 
@@ -141,11 +149,13 @@ async function writeSqls
     const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
     const sqlFileName = multReprs ? `${modQueryName}(${reprDescn}).sql` : `${modQueryName}.sql`;
     const sqlPath = path.join(outputDir, sqlFileName);
+    const header = "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
+      "-- " + resultRepr + " results representation for " + queryName + "\n";
 
-    await writeTextFile(sqlPath,
-      "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
-      "-- " + resultRepr + " results representation for " + queryName + "\n" +
-      sql + "\n"
+    await writeTextFile(
+      sqlPath,
+      header + sql + "\n",
+      { avoidWritingSameContents: true }
     );
 
     res.push({ queryName, resultRepr, sqlPath });
