@@ -14,7 +14,7 @@ export interface QuerySpec
   queryName: string;
   tableJson: TableJsonSpec;
   resultRepresentations?: ResultRepr[];
-  additionalObjectPropertyColumns?: string[];
+  additionalObjectPropertyColumns?: AdditionalObjectPropertyColumn[];
   generateResultTypes?: boolean;
   generateSource?: boolean;
   orderBy?: string;
@@ -95,6 +95,9 @@ export interface RecordCondition
 export type PropertyNameDefault = "AS_IN_DB" | "CAMELCASE";
 
 export type ResultRepr = "MULTI_COLUMN_ROWS" | "JSON_OBJECT_ROWS" | "JSON_ARRAY_ROW";
+
+export type AdditionalObjectPropertyColumn = string | { property: string; as: string };
+
 
 export function getInlineParentSpecs(tableSpec: TableJsonSpec): InlineParentSpec[]
 {

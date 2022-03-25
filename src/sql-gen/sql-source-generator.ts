@@ -5,6 +5,7 @@ import { CaseSensitivity, RelId } from "../dbmd";
 import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry }
   from "./sql-specs";
 import { SqlDialect } from "./sql-dialects";
+import { AdditionalObjectPropertyColumn } from "../query-specs";
 
 export class SqlSourceGenerator
 {
@@ -75,7 +76,7 @@ export class SqlSourceGenerator
     (
       baseSql: string,
       propertyNames: string[],
-      additionalPropertyColumns: string[],
+      additionalColumns: AdditionalObjectPropertyColumn[],
       orderBy: OrderBy | null | undefined,
       baseTableDesc: string | null, // for comments
     )
@@ -86,8 +87,8 @@ export class SqlSourceGenerator
         this.indent(
           (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
           this.sqlDialect.getRowObjectExpression(propertyNames, 'q') + ' json' +
-          (isNonEmpty(additionalPropertyColumns)
-            ? `,\n${additionalPropertyColumns.map(n => this.sqlDialect.quoteColumnNameIfNeeded(n)).join(',\n')}`
+          (isNonEmpty(additionalColumns)
+            ? `,\n${additionalColumns.map(c => this.additionalPropertyColumnSql(c)).join(',\n')}`
             : '')
         ) + '\n' +
       'from (\n' +
@@ -99,6 +100,17 @@ export class SqlSourceGenerator
       (orderBy != null ? '\norder by ' + orderBy.orderBy.replace(/\$\$/g, 'q') : '')
     );
   }
+
+  private additionalPropertyColumnSql(c: AdditionalObjectPropertyColumn): string
+  {
+    if (typeof(c) === 'string')
+      return this.sqlDialect.quoteColumnNameIfNeeded(c);
+
+    const propNameExpr = this.sqlDialect.quoteColumnNameIfNeeded(c.property);
+    const alias = this.sqlDialect.quoteColumnNameIfNeeded(c.as);
+    return `${propNameExpr} as ${alias}`;
+  }
+
 
   private aggregateSql
     (

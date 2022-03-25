@@ -4,11 +4,12 @@ import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr,
   ChildSpec, CustomJoinCondition, ParentSpec, ReferencedParentSpec, getInlineParentSpecs,
   getReferencedParentSpecs, identifyTable, validateCustomJoinCondition,
-  verifyTableFieldExpressionsValid
+  verifyTableFieldExpressionsValid,
+  AdditionalObjectPropertyColumn
 } from '../query-specs';
 import {
   SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
-  ParentPrimaryKeyCondition, HiddenPrimaryKeySelectEntry, getPropertySelectEntries
+  ParentPrimaryKeyCondition, HiddenPrimaryKeySelectEntry, getPropertySelectEntries,
 } from './sql-specs';
 
 export class SqlSpecGenerator
@@ -117,7 +118,7 @@ export class SqlSpecGenerator
   private jsonObjectRowsSql
     (
       tj: TableJsonSpec,
-      additionalObjectPropertyColumns: string[],
+      additionalObjectPropertyColumns: AdditionalObjectPropertyColumn[],
       pkCond: ParentPrimaryKeyCondition | null,
       orderBy: string | null | undefined,
       specLoc: SpecLocation

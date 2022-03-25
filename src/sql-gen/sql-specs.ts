@@ -1,4 +1,5 @@
 import { ForeignKeyComponent } from "../dbmd";
+import { AdditionalObjectPropertyColumn } from "../query-specs";
 import { lowerCaseInitials, makeNameNotInSet } from "../util/strings";
 
 export interface SqlSpec
@@ -9,7 +10,7 @@ export interface SqlSpec
   orderBy?: OrderBy | null;
   forUpdate?: boolean | null;
   objectWrapProperties?: boolean;
-  additionalObjectPropertyColumns?: string[];
+  additionalObjectPropertyColumns?: AdditionalObjectPropertyColumn[];
   aggregateToArray?: boolean;
   selectEntriesLeadingComment?: string;
   fromEntriesLeadingComment?: string;
