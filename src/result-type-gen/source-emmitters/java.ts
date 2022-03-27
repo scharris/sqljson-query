@@ -6,9 +6,9 @@ import {
 } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
-  ResultTypeDescriptor, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
+  ResultTypeSpec, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
   ParentReferenceProperty, propertiesCount
-} from '../result-type-descriptor-generator';
+} from '../result-type-spec-generator';
 import {
   JavaSourceGenerationOptions,
   ResultTypesSourceGenerationOptions
@@ -19,7 +19,7 @@ import { assignResultTypeNames } from '../result-type-names-assignment';
 export default function makeSource
   (
     queryName: string,
-    resultTypes: ResultTypeDescriptor[],
+    resultTypes: ResultTypeSpec[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
@@ -89,7 +89,7 @@ function queryParamDefinitions(paramNames: string[]): string
 
 function resultTypeDeclarations
   (
-    resultTypes: ResultTypeDescriptor[],
+    resultTypes: ResultTypeSpec[],
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -99,7 +99,7 @@ function resultTypeDeclarations
   const typeDecls: string[] = [];
   const writtenTypeNames = new Set();
 
-  const resultTypeNameAssignments: Map<ResultTypeDescriptor,string> = assignResultTypeNames(resultTypes);
+  const resultTypeNameAssignments: Map<ResultTypeSpec,string> = assignResultTypeNames(resultTypes);
 
   for (const resType of resultTypes)
   {
@@ -119,8 +119,8 @@ function resultTypeDeclarations
 
 function makeResultTypeDeclaration
   (
-    resType: ResultTypeDescriptor,
-    resTypeNameAssignments: Map<ResultTypeDescriptor,string>,
+    resType: ResultTypeSpec,
+    resTypeNameAssignments: Map<ResultTypeSpec,string>,
     opts: JavaResultTypesSourceGenerationOptions
   )
   : string
@@ -166,7 +166,7 @@ function makeResultTypeDeclaration
 function tableFieldPropertyType
   (
     tfp: TableFieldProperty,
-    inResType: ResultTypeDescriptor,
+    inResType: ResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -257,7 +257,7 @@ function specifiedSourceCodeFieldType
 function parentReferencePropertyType
   (
     f: ParentReferenceProperty,
-    resTypeNames: Map<ResultTypeDescriptor,string>,
+    resTypeNames: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -269,7 +269,7 @@ function parentReferencePropertyType
 function childCollectionPropertyType
   (
     p: ChildCollectionProperty,
-    resTypeNames: Map<ResultTypeDescriptor,string>,
+    resTypeNames: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -283,8 +283,8 @@ function childCollectionPropertyType
 
 function getSolePropertyType
   (
-    resType: ResultTypeDescriptor,
-    resTypeNames: Map<ResultTypeDescriptor,string>,
+    resType: ResultTypeSpec,
+    resTypeNames: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string

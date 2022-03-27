@@ -6,8 +6,7 @@ import {
 } from '../query-specs';
 import { identifyTable } from '../query-specs';
 
-
-export interface ResultTypeDescriptor extends ResultProperties
+export interface ResultTypeSpec extends ResultProperties
 {
   readonly queryName: string;
   readonly table: string;
@@ -45,18 +44,18 @@ export interface TableExpressionProperty
 export interface ParentReferenceProperty
 {
   readonly name: string;
-  readonly refResultType: ResultTypeDescriptor
+  readonly refResultType: ResultTypeSpec
   readonly nullable: boolean | null;
 }
 
 export interface ChildCollectionProperty
 {
   readonly name: string;
-  readonly elResultType: ResultTypeDescriptor; // Just the collection element type without the collection type itself.
+  readonly elResultType: ResultTypeSpec; // Just the collection element type without the collection type itself.
   readonly nullable: boolean | null; // Nullable when the field is inlined from a parent with a record condition.
 }
 
-export class ResultTypeDescriptorGenerator
+export class ResultTypeSpecGenerator
 {
   constructor
   (
@@ -69,21 +68,21 @@ export class ResultTypeDescriptorGenerator
   /// Generates result type structures for the top table and all parent and child tables
   /// which are included transitively in the passed table json specification. No attempt
   /// is made to remove duplicate result type structures.
-  public generateResultTypeDescriptors
+  public generateResultTypeSpecs
     (
       tj: TableJsonSpec,
       queryName: string
     )
-    : ResultTypeDescriptor[]
+    : ResultTypeSpec[]
   {
-    const topTypeDesc = new ResultTypeDescriptorBuilder(queryName, tj.table, tj.resultTypeName);
-    const resultTypes: ResultTypeDescriptor[] = []; // Top result type *and* supporting types.
+    const topTypeSpec = new ResultTypeSpecBuilder(queryName, tj.table, tj.resultTypeName);
+    const resultTypes: ResultTypeSpec[] = []; // Top result type *and* supporting types.
 
     const relId = identifyTable(tj.table, this.defaultSchema, this.dbmd, {queryName});
 
     // Add the table's own fields and expressions involving those fields.
-    topTypeDesc.addTableFieldProperties(this.getTableFieldProperties(relId, tj.fieldExpressions));
-    topTypeDesc.addTableExpressionProperties(this.getTableExpressionProperties(relId, tj.fieldExpressions));
+    topTypeSpec.addTableFieldProperties(this.getTableFieldProperties(relId, tj.fieldExpressions));
+    topTypeSpec.addTableExpressionProperties(this.getTableExpressionProperties(relId, tj.fieldExpressions));
 
     // Get contributions from inline parents (processed recursively), which may include (only)
     // properties in any of the other categories (table fields and expressions, parent references,
@@ -92,7 +91,7 @@ export class ResultTypeDescriptorGenerator
     if (inlineParentSpecs.length > 0)
     {
       const inlineParentContrs = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
-      topTypeDesc.addProperties(inlineParentContrs.properties);
+      topTypeSpec.addProperties(inlineParentContrs.properties);
       resultTypes.push(...inlineParentContrs.resultTypes);
     }
 
@@ -101,7 +100,7 @@ export class ResultTypeDescriptorGenerator
     if (refdParentSpecs.length > 0)
     {
       const refdParentContrs = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
-      topTypeDesc.addParentReferenceProperties(refdParentContrs.referenceProperties);
+      topTypeSpec.addParentReferenceProperties(refdParentContrs.referenceProperties);
       resultTypes.push(...refdParentContrs.resultTypes);
     }
 
@@ -109,13 +108,13 @@ export class ResultTypeDescriptorGenerator
     if (tj.childTables)
     {
       const childCollContrs = this.getChildCollectionContrs(tj.childTables, queryName);
-      topTypeDesc.addChildCollectionProperties(childCollContrs.collectionProperties);
+      topTypeSpec.addChildCollectionProperties(childCollContrs.collectionProperties);
       resultTypes.push(...childCollContrs.resultTypes);
     }
 
     // The top table's type must be added at leading position in the returned list, followed
     // by any other supporting types that were generated.
-    resultTypes.splice(0, 0, topTypeDesc.build());
+    resultTypes.splice(0, 0, topTypeSpec.build());
 
     return resultTypes;
   }
@@ -189,13 +188,13 @@ export class ResultTypeDescriptorGenerator
     : InlineParentContrs
   {
     const props: ResultProperties = { tableFieldProperties: [], tableExpressionProperties: [], parentReferenceProperties: [], childCollectionProperties: [] };
-    const resultTypes: ResultTypeDescriptor[] = [];
+    const resultTypes: ResultTypeSpec[] = [];
 
     for (const parentSpec of parentSpecs)
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResTypeDescs = this.generateResultTypeDescriptors(parentSpec, queryName);
-      const parentType = parentResTypeDescs[0]; // will not be generated
+      const parentResTypeSpecs = this.generateResultTypeSpecs(parentSpec, queryName);
+      const parentType = parentResTypeSpecs[0]; // will not be generated
 
       // If the parent record might be absent, then all inline fields must be nullable.
       const forceNullable =
@@ -204,7 +203,7 @@ export class ResultTypeDescriptorGenerator
         parentSpec.customJoinCondition == null && !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
       addToPropertiesFromResultType(props, parentType, forceNullable);
-      resultTypes.push(...parentResTypeDescs.slice(1)); // omit "wrapper" parentType
+      resultTypes.push(...parentResTypeSpecs.slice(1)); // omit "wrapper" parentType
     }
 
     return { properties: props, resultTypes };
@@ -220,12 +219,12 @@ export class ResultTypeDescriptorGenerator
     : RefdParentContrs
   {
     const parentRefProps: ParentReferenceProperty[] = [];
-    const resTypeDecrs: ResultTypeDescriptor[] = [];
+    const resTypeDecrs: ResultTypeSpec[] = [];
 
     for (const parentSpec of refdParentSpecs)
     {
       // Generate types for the parent table and any related tables it includes recursively.
-      const parentResultTypes = this.generateResultTypeDescriptors(parentSpec, queryName);
+      const parentResultTypes = this.generateResultTypeSpecs(parentSpec, queryName);
       const resultType = parentResultTypes[0]; // parent object type
 
       const nullable =
@@ -248,12 +247,12 @@ export class ResultTypeDescriptorGenerator
     : ChildCollectionContrs
   {
     const collProps: ChildCollectionProperty[]  = [];
-    const resTypeDescs: ResultTypeDescriptor[] = [];
+    const resTypeSpecs: ResultTypeSpec[] = [];
 
     for (const childCollSpec of childSpecs)
     {
       // Generate types for the child table and any related tables it includes recursively.
-      const childResultTypes = this.generateResultTypeDescriptors(childCollSpec, queryName);
+      const childResultTypes = this.generateResultTypeSpecs(childCollSpec, queryName);
       const elType = childResultTypes[0];
 
       // Mark the child collection element type as unwrapped if specified.
@@ -261,10 +260,10 @@ export class ResultTypeDescriptorGenerator
       {
         if ( propertiesCount(elType) !== 1 )
           throw new Error("Unwrapped child collection elements must have exactly one property.");
-        resTypeDescs.push(...childResultTypes.slice(1)); // unwrapped types are not added to result types list
+        resTypeSpecs.push(...childResultTypes.slice(1)); // unwrapped types are not added to result types list
       }
       else
-        resTypeDescs.push(...childResultTypes);
+        resTypeSpecs.push(...childResultTypes);
 
       collProps.push({
         name: childCollSpec.collectionName,
@@ -273,7 +272,7 @@ export class ResultTypeDescriptorGenerator
       });
     }
 
-    return { collectionProperties: collProps, resultTypes: resTypeDescs };
+    return { collectionProperties: collProps, resultTypes: resTypeSpecs };
   }
 
   private makeTableFieldProperty
@@ -344,7 +343,7 @@ export class ResultTypeDescriptorGenerator
 function addToPropertiesFromResultType
   (
     props: ResultProperties, // MUTATED in the call!
-    resultType: ResultTypeDescriptor,
+    resultType: ResultTypeSpec,
     forceNullable: boolean
   )
 {
@@ -365,7 +364,7 @@ function addToPropertiesFromResultType
   }
 }
 
-class ResultTypeDescriptorBuilder
+class ResultTypeSpecBuilder
 {
   constructor
     (
@@ -407,7 +406,7 @@ class ResultTypeDescriptorBuilder
     this.addChildCollectionProperties(props.childCollectionProperties);
   }
 
-  build(): ResultTypeDescriptor
+  build(): ResultTypeSpec
   {
     return {
       queryName: this.queryName,
@@ -420,25 +419,25 @@ class ResultTypeDescriptorBuilder
       unwrapped: false
     };
   }
-} // ResultTypeDescriptorBuilder
+} // ResultTypeSpecBuilder
 
 /// Holds result properties (in the type builder) and types contributed from inline parent tables.
 interface InlineParentContrs
 {
   properties: ResultProperties;
-  resultTypes: ResultTypeDescriptor[];
+  resultTypes: ResultTypeSpec[];
 }
 /// Holds result properties and types contributed from referenced parent tables.
 interface RefdParentContrs
 {
   referenceProperties: ParentReferenceProperty[];
-  resultTypes: ResultTypeDescriptor[];
+  resultTypes: ResultTypeSpec[];
 }
 /// Holds result properties and types contributed from child tables.
 interface ChildCollectionContrs
 {
   collectionProperties: ChildCollectionProperty[];
-  resultTypes: ResultTypeDescriptor[];
+  resultTypes: ResultTypeSpec[];
 }
 
 /// Return nullable variant of a database field, for any of the above field types
@@ -448,7 +447,7 @@ function toNullableField<T extends {nullable: boolean|null}>(f: T): T
   return (f.nullable != null && f.nullable) ? f : {...f, nullable: true};
 }
 
-export function propertiesCount(gt: ResultTypeDescriptor): number
+export function propertiesCount(gt: ResultTypeSpec): number
 {
   return (
     gt.tableFieldProperties.length +
@@ -460,8 +459,8 @@ export function propertiesCount(gt: ResultTypeDescriptor): number
 
 export function resultTypeDecriptorsEqual
   (
-    rt1: ResultTypeDescriptor,
-    rt2: ResultTypeDescriptor
+    rt1: ResultTypeSpec,
+    rt2: ResultTypeSpec
   )
   : boolean
 {

@@ -1,8 +1,8 @@
-import { ResultTypeDescriptor, TableFieldProperty } from './result-type-gen';
+import { ResultTypeSpec, TableFieldProperty } from './result-type-gen';
 
 export type SourceLanguage = 'TS' | 'Java';
 
-export type CustomPropertyTypeFn = (prop: TableFieldProperty, resultType: ResultTypeDescriptor) => string | null;
+export type CustomPropertyTypeFn = (prop: TableFieldProperty, resultType: ResultTypeSpec) => string | null;
 
 export interface CommonSourceGenerationOptions
 {

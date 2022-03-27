@@ -1,17 +1,17 @@
 import { partitionByEquality } from "../util/collections";
 import { hashString, makeNameNotInSet, upperCamelCase } from "../util/strings";
-import { resultTypeDecriptorsEqual, ResultTypeDescriptor } from "./result-type-descriptor-generator";
+import { resultTypeDecriptorsEqual, ResultTypeSpec } from "./result-type-spec-generator";
 
-export function assignResultTypeNames(resTypes: ResultTypeDescriptor[]): Map<ResultTypeDescriptor,string>
+export function assignResultTypeNames(resTypes: ResultTypeSpec[]): Map<ResultTypeSpec,string>
 {
-  const rtHash = (rt: ResultTypeDescriptor) =>
+  const rtHash = (rt: ResultTypeSpec) =>
     hashString(rt.table) +
     2 * hashString(rt.resultTypeName ?? '') +
     3 * rt.tableFieldProperties.length +
     17 * rt.parentReferenceProperties.length +
     27 * rt.childCollectionProperties.length;
 
-  const m = new Map<ResultTypeDescriptor,string>();
+  const m = new Map<ResultTypeSpec,string>();
   const typeNames = new Set<string>(resTypes.flatMap(rt => rt.resultTypeName ? [rt.resultTypeName] : []));
 
   for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypeDecriptorsEqual) )
