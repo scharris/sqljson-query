@@ -149,6 +149,13 @@ export function partitionByEquality<T>
   return res;
 }
 
+export function sorted<T>(ts: T[], f: ((e1: T, e2: T) => number) | undefined): T[]
+{
+  const res = ts.slice();
+  res.sort(f);
+  return res;
+}
+
 function getItemIndexMap<T>(ts: T[])
 {
   const m = new Map<T, number>();

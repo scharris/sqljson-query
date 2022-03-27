@@ -41,6 +41,7 @@ export interface TableField
   jsonProperty?: string; // Required if value is not a simple field name.
   fieldTypeInGeneratedSource?: string | {[srcLang: string]: string};
   withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
+  displayOrder?: number;
 }
 
 export interface TableExpr
@@ -50,6 +51,7 @@ export interface TableExpr
   jsonProperty: string;
   fieldTypeInGeneratedSource: string | {[srcLang: string]: string};
   withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
+  displayOrder?: number;
 }
 
 export interface ParentSpec extends TableJsonSpec
@@ -63,6 +65,7 @@ export interface ParentSpec extends TableJsonSpec
 export interface ReferencedParentSpec extends ParentSpec
 {
   referenceName: string;
+  displayOrder?: number;
 }
 
 export interface InlineParentSpec extends ParentSpec
@@ -78,6 +81,7 @@ export interface ChildSpec extends TableJsonSpec
   filter?: string;
   unwrap?: boolean;
   orderBy?: string;
+  displayOrder?: number;
 }
 
 export interface CustomJoinCondition

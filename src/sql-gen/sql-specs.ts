@@ -30,6 +30,7 @@ export interface FieldSelectEntry
   projectedName: string;
   fieldName: string;
   tableAlias: string;
+  displayOrder?: number;
 }
 
 export interface ExpressionSelectEntry
@@ -39,6 +40,7 @@ export interface ExpressionSelectEntry
   expression: string;
   tableAliasPlaceholderInExpr?: string; // default is '$$'
   tableAlias: string;
+  displayOrder?: number;
 }
 
 export interface InlineParentSelectEntry
@@ -48,6 +50,7 @@ export interface InlineParentSelectEntry
   parentAlias: string;
   comment?: string | null;
   parentSelectEntry: SelectEntry;
+  displayOrder?: number;
 }
 
 export interface ParentReferenceSelectEntry
@@ -56,6 +59,7 @@ export interface ParentReferenceSelectEntry
   projectedName: string;
   parentRowObjectSql: SqlSpec,
   comment?: string;
+  displayOrder?: number;
 }
 
 export interface ChildCollectionSelectEntry
@@ -64,6 +68,7 @@ export interface ChildCollectionSelectEntry
   projectedName: string;
   collectionSql: SqlSpec;
   comment?: string;
+  displayOrder?: number;
 }
 
 export interface HiddenPrimaryKeySelectEntry
@@ -72,6 +77,7 @@ export interface HiddenPrimaryKeySelectEntry
   pkFieldName: string;
   projectedName: string;
   tableAlias: string;
+  displayOrder?: undefined;
 }
 
 export type FromEntry =
@@ -84,7 +90,7 @@ export interface TableFromEntry
   table: { schema?: string | null, name: string };
   alias: string;
   joinCondition?: JoinCondition;
-  comment?: null;
+  comment?: undefined;
 }
 
 export interface QueryFromEntry

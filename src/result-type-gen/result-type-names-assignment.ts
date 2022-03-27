@@ -1,6 +1,6 @@
 import { partitionByEquality } from "../util/collections";
 import { hashString, makeNameNotInSet, upperCamelCase } from "../util/strings";
-import { resultTypeDecriptorsEqual, ResultTypeSpec } from "./result-type-spec-generator";
+import { resultTypeSpecsEqual, ResultTypeSpec } from "./result-type-spec-generator";
 
 export function assignResultTypeNames(resTypes: ResultTypeSpec[]): Map<ResultTypeSpec,string>
 {
@@ -14,7 +14,7 @@ export function assignResultTypeNames(resTypes: ResultTypeSpec[]): Map<ResultTyp
   const m = new Map<ResultTypeSpec,string>();
   const typeNames = new Set<string>(resTypes.flatMap(rt => rt.resultTypeName ? [rt.resultTypeName] : []));
 
-  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypeDecriptorsEqual) )
+  for (const eqGrp of partitionByEquality(resTypes, rtHash, resultTypeSpecsEqual) )
   {
     const typeName = eqGrp[0].resultTypeName || makeNameNotInSet(upperCamelCase(eqGrp[0].table), typeNames, '_');
 

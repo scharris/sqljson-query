@@ -32,6 +32,7 @@ export interface TableFieldProperty
   readonly fractionalDigits: number | null;
   readonly nullable: boolean | null;
   readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As optionally specified in query spec.
+  readonly displayOrder?: number;
 }
 
 export interface TableExpressionProperty
@@ -39,6 +40,7 @@ export interface TableExpressionProperty
   readonly name: string;
   readonly fieldExpression: string | null;
   readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As specified in query spec.
+  readonly displayOrder?: number;
 }
 
 export interface ParentReferenceProperty
@@ -46,6 +48,7 @@ export interface ParentReferenceProperty
   readonly name: string;
   readonly refResultType: ResultTypeSpec
   readonly nullable: boolean | null;
+  readonly displayOrder?: number;
 }
 
 export interface ChildCollectionProperty
@@ -53,6 +56,7 @@ export interface ChildCollectionProperty
   readonly name: string;
   readonly elResultType: ResultTypeSpec; // Just the collection element type without the collection type itself.
   readonly nullable: boolean | null; // Nullable when the field is inlined from a parent with a record condition.
+  readonly displayOrder?: number;
 }
 
 export class ResultTypeSpecGenerator
@@ -141,7 +145,17 @@ export class ResultTypeSpecGenerator
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
           throw new Error(`No metadata found for field ${relIdDescn(relId)}.${fieldName}.`);
-        fields.push(this.makeTableFieldProperty(tfe, dbField));
+        fields.push({
+          name: this.getOutputFieldName(tfe, dbField),
+          databaseFieldName: dbField.name,
+          databaseType: dbField.databaseType,
+          length: dbField.length != undefined ? dbField.length : null,
+          precision: dbField.precision != undefined ? dbField.precision : null,
+          fractionalDigits: dbField.fractionalDigits != undefined ? dbField.fractionalDigits : null,
+          nullable: dbField.nullable != undefined ? dbField.nullable : null,
+          specifiedSourceCodeFieldType: typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null,
+          displayOrder: typeof tfe === 'string' ? undefined: tfe.displayOrder
+        });
       }
     }
 
@@ -170,7 +184,8 @@ export class ResultTypeSpecGenerator
         fields.push({
           name: jsonProperty,
           fieldExpression: tfe.expression,
-          specifiedSourceCodeFieldType: tfe.fieldTypeInGeneratedSource || null
+          specifiedSourceCodeFieldType: tfe.fieldTypeInGeneratedSource || null,
+          displayOrder: tfe.displayOrder
         });
       }
     }
@@ -232,7 +247,12 @@ export class ResultTypeSpecGenerator
         parentSpec.customJoinCondition != null && !parentSpec.customJoinCondition?.matchAlwaysExists ||
         parentSpec.customJoinCondition == null && !this.someFkFieldNotNullable(parentSpec, relId, queryName);
 
-      parentRefProps.push({ name: parentSpec.referenceName, refResultType: resultType, nullable });
+      parentRefProps.push({
+        name: parentSpec.referenceName,
+        refResultType: resultType,
+        nullable,
+        displayOrder: parentSpec.displayOrder
+      });
       resTypeDecrs.push(...parentResultTypes);
     }
 
@@ -268,30 +288,12 @@ export class ResultTypeSpecGenerator
       collProps.push({
         name: childCollSpec.collectionName,
         elResultType: childCollSpec.unwrap ? {...elType, unwrapped: true} : elType,
-        nullable: false
+        nullable: false,
+        displayOrder: childCollSpec.displayOrder
       });
     }
 
     return { collectionProperties: collProps, resultTypes: resTypeSpecs };
-  }
-
-  private makeTableFieldProperty
-    (
-      tfe: string | TableFieldExpr,
-      dbField: Field
-    )
-    : TableFieldProperty
-  {
-    return {
-      name: this.getOutputFieldName(tfe, dbField),
-      databaseFieldName: dbField.name,
-      databaseType: dbField.databaseType,
-      length: dbField.length != undefined ? dbField.length : null,
-      precision: dbField.precision != undefined ? dbField.precision : null,
-      fractionalDigits: dbField.fractionalDigits != undefined ? dbField.fractionalDigits : null,
-      nullable: dbField.nullable != undefined ? dbField.nullable : null,
-      specifiedSourceCodeFieldType: typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource || null
-    };
   }
 
   private getOutputFieldName
@@ -457,7 +459,7 @@ export function propertiesCount(gt: ResultTypeSpec): number
   );
 }
 
-export function resultTypeDecriptorsEqual
+export function resultTypeSpecsEqual
   (
     rt1: ResultTypeSpec,
     rt2: ResultTypeSpec

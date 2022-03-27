@@ -3,6 +3,7 @@ import {
   upperCamelCase,
   indentLines,
   readTextFileSync,
+  sorted,
 } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
@@ -126,39 +127,51 @@ function makeResultTypeDeclaration
   : string
 {
   const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
-
   const vis = emitRecords ? '' : 'public ';
 
-  const fieldDecls: string[] = [];
-  resType.tableFieldProperties.forEach(f => {
-    const fieldType = tableFieldPropertyType(f, resType, opts);
-    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
+  const decls: { decl: string; displayOrder: number }[] = [];
+
+  resType.tableFieldProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${tableFieldPropertyType(prop, resType, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
   });
-  resType.tableExpressionProperties.forEach(f => {
-    const fieldType = tableExpressionPropertyType(f, opts);
-    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
+  resType.tableExpressionProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${tableExpressionPropertyType(prop, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
   });
-  resType.parentReferenceProperties.forEach(f => {
-    const fieldType = parentReferencePropertyType(f, resTypeNameAssignments, opts);
-    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
+  resType.parentReferenceProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${parentReferencePropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
   });
-  resType.childCollectionProperties.forEach(f => {
-    const fieldType = childCollectionPropertyType(f, resTypeNameAssignments, opts);
-    fieldDecls.push(`${vis}${fieldType} ${f.name}`);
+  resType.childCollectionProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${childCollectionPropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
   });
+
+  const sortedDecls =
+    sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
+    .map(decl => decl.decl);
 
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
   if (emitRecords) return (
     `public record ${resTypeName}(\n` +
-      indentLines(fieldDecls.join(',\n'), 2) + '\n' +
+      indentLines(sortedDecls.join(',\n'), 2) + '\n' +
     '){}'
   );
   else return (
     '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
     `public static class ${resTypeName}\n` +
     '{\n' +
-      indentLines(fieldDecls.join(';\n'), 2) + ';\n' +
+      indentLines(sortedDecls.join(';\n'), 2) + ';\n' +
     '}'
   );
 }

@@ -1,5 +1,5 @@
 import { indentLines, replaceAll } from "../util/strings";
-import { mapSet, isNonEmpty } from "../util/collections";
+import { mapSet, isNonEmpty, sorted } from "../util/collections";
 import { exactUnquotedName } from "../util/database-names";
 import { CaseSensitivity, RelId } from "../dbmd";
 import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry }
@@ -53,7 +53,7 @@ export class SqlSourceGenerator
   {
     const selectComment = this.genComments && spec.selectEntriesLeadingComment ?
       `-- ${spec.selectEntriesLeadingComment}\n` : '';
-    const selectEntries = spec.selectEntries.map(e => this.selectEntrySql(e)).join(',\n') + '\n';
+    const selectEntries = this.makeSelectEntriesSql(spec.selectEntries) + '\n';
     const fromComment = this.genComments && spec.fromEntriesLeadingComment ?
       `-- ${spec.fromEntriesLeadingComment}\n` : '';
     const fromEntries = spec.fromEntries.map(e => this.fromEntrySql(e)).join('\n') + '\n';
@@ -70,6 +70,20 @@ export class SqlSourceGenerator
       whereClause +
       orderByClause
     );
+  }
+
+  private makeSelectEntriesSql(specSelectEntries: SelectEntry[]): string
+  {
+    // Assign any missing displayOrders based on select entry position.
+    const selectEntries: SelectEntry[] =
+      specSelectEntries.map((entry, ix) => ({
+        ...entry,
+        dislayOrder: entry.displayOrder ?? ix + 1
+      }));
+
+    const sortedSelectEntries = sorted(selectEntries, (e1, e2) => (e1.displayOrder ?? 0) - (e2.displayOrder ?? 0));
+
+    return sortedSelectEntries.map(e => this.selectEntrySql(e)).join(',\n');
   }
 
   private jsonRowObjectsSql

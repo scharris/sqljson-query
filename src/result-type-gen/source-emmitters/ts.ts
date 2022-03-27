@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { upperCamelCase, readTextFileSync } from '../../util/mod';
+import { upperCamelCase, readTextFileSync, sorted } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
   ResultTypeSpec, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
@@ -87,7 +87,7 @@ function resultTypeDeclarations
     if (resTypeName == null)
       throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
 
-    if ( !writtenTypeNames.has(resTypeName) )
+    if (!writtenTypeNames.has(resTypeName))
     {
       typeDecls.push(makeResultTypeDeclaration(resType, resultTypeNameAssignments, opts) + '\n');
       writtenTypeNames.add(resTypeName);
@@ -105,26 +105,35 @@ function makeResultTypeDeclaration
   )
   : string
 {
-  const lines: string[] = [];
+  const decls: { decl: string; displayOrder: number }[] = [];
+
+  resType.tableFieldProperties.forEach(prop => decls.push({
+    decl: `  ${prop.name}: ${tableFieldPropertyType(prop, resType, opts)};`,
+    displayOrder: prop.displayOrder ?? (decls.length + 1)
+  }));
+  resType.tableExpressionProperties.forEach(prop => decls.push({
+    decl: `  ${prop.name}: ${tableExpressionPropertyType(prop, opts)};`,
+    displayOrder: prop.displayOrder ?? (decls.length + 1)
+  }));
+  resType.parentReferenceProperties.forEach(prop => decls.push({
+    decl: `  ${prop.name}: ${parentReferencePropertyType(prop, resTypeNameAssignments, opts)};`,
+    displayOrder: prop.displayOrder ?? (decls.length + 1)
+  }));
+  resType.childCollectionProperties.forEach(prop => decls.push({
+    decl: `  ${prop.name}: ${childCollectionPropertyType(prop, resTypeNameAssignments, opts)};`,
+    displayOrder: prop.displayOrder ?? (decls.length + 1)
+  }));
+
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
-  lines.push(`export interface ${resTypeName}`);
-  lines.push('{');
-  resType.tableFieldProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${tableFieldPropertyType(f, resType, opts)};`
-  ));
-  resType.tableExpressionProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${tableExpressionPropertyType(f, opts)};`
-  ));
-  resType.parentReferenceProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${parentReferencePropertyType(f, resTypeNameAssignments, opts)};`
-  ));
-  resType.childCollectionProperties.forEach(f => lines.push('  ' +
-    `${f.name}: ${childCollectionPropertyType(f, resTypeNameAssignments, opts)};`
-  ));
-  lines.push('}')
-
-  return lines.join('\n');
+  return (
+    `export interface ${resTypeName}\n` +
+    '{\n' +
+      sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
+      .map(decl => decl.decl)
+      .join('\n') + '\n' +
+    '}'
+  );
 }
 
 function tableFieldPropertyType

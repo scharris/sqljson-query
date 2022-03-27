@@ -148,7 +148,7 @@ export class SqlSpecGenerator
     const baseSql = this.baseSql(tj, childFkCond, orderBy, specLoc);
 
     if (unwrap && getPropertySelectEntries(baseSql).length != 1)
-      throw new SpecError(specLoc, 'Unwrapped child collections cannot have multiple field expressions.');
+      throw new SpecError(specLoc, 'Unwrapped collections cannot have multiple properties.');
 
     return {
       ...baseSql,
@@ -191,9 +191,20 @@ export class SqlSpecGenerator
       const projectedName = this.jsonPropertyName(tfe, feLoc);
 
       if (typeof tfe === 'string')
-        return { entryType: 'field', projectedName, fieldName: this.quotable(tfe), tableAlias };
+        return {
+          entryType: 'field',
+          projectedName,
+          fieldName: this.quotable(tfe),
+          tableAlias
+        };
       else if (tfe.field)
-        return { entryType: 'field', projectedName, fieldName: this.quotable(tfe.field), tableAlias };
+        return {
+          entryType: 'field',
+          projectedName,
+          fieldName: this.quotable(tfe.field),
+          tableAlias,
+          displayOrder: tfe.displayOrder
+        };
       else // general expression
       {
         if (!tfe.expression)
@@ -203,7 +214,8 @@ export class SqlSpecGenerator
           projectedName,
           expression: tfe.expression,
           tableAliasPlaceholderInExpr: tfe.withTableAliasAs,
-          tableAlias
+          tableAlias,
+          displayOrder: tfe.displayOrder
         };
       }
     });
@@ -267,14 +279,15 @@ export class SqlSpecGenerator
       comment: `parent table '${parent.table}', joined for inlined fields`
     });
 
-    for (const [ix, parentPropertySelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
+    for (const [ix, parentPropSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
       sqlParts.addSelectEntry({
         entryType: 'inline-parent-prop',
-        projectedName: parentPropertySelectEntry.projectedName,
+        projectedName: parentPropSelectEntry.projectedName,
         parentAlias: parentAlias,
         comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null,
-        parentSelectEntry: parentPropertySelectEntry
+        parentSelectEntry: parentPropSelectEntry,
+        displayOrder: parentPropSelectEntry.displayOrder
       });
     }
 
@@ -330,32 +343,20 @@ export class SqlSpecGenerator
         throw new SpecError(specLoc, 'Refrenced parent table cannot specify an alias.');
 
       const parLoc = addLocPart(specLoc, `parent table '${parentSpec.table}' via "${parentSpec.referenceName}"`);
+      const parentPkCond = this.getParentPrimaryKeyCondition(parentSpec, relId, alias, parLoc);
 
-      sqlParts.addParts(this.referencedParentSqlParts(parentSpec, relId, alias, parLoc));
+      const parentRowObjectSql = this.jsonObjectRowsSql(parentSpec, [], parentPkCond, null, parLoc);
+
+      sqlParts.addSelectEntry({
+        entryType: 'parent-ref',
+        projectedName: parentSpec.referenceName,
+        parentRowObjectSql,
+        comment: `reference '${parentSpec.referenceName}' to parent table '${parentSpec.table}'`,
+        displayOrder: parentSpec.displayOrder
+      });
     }
 
     return sqlParts;
-  }
-
-  private referencedParentSqlParts
-    (
-      parent: ReferencedParentSpec,
-      childRelId: RelId,
-      childAlias: string,
-      specLoc: SpecLocation
-    )
-    : SqlParts
-  {
-    const parentPkCond = this.getParentPrimaryKeyCondition(parent, childRelId, childAlias, specLoc);
-
-    const parentRowObjectSql = this.jsonObjectRowsSql(parent, [], parentPkCond, null, specLoc);
-
-    return new SqlParts(new Set(), [{
-      entryType: 'parent-ref',
-      projectedName: parent.referenceName,
-      parentRowObjectSql,
-      comment: `reference '${parent.referenceName}' to parent table '${parent.table}'`
-    }]);
   }
 
   private childCollectionSelectEntries
@@ -370,25 +371,26 @@ export class SqlSpecGenerator
     if (!tj.childTables)
       return [];
 
-    return tj.childTables.map(child => {
-      const childLoc = addLocPart(specLoc, `collection '${child.collectionName}' of "${child.table}" table records`);
+    return tj.childTables.map(childSpec => {
+      const childLoc = addLocPart(specLoc, `collection '${childSpec.collectionName}' of "${childSpec.table}" records`);
 
-      const childRelId = identifyTable(child.table, this.defaultSchema, this.dbmd, childLoc);
+      const childRelId = identifyTable(childSpec.table, this.defaultSchema, this.dbmd, childLoc);
 
-      const childFkCond = this.getChildForeignKeyCondition(child, childRelId, parentRelId, parentAlias, childLoc);
+      const childFkCond = this.getChildForeignKeyCondition(childSpec, childRelId, parentRelId, parentAlias, childLoc);
 
-      const unwrap = child.unwrap ?? false;
+      const unwrap = childSpec.unwrap ?? false;
 
-      if ( unwrap && jsonPropertiesCount(child) > 1 )
+      if ( unwrap && jsonPropertiesCount(childSpec) > 1 )
         throw new SpecError(childLoc, 'Unwrapped child collection cannot have multiple field expressions.');
 
-      const collectionSql = this.jsonArrayRowSql(child, childFkCond, unwrap, child.orderBy, childLoc);
+      const collectionSql = this.jsonArrayRowSql(childSpec, childFkCond, unwrap, childSpec.orderBy, childLoc);
 
       return {
         entryType: 'child-coll',
-        projectedName: child.collectionName,
+        projectedName: childSpec.collectionName,
         collectionSql,
-        comment: `collection '${child.collectionName}' of records from child table '${child.table}'`,
+        comment: `collection '${childSpec.collectionName}' of records from child table '${childSpec.table}'`,
+        displayOrder: childSpec.displayOrder
       };
     });
   }
