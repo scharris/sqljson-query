@@ -633,7 +633,7 @@ test('result representation defaults to JSON_OBJECT_ROWS', () => {
 
 test('expression fields must specify json property', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
-  const querySpec: QuerySpec =
+  const querySpec: any =
   {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],
@@ -648,7 +648,7 @@ test('expression fields must specify json property', () => {
 
 test('expression fields must specify field type in generated source', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
-  const querySpec: QuerySpec =
+  const querySpec: any =
   {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],
@@ -663,7 +663,7 @@ test('expression fields must specify field type in generated source', () => {
 
 test('a table field/expresion specifying both field and expression values causes error', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
-  const querySpec: QuerySpec =
+  const querySpec: any =
   {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],
@@ -680,7 +680,7 @@ test('a table field/expresion specifying both field and expression values causes
 
 test('a table field/expresion specifying neither field nor expression value causes error', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
-  const querySpec: QuerySpec =
+  const querySpec: any =
   {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],

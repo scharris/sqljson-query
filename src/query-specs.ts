@@ -32,12 +32,23 @@ export interface TableJsonSpec
   resultTypeName?: string;
 }
 
-export interface TableFieldExpr
+export type TableFieldExpr = TableField | TableExpr;
+
+export interface TableField
 {
-  field?: string;
-  expression?: string;
+  field: string;
+  expression?: null;
   jsonProperty?: string; // Required if value is not a simple field name.
   fieldTypeInGeneratedSource?: string | {[srcLang: string]: string};
+  withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
+}
+
+export interface TableExpr
+{
+  field?: null;
+  expression: string;
+  jsonProperty: string;
+  fieldTypeInGeneratedSource: string | {[srcLang: string]: string};
   withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
 }
 
