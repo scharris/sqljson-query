@@ -126,7 +126,7 @@ async function writePropertiesMetadata
   const fileName = queryName.replace(/ /g, '-').toLowerCase() + '-properties.json';
   const propsMdPath = path.join(outputDir, fileName);
 
-  await writeTextFile(propsMdPath, JSON.stringify(propsMd), { avoidWritingSameContents: true });
+  await writeTextFile(propsMdPath, JSON.stringify(propsMd, null, 2), { avoidWritingSameContents: true });
 }
 
 async function writeSqls

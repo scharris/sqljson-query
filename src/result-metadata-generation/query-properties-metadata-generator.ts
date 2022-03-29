@@ -38,20 +38,20 @@ function makePropertyMetadata
       return {
         type: 'field',
         propertyName: selectEntry.projectedName,
-        field: selectEntry.fieldName,
+        sourceField: selectEntry.fieldName,
       };
     case 'expr':
       return {
         type: 'expr',
         propertyName: selectEntry.projectedName,
-        expression: selectEntry.expression,
+        sourceExpression: selectEntry.expression,
       };
     case 'parent-ref':
     {
       const parentSql = selectEntry.parentRowObjectSql;
       return {
         type: 'parent-ref',
-        propertyName: selectEntry.projectedName,
+        referencePropertyName: selectEntry.projectedName,
         table: getBaseTable(parentSql),
         properties: makePropertyMetadatas(parentSql)
       };
@@ -61,7 +61,7 @@ function makePropertyMetadata
       const childSql = selectEntry.collectionSql;
       return {
         type: 'child-coll',
-        propertyName: selectEntry.projectedName,
+        collectionPropertyName: selectEntry.projectedName,
         table: getBaseTable(childSql),
         properties: makePropertyMetadatas(childSql),
         unwrapped: !(childSql.objectWrapProperties ?? true)

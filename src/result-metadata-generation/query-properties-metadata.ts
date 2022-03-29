@@ -17,7 +17,7 @@ export interface FieldPropertyMetadata
 {
   type: 'field';
   propertyName: string;
-  field: string;
+  sourceField: string;
   viaInlinedParentSteps?: ParentStep[];
 }
 
@@ -25,14 +25,14 @@ export interface ExpressionPropertyMetadata
 {
   type: 'expr';
   propertyName: string;
-  expression: string;
+  sourceExpression: string;
   viaInlinedParentSteps?: ParentStep[];
 }
 
 export interface ChildTableCollectionPropertyMetadata
 {
   type: 'child-coll';
-  propertyName: string;
+  collectionPropertyName: string;
   table: RelId;
   properties: PropertyMetadata[];
   unwrapped: boolean;
@@ -42,7 +42,7 @@ export interface ChildTableCollectionPropertyMetadata
 export interface ParentReferencePropertyMetadata
 {
   type: 'parent-ref';
-  propertyName: string;
+  referencePropertyName: string;
   table: RelId;
   properties: PropertyMetadata[];
   viaInlinedParentSteps?: ParentStep[];
