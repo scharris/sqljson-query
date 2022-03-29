@@ -1,6 +1,6 @@
 import { partitionByEquality } from "../util/collections";
 import { hashString, makeNameNotInSet, upperCamelCase } from "../util/strings";
-import { resultTypeSpecsEqual, ResultTypeSpec } from "./result-type-spec-generator";
+import { ResultTypeSpec, resultTypeSpecsEqual } from "./result-type-specs";
 
 export function assignResultTypeNames(resTypes: ResultTypeSpec[]): Map<ResultTypeSpec,string>
 {

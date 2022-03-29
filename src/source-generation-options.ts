@@ -1,4 +1,4 @@
-import { ResultTypeSpec, TableFieldProperty } from './result-type-gen';
+import { ResultTypeSpec, TableFieldProperty } from './result-type-generation';
 
 export type SourceLanguage = 'TS' | 'Java';
 
@@ -10,6 +10,7 @@ export interface CommonSourceGenerationOptions
   resultTypesOutputDir: string;
   sqlOutputDir: string;
   sqlSpecOutputDir?: string;
+  queryPropertiesOutputDir?: string;
   sqlResourcePathPrefix?: string;
   typesHeaderFile?: string;
   customPropertyTypeFn?: CustomPropertyTypeFn;

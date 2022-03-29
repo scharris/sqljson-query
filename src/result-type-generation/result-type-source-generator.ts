@@ -1,8 +1,9 @@
 import { getQueryParamNames, QuerySpec } from '../query-specs';
 import { ResultTypeSpecGenerator } from './result-type-spec-generator';
-import { ResultTypesSourceGenerationOptions } from '../source-gen-options';
+import { ResultTypesSourceGenerationOptions } from '../source-generation-options';
 import { DatabaseMetadata } from '../dbmd';
-import { QueryReprSqlPath, ResultTypesSource } from './common-types';
+import { GeneratedResultTypes } from "./generated-result-types";
+import { QueryReprSqlPath } from "./query-repr-sql-path";
 import makeTypeScriptSource from './source-emmitters/ts';
 import makeJavaSource from './source-emmitters/java';
 
@@ -26,7 +27,7 @@ export class ResultTypeSourceGenerator
       sqlPaths: QueryReprSqlPath[],
       opts: ResultTypesSourceGenerationOptions
     )
-    : ResultTypesSource
+    : GeneratedResultTypes
   {
     const qName = querySpec.queryName;
     const resTypeSpecs = this.resTypeSpecGen.generateResultTypeSpecs(querySpec.tableJson, qName);

@@ -1,4 +1,4 @@
-import {propertiesCount, ResultTypeSpec, resultTypeSpecsEqual} from '../result-type-gen';
+import {propertiesCount, ResultTypeSpec, resultTypeSpecsEqual} from '../result-type-generation';
 
 const emptyResultTypeSpec: ResultTypeSpec = {
   queryName: 'query',

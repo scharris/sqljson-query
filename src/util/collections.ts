@@ -156,6 +156,14 @@ export function sorted<T>(ts: T[], f: ((e1: T, e2: T) => number) | undefined): T
   return res;
 }
 
+export function firstValue<K,V>(m: Map<K,V>): V
+{
+  const val = m.values().next().value;
+  if (val == null)
+    throw new Error('Attempt to get firstValue() on empty map.');
+  return val;
+}
+
 function getItemIndexMap<T>(ts: T[])
 {
   const m = new Map<T, number>();

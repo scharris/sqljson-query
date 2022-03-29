@@ -1,4 +1,4 @@
-import { ForeignKeyComponent } from "../dbmd";
+import { ForeignKeyComponent, RelId } from "../dbmd";
 import { AdditionalObjectPropertyColumn } from "../query-specs";
 import { lowerCaseInitials, makeNameNotInSet } from "../util/strings";
 
@@ -48,6 +48,7 @@ export interface InlineParentSelectEntry
   entryType: 'inline-parent-prop';
   projectedName: string;
   parentAlias: string;
+  parentTable: RelId;
   comment?: string | null;
   parentSelectEntry: SelectEntry;
   displayOrder?: number;
@@ -87,7 +88,7 @@ export type FromEntry =
 export interface TableFromEntry
 {
   entryType: 'table';
-  table: { schema?: string | null, name: string };
+  table: RelId;
   alias: string;
   joinCondition?: JoinCondition;
   comment?: undefined;

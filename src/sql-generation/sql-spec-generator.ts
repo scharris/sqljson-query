@@ -279,12 +279,15 @@ export class SqlSpecGenerator
       comment: `parent table '${parent.table}', joined for inlined fields`
     });
 
+    const parentRelId = identifyTable(parent.table, this.defaultSchema, this.dbmd, specLoc);
+
     for (const [ix, parentPropSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
       sqlParts.addSelectEntry({
         entryType: 'inline-parent-prop',
         projectedName: parentPropSelectEntry.projectedName,
-        parentAlias: parentAlias,
+        parentAlias,
+        parentTable: parentRelId,
         comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null,
         parentSelectEntry: parentPropSelectEntry,
         displayOrder: parentPropSelectEntry.displayOrder

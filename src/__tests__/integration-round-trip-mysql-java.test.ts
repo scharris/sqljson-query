@@ -10,13 +10,13 @@ import {
   makeTempDir,
 } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
-import { ResultTypesSource, ResultTypeSourceGenerator } from '../result-type-gen';
+import { GeneratedResultTypes, ResultTypeSourceGenerator } from '../result-type-generation';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources, SourceGenerationOptions } from '../mod';
 import { spawnSync } from 'child_process';
-import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
-import { SqlSourceGenerator } from '../sql-gen/sql-source-generator';
-import { getSqlDialect } from '../sql-gen';
+import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
+import { SqlSourceGenerator } from '../sql-generation/sql-source-generator';
+import { getSqlDialect } from '../sql-generation';
 
 const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -896,11 +896,11 @@ async function compileAndRunTest
   expect(cp.stdout || '').toContain('[INFO] BUILD SUCCESS');
 }
 
-function testWithResultTypes(resTypesSrc: ResultTypesSource, testSrc: string): Promise<void>
+function testWithResultTypes(resTypesSrc: GeneratedResultTypes, testSrc: string): Promise<void>
 {
   return compileAndRunTest(
     'package testpkg;\n' +
-    resTypesSrc.sourceCode,
+    resTypesSrc.resultTypesSourceCode,
     'package testpkg;\n' +
     'import com.fasterxml.jackson.databind.ObjectMapper;\n' +
     'import static com.fasterxml.jackson.databind.DeserializationFeature.*;\n\n' +

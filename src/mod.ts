@@ -5,20 +5,22 @@ import {
   requireFileExists,
   writeTextFile,
   cwd,
-  mapValues
+  mapValues,
+  firstValue
 } from './util/mod';
 import { readDatabaseMetadata } from './dbmd';
-import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
-import { SourceGenerationOptions } from './source-gen-options';
-import { ResultTypeSourceGenerator, QueryReprSqlPath } from './result-type-gen';
-import { SqlSourceGenerator } from './sql-gen/sql-source-generator';
-import { SqlSpecGenerator } from './sql-gen/sql-spec-generator';
-import { SqlSpec } from './sql-gen/sql-specs';
-import { getSqlDialect } from './sql-gen';
+import { QueryGroupSpec, QuerySpec, ResultRepr, SpecError } from './query-specs';
+import { SourceGenerationOptions } from './source-generation-options';
+import { ResultTypeSourceGenerator, QueryReprSqlPath } from './result-type-generation';
+import { SqlSourceGenerator } from './sql-generation/sql-source-generator';
+import { SqlSpecGenerator } from './sql-generation/sql-spec-generator';
+import { SqlSpec } from './sql-generation/sql-specs';
+import { getSqlDialect } from './sql-generation';
+import { makeQueryPropertiesMetadata } from './result-metadata-generation/query-properties-metadata-generator';
 
-export * from './source-gen-options';
+export * from './source-generation-options';
 export * from './query-specs';
-export * from './result-type-gen';
+export * from './result-type-generation';
 export * from './dbmd/relations-md-source-generator';
 
 export async function generateQuerySources
@@ -31,13 +33,7 @@ export async function generateQuerySources
 {
   try
   {
-    await requireFileExists(dbmdFile, 'The database metadata file was not found.');
-    await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
-    await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
-    if (opts.sqlSpecOutputDir)
-      await requireDirExists(opts.sqlSpecOutputDir, 'The SQL specifications output directory was not found.');
-    if (opts?.typesHeaderFile)
-      await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
+    await checkFilesAndDirectoriesExist(dbmdFile, opts);
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
@@ -53,27 +49,17 @@ export async function generateQuerySources
     for (const querySpec of queryGroupSpec.querySpecs)
     {
       const sqlSpecsByRepr = sqlSpecGen.generateSqlSpecs(querySpec);
+
       if (opts.sqlSpecOutputDir)
         await writeSqlSpecs(querySpec.queryName, sqlSpecsByRepr, opts.sqlSpecOutputDir);
 
-      const sqlsByRepr = mapValues(sqlSpecsByRepr, sqlSpec => sqlSrcGen.makeSql(sqlSpec));
+      if (opts.queryPropertiesOutputDir)
+        await writePropertiesMetadata(firstValue(sqlSpecsByRepr), querySpec.queryName, opts.queryPropertiesOutputDir);
 
-      const sqlPaths = await writeSqls(querySpec.queryName, sqlsByRepr, opts.sqlOutputDir);
+      const sqlPaths = await writeSqls(querySpec.queryName, sqlSpecsByRepr, sqlSrcGen, opts.sqlOutputDir);
 
       if (querySpec.generateResultTypes ?? true)
-      {
-        const { sourceCode, compilationUnitName } =
-          resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
-
-        const fileName = `${compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
-        const resultTypesOutputFile = path.join(opts.resultTypesOutputDir, fileName);
-
-        await writeTextFile(
-          resultTypesOutputFile,
-          sourceCode,
-          { avoidWritingSameContents: true }
-        );
-      }
+        await writeResultTypes(resultTypesSrcGen, querySpec, sqlPaths, opts);
     }
   }
   catch (e)
@@ -124,22 +110,35 @@ async function writeSqlSpecs
     const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
     const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
 
-    await writeTextFile(
-      sqlSpecPath,
-      JSON.stringify(sqlSpec, null, 2) + "\n",
-      { avoidWritingSameContents: true }
-    );
+    await writeTextFile(sqlSpecPath, JSON.stringify(sqlSpec, null, 2) + "\n", { avoidWritingSameContents: true });
   }
+}
+
+async function writePropertiesMetadata
+  (
+    sqlSpec: SqlSpec,
+    queryName: string,
+    outputDir: string
+  )
+  : Promise<void>
+{
+  const propsMd = makeQueryPropertiesMetadata(queryName, sqlSpec);
+  const fileName = queryName.replace(/ /g, '-').toLowerCase() + '-properties.json';
+  const propsMdPath = path.join(outputDir, fileName);
+
+  await writeTextFile(propsMdPath, JSON.stringify(propsMd), { avoidWritingSameContents: true });
 }
 
 async function writeSqls
   (
     queryName: string,
-    resultReprToSqlMap: Map<ResultRepr,string>,
+    sqlSpecs: Map<ResultRepr,SqlSpec>,
+    sqlSrcGen: SqlSourceGenerator,
     outputDir: string
   )
   : Promise<QueryReprSqlPath[]>
 {
+  const resultReprToSqlMap = mapValues(sqlSpecs, sqlSpec => sqlSrcGen.makeSql(sqlSpec));
   const multReprs = resultReprToSqlMap.size > 1;
   const res: QueryReprSqlPath[] = [];
 
@@ -152,16 +151,47 @@ async function writeSqls
     const header = "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
       "-- " + resultRepr + " results representation for " + queryName + "\n";
 
-    await writeTextFile(
-      sqlPath,
-      header + sql + "\n",
-      { avoidWritingSameContents: true }
-    );
+    await writeTextFile(sqlPath, header + sql + "\n", { avoidWritingSameContents: true });
 
     res.push({ queryName, resultRepr, sqlPath });
   }
 
   return res;
+}
+
+async function writeResultTypes
+  (
+    resultTypesSrcGen: ResultTypeSourceGenerator,
+    querySpec: QuerySpec,
+    sqlPaths: QueryReprSqlPath[],
+    opts: SourceGenerationOptions
+  )
+  : Promise<void>
+{
+  const { resultTypesSourceCode, compilationUnitName } =
+    resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
+
+  const fileName = `${compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
+  const resultTypesOutputFile = path.join(opts.resultTypesOutputDir, fileName);
+
+  await writeTextFile(resultTypesOutputFile, resultTypesSourceCode, { avoidWritingSameContents: true });
+}
+
+async function checkFilesAndDirectoriesExist
+  (
+    dbmdFile: string,
+    opts: SourceGenerationOptions
+  )
+{
+  await requireFileExists(dbmdFile, 'The database metadata file was not found.');
+  await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
+  await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
+  if (opts.sqlSpecOutputDir)
+    await requireDirExists(opts.sqlSpecOutputDir, 'The SQL specifications output directory was not found.');
+  if (opts.queryPropertiesOutputDir)
+    await requireDirExists(opts.queryPropertiesOutputDir, 'The query properties output directory was not found.');
+  if (opts?.typesHeaderFile)
+    await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
 }
 
 function makeSpecLocationError(e: SpecError): Error

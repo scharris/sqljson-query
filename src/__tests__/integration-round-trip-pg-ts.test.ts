@@ -10,13 +10,13 @@ import {
   writeTextFile
 } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
-import { ResultTypeSourceGenerator } from '../result-type-gen';
+import { ResultTypeSourceGenerator } from '../result-type-generation';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources, SourceGenerationOptions } from '../mod';
 import { spawnSync } from 'child_process';
-import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
-import { SqlSourceGenerator } from '../sql-gen/sql-source-generator';
-import { getSqlDialect } from '../sql-gen';
+import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
+import { SqlSourceGenerator } from '../sql-generation/sql-source-generator';
+import { getSqlDialect } from '../sql-generation';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -48,7 +48,7 @@ test('results match generated types for JSON_OBJECT_ROWS query of single table',
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -77,7 +77,7 @@ test('results match generated types for JSON_ARRAY_ROW query of single table', a
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows[0].json, null, 2) + ";"
   );
@@ -115,7 +115,7 @@ test('table field property names specified by jsonProperty attributes', async ()
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -152,7 +152,7 @@ test('parent reference', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -190,7 +190,7 @@ test('table field properties from inline parent tables', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -236,7 +236,7 @@ test('table field properties from an inlined parent and its own inlined parent',
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -277,7 +277,7 @@ test('referenced parent property from an inlined parent', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -317,7 +317,7 @@ test('child collection property from an inlined parent', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -358,7 +358,7 @@ test('unwrapped child collection property from an inlined parent', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Drug[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -395,7 +395,7 @@ test('child collection', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -432,7 +432,7 @@ test('unwrapped child table collection of table field property', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -470,7 +470,7 @@ test('unwrapped child table collection of field expression property', async () =
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -510,7 +510,7 @@ test('unwrapped child table collection of field expression property with lang-sp
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Analyst[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -551,7 +551,7 @@ test('unwrapped child table collection of parent reference property', async () =
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -592,7 +592,7 @@ test('unwrapped child table collection of inlined parent property', async () => 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -635,7 +635,7 @@ test('unwrapped child collection of child collection property', async () => {
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );
@@ -678,7 +678,7 @@ test('unwrapped child collection of unwrapped child collection property', async 
   const queryRes = await dbClient.query(sql);
 
   await compile(
-    resTypesModuleSrc.sourceCode + "\n" +
+    resTypesModuleSrc.resultTypesSourceCode + "\n" +
     "const rowVals: Compound[] = " +
     JSON.stringify(queryRes.rows.map(r => r.json), null, 2) + ";"
   );

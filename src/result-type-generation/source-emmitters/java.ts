@@ -1,36 +1,59 @@
 import * as path from 'path';
-import { upperCamelCase, readTextFileSync, sorted } from '../../util/mod';
+import {
+  upperCamelCase,
+  indentLines,
+  readTextFileSync,
+  sorted,
+} from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
   ResultTypeSpec, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty, propertiesCount,
-} from '../result-type-spec-generator';
-import { ResultTypesSourceGenerationOptions } from '../../source-gen-options';
-import { QueryReprSqlPath, ResultTypesSource } from '../common-types';
+  ParentReferenceProperty,
+  propertiesCount
+} from '../result-type-specs';
+import {
+  JavaSourceGenerationOptions,
+  ResultTypesSourceGenerationOptions
+} from '../../source-generation-options';
+import { GeneratedResultTypes } from "../generated-result-types";
+import { QueryReprSqlPath } from "../query-repr-sql-path";
 import { assignResultTypeNames } from '../result-type-names-assignment';
 
 export default function makeSource
   (
     queryName: string,
-    resultTypes: ResultTypeSpec[],
+    resultTypeSpecs: ResultTypeSpec[],
     queryTypesFileHeader: string | undefined,
     queryParamNames: string[],
     sqlPaths: QueryReprSqlPath[],
-    opts: ResultTypesSourceGenerationOptions
+    opts: JavaResultTypesSourceGenerationOptions
   )
-  : ResultTypesSource
+  : GeneratedResultTypes
 {
+  const sqlPathMembers = sqlPaths.length == 0 ? '' :
+    '  // The types defined in this file correspond to results of the following generated SQL queries.\n' +
+    indentLines(sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix), 2) + '\n\n';
+  const sqlParamMembers = queryParamNames.length == 0 ? '' :
+    "  // query parameters\n" +
+    indentLines(queryParamDefinitions(queryParamNames), 2) + '\n\n';
+
+  const compilationUnitName = makeCompilationUnitName(queryName);
+
   return {
-    compilationUnitName: makeCompilationUnitName(queryName),
-    sourceCode:
+    compilationUnitName,
+    resultTypeSpecs,
+    resultTypesSourceCode:
+      (opts?.javaOptions?.javaPackage ? `package ${opts.javaOptions.javaPackage};\n\n` : '') +
       generalTypesFileHeader(opts.typesHeaderFile) +
-      (queryTypesFileHeader || '') + '\n\n' +
-      '// The types defined in this file correspond to results of the following generated SQL queries.\n' +
-      sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix) + "\n\n" +
-      '// query parameters\n' +
-      queryParamDefinitions(queryParamNames) + '\n\n' +
-      '// Below are types representing the result data for the generated query, with top-level type first.\n' +
-      resultTypeDeclarations(resultTypes, opts)
+      (queryTypesFileHeader || '') + '\n' +
+      standardImports + '\n\n' +
+      `public class ${compilationUnitName}\n` +
+      '{\n' +
+        sqlPathMembers +
+        sqlParamMembers +
+        "  // Below are types representing the result data for the generated query, with top-level result type first.\n\n" +
+        indentLines(resultTypeDeclarations(resultTypeSpecs, opts), 2) + '\n' +
+      '}\n'
   };
 }
 
@@ -44,7 +67,7 @@ function sqlFileReferences
   (
     queryName: string,
     queryReprSqlPaths: QueryReprSqlPath[],
-    sqlResourcePathPrefix: string | undefined
+    sqlResourcePathPrefix: string | undefined,
   )
   : string
 {
@@ -55,7 +78,7 @@ function sqlFileReferences
   {
     const memberName = 'sqlResource' + (sqlPathsByRepr.size == 1 ? '' : upperCamelCase(repr));
     const resourceName = (sqlResourcePathPrefix || '') + path.basename(sqlPathsByRepr.get(repr) || '');
-    lines.push(`export const ${memberName} = "${resourceName}";`); break;
+    lines.push(`public static final String ${memberName} = "${resourceName}";`);
   }
 
   return lines.join('\n') + '\n';
@@ -63,7 +86,8 @@ function sqlFileReferences
 
 function queryParamDefinitions(paramNames: string[]): string
 {
-  const makeParamDecl = (paramName: string) => `export const ${paramName}Param = '${paramName}';`;
+  const makeParamDecl = (paramName: string) =>
+    `public static final String ${paramName}Param = \"${paramName}\";`;
   return paramNames.map(makeParamDecl).join('\n\n');
 }
 
@@ -87,7 +111,7 @@ function resultTypeDeclarations
     if (resTypeName == null)
       throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
 
-    if (!writtenTypeNames.has(resTypeName))
+    if ( !writtenTypeNames.has(resTypeName) )
     {
       typeDecls.push(makeResultTypeDeclaration(resType, resultTypeNameAssignments, opts) + '\n');
       writtenTypeNames.add(resTypeName);
@@ -101,37 +125,56 @@ function makeResultTypeDeclaration
   (
     resType: ResultTypeSpec,
     resTypeNameAssignments: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
+    opts: JavaResultTypesSourceGenerationOptions
   )
   : string
 {
+  const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
+  const vis = emitRecords ? '' : 'public ';
+
   const decls: { decl: string; displayOrder: number }[] = [];
 
-  resType.tableFieldProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${tableFieldPropertyType(prop, resType, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.tableExpressionProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${tableExpressionPropertyType(prop, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.parentReferenceProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${parentReferencePropertyType(prop, resTypeNameAssignments, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.childCollectionProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${childCollectionPropertyType(prop, resTypeNameAssignments, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
+  resType.tableFieldProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${tableFieldPropertyType(prop, resType, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
+  });
+  resType.tableExpressionProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${tableExpressionPropertyType(prop, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
+  });
+  resType.parentReferenceProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${parentReferencePropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
+  });
+  resType.childCollectionProperties.forEach(prop => {
+    decls.push({
+      decl: `${vis}${childCollectionPropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
+      displayOrder: prop.displayOrder ?? (decls.length + 1)
+    });
+  });
+
+  const sortedDecls =
+    sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
+    .map(decl => decl.decl);
 
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
-  return (
-    `export interface ${resTypeName}\n` +
+  if (emitRecords) return (
+    `public record ${resTypeName}(\n` +
+      indentLines(sortedDecls.join(',\n'), 2) + '\n' +
+    '){}'
+  );
+  else return (
+    '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
+    `public static class ${resTypeName}\n` +
     '{\n' +
-      sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
-      .map(decl => decl.decl)
-      .join('\n') + '\n' +
+      indentLines(sortedDecls.join(';\n'), 2) + ';\n' +
     '}'
   );
 }
@@ -164,7 +207,7 @@ function tableFieldPropertyType
     case 'int4':
     case 'smallint':
     case 'int8':
-      return withNullability(tfp.nullable, 'number');
+      return generalNumericTableFieldPropertyType(tfp);
     case 'float':
     case 'real':
     case 'double':
@@ -251,7 +294,7 @@ function childCollectionPropertyType
     getSolePropertyType(p.elResultType, resTypeNames, opts)
     : resTypeNames.get(p.elResultType)!; // a regular (wrapped) child record is never nullable itself, by its nature
 
-  return withNullability(p.nullable, `${collElType}[]`);
+  return withNullability(p.nullable, `List<${toReferenceType(collElType)}>`);
 }
 
 function getSolePropertyType
@@ -277,24 +320,35 @@ function getSolePropertyType
     throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
 }
 
+function generalNumericTableFieldPropertyType(fp: TableFieldProperty): string
+{
+  if (fp.fractionalDigits == null || fp.fractionalDigits > 0)
+    return withNullability(fp.nullable, 'BigDecimal');
+  else // no fractional part
+  {
+    const primTypeName = fp.precision == null || fp.precision > 9 ? "long" : "int";
+    return withNullability(fp.nullable, primTypeName);
+  }
+}
+
 function floatingNumericTableFieldPropertyType(fp: TableFieldProperty): string
 {
-  return withNullability(fp.nullable, 'number');
+  return withNullability(fp.nullable, "double");
 }
 
 function textTableFieldPropertyType(fp: TableFieldProperty): string
 {
-  return withNullability(fp.nullable, 'string');
+  return withNullability(fp.nullable, "String");
 }
 
 function booleanTableFieldPropertyType(fp: TableFieldProperty): string
 {
-  return withNullability(fp.nullable, 'boolean');
+  return withNullability(fp.nullable, "boolean");
 }
 
 function jsonTableFieldPropertyType(fp: TableFieldProperty): string
 {
-  return withNullability(fp.nullable, 'any');
+  return withNullability(fp.nullable, 'JsonNode');
 }
 
 function withNullability
@@ -305,7 +359,24 @@ function withNullability
   : string
 {
   const nullable = maybeNullable == null ? true : maybeNullable;
-  return typeName + (nullable ? ' | null' : '');
+  if (nullable) return '@Nullable ' + toReferenceType(typeName);
+  else return typeName;
+}
+
+function toReferenceType(typeName: string): string
+{
+  switch (typeName)
+  {
+    case 'int': return 'Integer';
+    case 'long': return 'Long';
+    case 'double': return 'Double';
+    case 'float': return 'Float';
+    case 'boolean': return 'Boolean';
+    case 'char': return 'Character';
+    case 'short': return 'Short';
+    case 'byte': return 'Byte';
+    default: return typeName;
+  }
 }
 
 function makeQueryResultReprToSqlPathMap
@@ -328,7 +399,23 @@ function makeQueryResultReprToSqlPathMap
   }
   return res;
 }
+
+const standardImports: string =
+  'import java.util.*;\n' +
+  'import java.math.*;\n' +
+  'import java.time.*;\n' +
+  'import org.checkerframework.checker.nullness.qual.Nullable;\n' +
+  'import org.checkerframework.checker.nullness.qual.NonNull;\n' +
+  'import org.checkerframework.framework.qual.DefaultQualifier;\n' +
+  'import org.checkerframework.framework.qual.TypeUseLocation;\n' +
+  'import com.fasterxml.jackson.databind.JsonNode;\n' +
+  'import com.fasterxml.jackson.databind.node.*;\n';
+
 function makeCompilationUnitName(queryName: string): string
 {
-  return queryName.replace(/ /g, '-').toLowerCase();
+  return upperCamelCase(queryName);
 }
+
+type JavaResultTypesSourceGenerationOptions =
+  ResultTypesSourceGenerationOptions &
+  { javaOptions?: JavaSourceGenerationOptions };
