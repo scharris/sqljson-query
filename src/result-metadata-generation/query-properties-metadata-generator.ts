@@ -75,7 +75,7 @@ function makePropertyMetadata
           selectEntry.parentAlias,
           selectEntry.parentSelectEntry.projectedName
         );
-      return { ...ancestorPropertyMetadata, viaInlinedParentSteps: parentSteps };
+      return { ...ancestorPropertyMetadata, inlinedFromAncestorVia: parentSteps };
     }
     default:
       throw new Error(`Unexpected select entry type '${selectEntry.entryType}'.`);
@@ -132,10 +132,15 @@ function makeParentStep(parentFromEntry: QueryFromEntry): ParentStep
   if (!parentFromEntry.joinCondition)
     throw new Error(`Expected join condition for inline parent.`);
 
-  return {
-    parent: getBaseTable(parentFromEntry.query),
-    viaFkFields: parentFromEntry.joinCondition.parentChildCondition.matchedFields.map(fp => fp.foreignKeyFieldName)
-  };
+  const parent = getBaseTable(parentFromEntry.query);
+  const viaFkFields =
+    parentFromEntry
+    .joinCondition
+    .parentChildCondition
+    .matchedFields
+    .map(fp => fp.foreignKeyFieldName);
+
+  return { parent, fkFields: viaFkFields };
 }
 
 // Return the leading from clause entry or throw error.

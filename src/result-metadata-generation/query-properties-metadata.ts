@@ -18,7 +18,7 @@ export interface FieldPropertyMetadata
   type: 'field';
   propertyName: string;
   sourceField: string;
-  viaInlinedParentSteps?: ParentStep[];
+  inlinedFromAncestorVia?: ParentStep[];
 }
 
 export interface ExpressionPropertyMetadata
@@ -26,7 +26,7 @@ export interface ExpressionPropertyMetadata
   type: 'expr';
   propertyName: string;
   sourceExpression: string;
-  viaInlinedParentSteps?: ParentStep[];
+  inlinedFromAncestorVia?: ParentStep[];
 }
 
 export interface ChildTableCollectionPropertyMetadata
@@ -36,7 +36,7 @@ export interface ChildTableCollectionPropertyMetadata
   table: RelId;
   properties: PropertyMetadata[];
   unwrapped: boolean;
-  viaInlinedParentSteps?: ParentStep[];
+  inlinedFromAncestorVia?: ParentStep[];
 }
 
 export interface ParentReferencePropertyMetadata
@@ -45,7 +45,7 @@ export interface ParentReferencePropertyMetadata
   referencePropertyName: string;
   table: RelId;
   properties: PropertyMetadata[];
-  viaInlinedParentSteps?: ParentStep[];
+  inlinedFromAncestorVia?: ParentStep[];
 }
 
-export type ParentStep = { parent: RelId, viaFkFields: string[] };
+export type ParentStep = { parent: RelId, fkFields: string[] };

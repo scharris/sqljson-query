@@ -1,8 +1,7 @@
 import { caseNormalizeName, makeMap, relIdDescn } from '../util/mod';
 import { DatabaseMetadata, Field, foreignKeyFieldNames, RelId } from '../dbmd';
 import {
-  ChildSpec, getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, ReferencedParentSpec,
-  TableFieldExpr, TableJsonSpec
+  getInlineParentSpecs, getReferencedParentSpecs, ParentSpec, TableFieldExpr, TableJsonSpec
 } from '../query-specs';
 import { identifyTable } from '../query-specs';
 import {
@@ -36,36 +35,24 @@ export class ResultTypeSpecGenerator
     const relId = identifyTable(tj.table, this.defaultSchema, this.dbmd, {queryName});
 
     // Add the table's own fields and expressions involving those fields.
-    topTypeSpec.addTableFieldProperties(this.getTableFieldProperties(relId, tj.fieldExpressions));
-    topTypeSpec.addTableExpressionProperties(this.getTableExpressionProperties(relId, tj.fieldExpressions));
+    topTypeSpec.addTableFieldProperties(this.getTableFieldProperties(tj, relId));
+    topTypeSpec.addTableExpressionProperties(this.getTableExpressionProperties(tj, relId));
 
-    // Get contributions from inline parents (processed recursively), which may include (only)
-    // properties in any of the other categories (table fields and expressions, parent references,
-    // and child collections).
-    const inlineParentSpecs = getInlineParentSpecs(tj);
-    if (inlineParentSpecs.length > 0)
-    {
-      const inlineParentContrs = this.getInlineParentContrs(relId, inlineParentSpecs, queryName);
-      topTypeSpec.addProperties(inlineParentContrs.properties);
-      resultTypes.push(...inlineParentContrs.resultTypes);
-    }
+    // Get contributions from inline parents, which may include only properties in any of the
+    // other categories (table fields and expressions, parent references, and child collections).
+    const inlineParentContrs = this.getInlineParentContrs(tj, relId, queryName);
+    topTypeSpec.addProperties(inlineParentContrs.properties);
+    resultTypes.push(...inlineParentContrs.resultTypes);
 
     // Get referenced parent fields and result types, with result types from related tables.
-    const refdParentSpecs = getReferencedParentSpecs(tj);
-    if (refdParentSpecs.length > 0)
-    {
-      const refdParentContrs = this.getReferencedParentContrs(relId, refdParentSpecs, queryName);
-      topTypeSpec.addParentReferenceProperties(refdParentContrs.referenceProperties);
-      resultTypes.push(...refdParentContrs.resultTypes);
-    }
+    const refdParentContrs = this.getReferencedParentContrs(tj, relId, queryName);
+    topTypeSpec.addParentReferenceProperties(refdParentContrs.referenceProperties);
+    resultTypes.push(...refdParentContrs.resultTypes);
 
     // Get the child collection fields and result types, with result types from related tables.
-    if (tj.childTables)
-    {
-      const childCollContrs = this.getChildCollectionContrs(tj.childTables, queryName);
-      topTypeSpec.addChildCollectionProperties(childCollContrs.collectionProperties);
-      resultTypes.push(...childCollContrs.resultTypes);
-    }
+    const childCollContrs = this.getChildCollectionContrs(tj, queryName);
+    topTypeSpec.addChildCollectionProperties(childCollContrs.collectionProperties);
+    resultTypes.push(...childCollContrs.resultTypes);
 
     // The top table's type must be added at leading position in the returned list, followed
     // by any other supporting types that were generated.
@@ -76,18 +63,18 @@ export class ResultTypeSpecGenerator
 
   private getTableFieldProperties
     (
+      tj: TableJsonSpec,
       relId: RelId,
-      tableFieldExpressions: (string | TableFieldExpr)[] | undefined,
     )
     : TableFieldProperty[]
   {
-    if (!tableFieldExpressions) return [];
+    if (!tj.fieldExpressions) return [];
 
     const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(relId);
 
     const fields: TableFieldProperty[] = [];
 
-    for (const tfe of tableFieldExpressions)
+    for (const tfe of tj.fieldExpressions)
     {
       const fieldName = typeof tfe === 'string' ? tfe : tfe.field ?? null;
 
@@ -96,6 +83,7 @@ export class ResultTypeSpecGenerator
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
           throw new Error(`No metadata found for field ${relIdDescn(relId)}.${fieldName}.`);
+
         fields.push({
           name: this.getOutputFieldName(tfe, dbField),
           databaseFieldName: dbField.name,
@@ -115,16 +103,17 @@ export class ResultTypeSpecGenerator
 
   getTableExpressionProperties
     (
+      tj: TableJsonSpec,
       relId: RelId,
-      tableFieldExpressions: (string | TableFieldExpr)[] | undefined
+
     )
     : TableExpressionProperty[]
   {
-    if (!tableFieldExpressions) return [];
+    if (!tj.fieldExpressions) return [];
 
     const fields: TableExpressionProperty[]  = [];
 
-    for (const tfe of tableFieldExpressions)
+    for (const tfe of tj.fieldExpressions)
     {
       if (typeof tfe !== 'string' && tfe.expression != null)
       {
@@ -147,13 +136,14 @@ export class ResultTypeSpecGenerator
   /// Get the inline parent contributions of properties and result types for the type to be generated.
   private getInlineParentContrs
     (
+      tj: TableJsonSpec,
       relId: RelId,
-      parentSpecs: ParentSpec[],
       queryName: string
     )
     : InlineParentContrs
   {
-    const props: ResultProperties = { tableFieldProperties: [], tableExpressionProperties: [], parentReferenceProperties: [], childCollectionProperties: [] };
+    const parentSpecs = getInlineParentSpecs(tj);
+    const props: ResultProperties = makeEmptyResultProperties();
     const resultTypes: ResultTypeSpec[] = [];
 
     for (const parentSpec of parentSpecs)
@@ -178,12 +168,13 @@ export class ResultTypeSpecGenerator
   /// Get fields and types from the given referenced parents.
   private getReferencedParentContrs
     (
+      tj: TableJsonSpec,
       relId: RelId,
-      refdParentSpecs: ReferencedParentSpec[],
       queryName: string
     )
     : RefdParentContrs
   {
+    const refdParentSpecs = getReferencedParentSpecs(tj);
     const parentRefProps: ParentReferenceProperty[] = [];
     const resTypeDecrs: ResultTypeSpec[] = [];
 
@@ -212,7 +203,7 @@ export class ResultTypeSpecGenerator
 
   private getChildCollectionContrs
     (
-      childSpecs: ChildSpec[],
+      tj: TableJsonSpec,
       queryName: string
     )
     : ChildCollectionContrs
@@ -220,7 +211,7 @@ export class ResultTypeSpecGenerator
     const collProps: ChildCollectionProperty[]  = [];
     const resTypeSpecs: ResultTypeSpec[] = [];
 
-    for (const childCollSpec of childSpecs)
+    for (const childCollSpec of tj.childTables ?? [])
     {
       // Generate types for the child table and any related tables it includes recursively.
       const childResultTypes = this.generateResultTypeSpecs(childCollSpec, queryName);
@@ -398,4 +389,14 @@ interface ChildCollectionContrs
 function toNullableField<T extends {nullable: boolean|null}>(f: T): T
 {
   return (f.nullable != null && f.nullable) ? f : {...f, nullable: true};
+}
+
+function makeEmptyResultProperties(): ResultProperties
+{
+  return {
+    tableFieldProperties: [],
+    tableExpressionProperties: [],
+    parentReferenceProperties: [],
+    childCollectionProperties: []
+  };
 }
