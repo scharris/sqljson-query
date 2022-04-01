@@ -5,4 +5,3 @@ export interface GeneratedResultTypes {
   resultTypesSourceCode: string;
   compilationUnitName: string;
 }
-

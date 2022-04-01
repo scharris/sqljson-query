@@ -4,7 +4,7 @@ import { lowerCamelCase } from './strings';
 
 export function propertyNameDefaultFunction
   (
-    propNameDefault: PropertyNameDefault | undefined | null,
+    propNameDefault: PropertyNameDefault | null | undefined,
     caseSensitivity: CaseSensitivity
   )
   : (fieldName: string) => string

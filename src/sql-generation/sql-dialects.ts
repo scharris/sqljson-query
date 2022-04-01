@@ -1,4 +1,4 @@
-import { indentLines, unDoubleQuote } from '../util/mod';
+import { indentLines, Nullable, unDoubleQuote } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
 
 type DbmsType = 'PG' | 'ORA' | 'MYSQL' | 'ISO';
@@ -13,9 +13,9 @@ export interface SqlDialect
 {
   getRowObjectExpression(colNames: string[], srcAlias: string): string;
 
-  getAggregatedRowObjectsExpression(colNames: string[], orderBy: string | null | undefined, srcAlias: string): string;
+  getAggregatedRowObjectsExpression(colNames: string[], orderBy: Nullable<string>, srcAlias: string): string;
 
-  getAggregatedColumnValuesExpression(colName: string, orderBy: string | null | undefined, srcAlias: string): string;
+  getAggregatedColumnValuesExpression(colName: string, orderBy: Nullable<string>, srcAlias: string): string;
 
   quoteObjectNameIfNeeded(name: string): string;
 
@@ -48,7 +48,7 @@ export class PostgresDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       columnNames: string[],
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
@@ -64,7 +64,7 @@ export class PostgresDialect implements SqlDialect
   getAggregatedColumnValuesExpression
     (
       columnName: string,
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
@@ -121,7 +121,7 @@ export class OracleDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       columnNames: string[],
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
@@ -137,7 +137,7 @@ export class OracleDialect implements SqlDialect
   getAggregatedColumnValuesExpression
     (
       columnName: string,
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
@@ -200,7 +200,7 @@ export class MySQLDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       columnNames: string[],
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
@@ -218,7 +218,7 @@ export class MySQLDialect implements SqlDialect
   getAggregatedColumnValuesExpression
     (
       columnName: string,
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       srcAlias: string
     )
     : string

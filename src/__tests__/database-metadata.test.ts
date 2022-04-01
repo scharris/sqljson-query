@@ -20,7 +20,7 @@ test('fetch metadata for existing table by rel id', () => {
 test('do not fetch metadata for non-existing rel id', () => {
   const dbmd = new DatabaseMetadata(dbmdStoredProps);
   const relId = makeRelId('dne', 'drugs', 'INSENSITIVE_STORED_LOWER');
-  expect(dbmd.getRelationMetadata(relId)).toBeNull();
+  expect(dbmd.getRelationMetadata(relId)).toBeFalsy();
 });
 
 test('get single primary key field name', () => {

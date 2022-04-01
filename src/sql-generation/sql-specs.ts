@@ -1,19 +1,22 @@
-import { ForeignKeyComponent, RelId } from "../dbmd";
+import { Field, ForeignKeyComponent, RelId } from "../dbmd";
 import { AdditionalObjectPropertyColumn } from "../query-specs";
+import { sorted } from "../util/collections";
+import { Nullable } from "../util/mod";
 import { lowerCaseInitials, makeNameNotInSet } from "../util/strings";
 
 export interface SqlSpec
 {
   selectEntries: SelectEntry[];
   fromEntries: FromEntry[];
-  whereEntries?: WhereEntry[] | null;
-  orderBy?: OrderBy | null;
-  forUpdate?: boolean | null;
-  objectWrapProperties?: boolean;
-  additionalObjectPropertyColumns?: AdditionalObjectPropertyColumn[];
-  aggregateToArray?: boolean;
-  selectEntriesLeadingComment?: string;
-  fromEntriesLeadingComment?: string;
+  whereEntries?: Nullable<WhereEntry[]>;
+  orderBy?: Nullable<OrderBy>;
+  forUpdate?: Nullable<boolean>;
+  objectWrapProperties?: Nullable<boolean>;
+  additionalObjectPropertyColumns?: Nullable<AdditionalObjectPropertyColumn[]>;
+  aggregateToArray?: Nullable<boolean>;
+  selectEntriesLeadingComment?: Nullable<string>;
+  fromEntriesLeadingComment?: Nullable<string>;
+  resultTypeName?: Nullable<string>;
 }
 
 export type SelectEntry =
@@ -26,59 +29,60 @@ export type SelectEntry =
 
 export interface FieldSelectEntry
 {
-  entryType: 'field';
-  projectedName: string;
-  fieldName: string;
-  tableAlias: string;
-  displayOrder?: number;
+  readonly entryType: 'se-field';
+  readonly field: Field;
+  readonly projectedName: string;
+  readonly tableAlias: string;
+  readonly displayOrder?: Nullable<number>;
+  readonly sourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
 }
 
 export interface ExpressionSelectEntry
 {
-  entryType: 'expr';
-  projectedName: string;
-  expression: string;
-  tableAliasPlaceholderInExpr?: string; // default is '$$'
-  tableAlias: string;
-  displayOrder?: number;
+  readonly entryType: 'se-expr';
+  readonly projectedName: string;
+  readonly expression: string;
+  readonly tableAliasPlaceholderInExpr?: Nullable<string>; // default is '$$'
+  readonly tableAlias: string;
+  readonly displayOrder?: Nullable<number>;
+  readonly sourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
 }
 
 export interface InlineParentSelectEntry
 {
-  entryType: 'inline-parent-prop';
-  projectedName: string;
-  parentAlias: string;
-  parentTable: RelId;
-  comment?: string | null;
-  parentSelectEntry: SelectEntry;
-  displayOrder?: number;
+  readonly entryType: 'se-inline-parent-prop';
+  readonly projectedName: string;
+  readonly parentAlias: string;
+  readonly parentTable: RelId;
+  readonly comment?: Nullable<string>;
+  readonly displayOrder?: Nullable<number>;
 }
 
 export interface ParentReferenceSelectEntry
 {
-  entryType: 'parent-ref';
-  projectedName: string;
-  parentRowObjectSql: SqlSpec,
-  comment?: string;
-  displayOrder?: number;
+  readonly entryType: 'se-parent-ref';
+  readonly projectedName: string;
+  readonly parentRowObjectSql: SqlSpec,
+  readonly comment?: Nullable<string>;
+  readonly displayOrder?: Nullable<number>;
 }
 
 export interface ChildCollectionSelectEntry
 {
-  entryType: 'child-coll';
-  projectedName: string;
-  collectionSql: SqlSpec;
-  comment?: string;
-  displayOrder?: number;
+  readonly entryType: 'se-child-coll';
+  readonly projectedName: string;
+  readonly collectionSql: SqlSpec;
+  readonly comment?: Nullable<string>;
+  readonly displayOrder?: Nullable<number>;
 }
 
 export interface HiddenPrimaryKeySelectEntry
 {
-  entryType: 'hidden-pkf'
-  pkFieldName: string;
-  projectedName: string;
-  tableAlias: string;
-  displayOrder?: undefined;
+  readonly entryType: 'se-hidden-pkf'
+  readonly pkFieldName: string;
+  readonly projectedName: string;
+  readonly tableAlias: string;
+  readonly displayOrder?: undefined;
 }
 
 export type FromEntry =
@@ -87,60 +91,61 @@ export type FromEntry =
 
 export interface TableFromEntry
 {
-  entryType: 'table';
-  table: RelId;
-  alias: string;
-  joinCondition?: JoinCondition;
-  comment?: undefined;
+  readonly entryType: 'table';
+  readonly table: RelId;
+  readonly alias: string;
+  readonly joinCondition?: Nullable<JoinCondition>;
+  readonly comment?: undefined;
 }
 
 export interface QueryFromEntry
 {
-  entryType: 'query';
-  query: SqlSpec;
-  alias: string;
-  joinCondition?: JoinCondition;
-  comment?: string;
+  readonly entryType: 'query';
+  readonly query: SqlSpec;
+  readonly alias: string;
+  readonly joinCondition?: Nullable<JoinCondition>;
+  readonly comment?: Nullable<string>;
 }
 
 export interface JoinCondition
 {
-  joinType: JoinType;
-  parentChildCondition: ParentChildCondition;
+  readonly joinType: JoinType;
+  readonly parentChildCondition: ParentChildCondition;
 }
 
 export type JoinType = 'INNER' | 'LEFT';
 
-export type ParentChildCondition = (ParentPrimaryKeyCondition | ChildForeignKeyCondition ) & { fromAlias: string };
+export type ParentChildCondition =
+  (ParentPrimaryKeyCondition | ChildForeignKeyCondition ) & { readonly fromAlias: string };
 
 export interface ParentPrimaryKeyCondition
 {
-  condType: 'pk';
-  childAlias: string;
-  matchedFields: ForeignKeyComponent[];
+  readonly condType: 'pk';
+  readonly childAlias: string;
+  readonly matchedFields: ForeignKeyComponent[];
 }
 
 export interface ChildForeignKeyCondition
 {
-  condType: 'fk';
-  parentAlias: string;
-  matchedFields: ForeignKeyComponent[];
+  readonly condType: 'fk';
+  readonly parentAlias: string;
+  readonly matchedFields: ForeignKeyComponent[];
 }
 
 export type WhereEntry = GeneralSqlWhereEntry | ParentChildCondition;
 
 export interface GeneralSqlWhereEntry
 {
-  condType: 'gen';
-  condSql: string;
-  tableAliasPlaceholderInCondSql?: string; // default is '$$'
-  tableAlias: string;
+  readonly condType: 'gen';
+  readonly condSql: string;
+  readonly tableAliasPlaceholderInCondSql?: Nullable<string>; // default is '$$'
+  readonly tableAlias: string;
 }
 
 export interface OrderBy
 {
-  orderBy: string;
-  tableAlias: string;
+  readonly orderBy: string;
+  readonly tableAlias: string;
 }
 
 export class SqlParts
@@ -151,7 +156,8 @@ export class SqlParts
     private selectEntries: SelectEntry[] = [],
     private fromEntries: FromEntry[] = [],
     private whereEntries: WhereEntry[] = [],
-    private orderBy: OrderBy | null = null,
+    private orderBy: Nullable<OrderBy> = null,
+    private resultTypeName: Nullable<string> = null
   )
   {}
 
@@ -193,13 +199,19 @@ export class SqlParts
     this.orderBy = orderBy;
   }
 
+  setResultTypeName(resultTypeName: string)
+  {
+    this.resultTypeName = resultTypeName;
+  }
+
   addParts(otherParts: SqlParts)
   {
     this.selectEntries.push(...otherParts.selectEntries);
     this.fromEntries.push(...otherParts.fromEntries);
     this.whereEntries.push(...otherParts.whereEntries);
     this.addAliasesToScope(otherParts.aliases);
-    if (otherParts.orderBy) throw new Error('Cannot add sql parts containing an orderBy value');
+    if (otherParts.orderBy) throw new Error('Cannot add sql parts containing orderBy.');
+    if (otherParts.resultTypeName) throw new Error('Cannot add sql parts containing resultTypeName.');
   }
 
   createAliasFor(dbObjectName: string): string
@@ -211,11 +223,18 @@ export class SqlParts
 
   toSqlSpec(): SqlSpec
   {
+    const displayOrderedSelectEntries =
+      sorted(
+        this.selectEntries.map((se, ix) => ({ ...se, dislayOrder: se.displayOrder ?? ix + 1 })),
+        (se1, se2) => (se1.displayOrder ?? 0) - (se2.displayOrder ?? 0)
+      );
+
     const sqlSpec = {
-      selectEntries: this.selectEntries,
+      selectEntries: displayOrderedSelectEntries,
       fromEntries: this.fromEntries,
       whereEntries: this.whereEntries,
-      orderBy: this.orderBy
+      orderBy: this.orderBy,
+      resultTypeName: this.resultTypeName,
     };
 
     // Re-init to transfer ownership of our arrays to the sqlSpec object.
@@ -223,6 +242,7 @@ export class SqlParts
     this.fromEntries = [];
     this.whereEntries = [];
     this.orderBy = null;
+    this.resultTypeName = null;
     this.aliases = new Set();
 
     return sqlSpec;
@@ -231,5 +251,12 @@ export class SqlParts
 
 export function getPropertySelectEntries(sql: SqlSpec): SelectEntry[]
 {
-  return sql.selectEntries.filter(e => e.entryType !== 'hidden-pkf');
+  return sql.selectEntries.filter(e => e.entryType !== 'se-hidden-pkf');
+}
+
+// Return the table in leading postion in from clause if it exists, else throw error.
+export function getBaseTable(sql: SqlSpec): RelId
+{
+  if (sql.fromEntries[0]?.entryType === 'table') return sql.fromEntries[0].table;
+  else throw new Error(`No base table for sql: ${sql}`);
 }

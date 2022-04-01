@@ -1,10 +1,10 @@
-import { caseNormalizeName, relIdDescn } from './util/mod';
+import { caseNormalizeName, Nullable, relIdDescn } from './util/mod';
 import { DatabaseMetadata, makeRelId, RelId, RelMetadata } from './dbmd';
 
 export interface QueryGroupSpec
 {
-  defaultSchema?: string;
-  propertyNameDefault?: PropertyNameDefault;
+  defaultSchema?: Nullable<string>;
+  propertyNameDefault?: Nullable<PropertyNameDefault>;
   generateUnqualifiedNamesForSchemas: string[];
   querySpecs: QuerySpec[];
 }
@@ -13,23 +13,23 @@ export interface QuerySpec
 {
   queryName: string;
   tableJson: TableJsonSpec;
-  resultRepresentations?: ResultRepr[];
-  additionalObjectPropertyColumns?: AdditionalObjectPropertyColumn[];
-  generateResultTypes?: boolean;
-  generateSource?: boolean;
-  orderBy?: string;
-  forUpdate?: boolean;
-  typesFileHeader?: string;
+  resultRepresentations?: Nullable<ResultRepr[]>;
+  additionalObjectPropertyColumns?: Nullable<AdditionalObjectPropertyColumn[]>;
+  generateResultTypes?: Nullable<boolean>;
+  generateSource?: Nullable<boolean>;
+  orderBy?: Nullable<string>;
+  forUpdate?: Nullable<boolean>;
+  typesFileHeader?: Nullable<string>;
 }
 
 export interface TableJsonSpec
 {
   table: string;
-  fieldExpressions?: (string | TableFieldExpr)[];
-  parentTables?: ParentSpec[];
-  childTables?: ChildSpec[];
-  recordCondition?: RecordCondition;
-  resultTypeName?: string;
+  fieldExpressions?: Nullable<(string | TableFieldExpr)[]>;
+  parentTables?: Nullable<ParentSpec[]>;
+  childTables?: Nullable<ChildSpec[]>;
+  recordCondition?: Nullable<RecordCondition>;
+  resultTypeName?: Nullable<string>;
 }
 
 export type TableFieldExpr = TableField | TableExpr;
@@ -37,35 +37,35 @@ export type TableFieldExpr = TableField | TableExpr;
 export interface TableField
 {
   field: string;
-  expression?: null;
-  jsonProperty?: string; // Required if value is not a simple field name.
-  fieldTypeInGeneratedSource?: string | {[srcLang: string]: string};
-  withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
-  displayOrder?: number;
+  expression?: undefined;
+  jsonProperty?: Nullable<string>; // Required if value is not a simple field name.
+  fieldTypeInGeneratedSource?: Nullable<string | { [srcLang: string]: string }>;
+  withTableAliasAs?: Nullable<string>; // Table alias escape sequence which may be used in value (default '$$').
+  displayOrder?: Nullable<number>;
 }
 
 export interface TableExpr
 {
-  field?: null;
+  field?: undefined;
   expression: string;
   jsonProperty: string;
-  fieldTypeInGeneratedSource: string | {[srcLang: string]: string};
-  withTableAliasAs?: string; // Table alias escape sequence which may be used in value (default '$$').
-  displayOrder?: number;
+  fieldTypeInGeneratedSource: string | { [srcLang: string]: string };
+  withTableAliasAs?: Nullable<string>; // Table alias escape sequence which may be used in value (default '$$').
+  displayOrder?: Nullable<number>;
 }
 
 export interface ParentSpec extends TableJsonSpec
 {
-  referenceName?: string | undefined;
-  customJoinCondition?: CustomJoinCondition;
-  viaForeignKeyFields?: string[];
-  alias?: string | undefined;
+  referenceName?: Nullable<string>;
+  customJoinCondition?: Nullable<CustomJoinCondition>;
+  viaForeignKeyFields?: Nullable<string[]>;
+  alias?: Nullable<string>;
 }
 
 export interface ReferencedParentSpec extends ParentSpec
 {
   referenceName: string;
-  displayOrder?: number;
+  displayOrder?: Nullable<number>;
 }
 
 export interface InlineParentSpec extends ParentSpec
@@ -76,12 +76,12 @@ export interface InlineParentSpec extends ParentSpec
 export interface ChildSpec extends TableJsonSpec
 {
   collectionName: string;
-  foreignKeyFields?: string[];
-  customJoinCondition?: CustomJoinCondition;
-  filter?: string;
-  unwrap?: boolean;
-  orderBy?: string;
-  displayOrder?: number;
+  foreignKeyFields?: Nullable<string[]>;
+  customJoinCondition?: Nullable<CustomJoinCondition>;
+  filter?: Nullable<string>;
+  unwrap?: Nullable<boolean>;
+  orderBy?: Nullable<string>;
+  displayOrder?: Nullable<number>;
 }
 
 export interface CustomJoinCondition
@@ -91,7 +91,7 @@ export interface CustomJoinCondition
   // fields from the parent. This option allows asserting that a matching parent record always exists for this
   // join condition, so the parent reference or inline fields can be non-nullable if other factors don't
   // prevent it (such as a parent record condition, or an inlined field being nullable in the parent itself).
-  matchAlwaysExists?: boolean;
+  matchAlwaysExists?: Nullable<boolean>;
 }
 
 export interface FieldPair
@@ -103,8 +103,8 @@ export interface FieldPair
 export interface RecordCondition
 {
   sql: string;
-  paramNames?: string[];
-  withTableAliasAs?: string;
+  paramNames?: Nullable<string[]>;
+  withTableAliasAs?: Nullable<string>;
 }
 
 export type PropertyNameDefault = "AS_IN_DB" | "CAMELCASE";
@@ -160,7 +160,7 @@ export function addLocPart(specLoc: SpecLocation, addPart: string)
 export interface SpecLocation
 {
   queryName: string;
-  queryPart?: string;
+  queryPart?: Nullable<string>;
 }
 
 export class SpecError extends Error
@@ -176,7 +176,7 @@ export class SpecError extends Error
 export function identifyTable
   (
     table: string, // as from input, possibly qualified
-    defaultSchema: string | null,
+    defaultSchema: Nullable<string>,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
   )
@@ -188,7 +188,7 @@ export function identifyTable
 export function verifyTableFieldExpressionsValid
   (
     tableSpec: TableJsonSpec,
-    defaultSchema: string | null,
+    defaultSchema: Nullable<string>,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
   )
@@ -264,7 +264,7 @@ function verifyFieldsExistInRelMd
 function getRelMetadata
   (
     table: string, // as from input, possibly qualified
-    defaultSchema: string | null,
+    defaultSchema: Nullable<string>,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
   )

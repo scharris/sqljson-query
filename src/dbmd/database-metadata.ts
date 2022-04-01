@@ -7,6 +7,7 @@ import {
   splitSchemaAndRelationNames,
   exactUnquotedName,
   readTextFile,
+  Nullable,
 } from '../util/mod';
 
 const CaseSensitivityDef =
@@ -84,7 +85,7 @@ type StoredDatabaseMetadata = z.infer<typeof StoredDatabaseMetadataDef>;
 
 export class DatabaseMetadata implements StoredDatabaseMetadata
 {
-  readonly schemaName?: string | null;
+  readonly schemaName?: Nullable<string>;
   readonly relationMetadatas: RelMetadata[];
   readonly foreignKeys: ForeignKey[];
   readonly caseSensitivity: CaseSensitivity;
@@ -108,7 +109,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     this.derivedData = makeDerivedData(storedProps.relationMetadatas, storedProps.foreignKeys);
   }
 
-  getRelationMetadata(relId: RelId): RelMetadata | null
+  getRelationMetadata(relId: RelId): Nullable<RelMetadata>
   {
     return this.derivedData.getRelMetadata(relId);
   }
@@ -116,7 +117,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
   getPrimaryKeyFieldNames
     (
       relId: RelId,
-      alias: string | null = null
+      alias: Nullable<string> = null
     )
     : string[]
   {
@@ -132,9 +133,9 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     (
       fromRelId: RelId,
       toRelId: RelId,
-      fieldNames: Set<string> | null = null
+      fieldNames: Nullable<Set<string>> = null
     )
-    : ForeignKey | null
+    : Nullable<ForeignKey>
   {
     // TODO: Probably should use exactUnquoted() here instead of caseNormalizeName(), to remove quotes but leave a quotable name (which is how the dbmd stores names).
     const normdFkFieldNames = fieldNames != null ?
@@ -164,8 +165,8 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
 
   private getForeignKeysFromTo
     (
-      childRelId: RelId | null,
-      parentRelId: RelId | null
+      childRelId: Nullable<RelId>,
+      parentRelId: Nullable<RelId>,
     )
     : ForeignKey[]
   {
@@ -201,19 +202,19 @@ class DerivedDatabaseMetadata
   )
   {}
 
-  getRelMetadata(relId: RelId): RelMetadata | null
+  getRelMetadata(relId: RelId): Nullable<RelMetadata>
   {
-    return this.relMDsByRelId.get(relIdKey(relId)) || null;
+    return this.relMDsByRelId.get(relIdKey(relId));
   }
 
-  getFksReferencingParent(relId: RelId): ForeignKey[] | null
+  getFksReferencingParent(relId: RelId): Nullable<ForeignKey[]>
   {
-    return this.fksByParentRelId.get(relIdKey(relId)) || null;
+    return this.fksByParentRelId.get(relIdKey(relId));
   }
 
-  getFksFromChild(relId: RelId): ForeignKey[] | null
+  getFksFromChild(relId: RelId): Nullable<ForeignKey[]>
   {
-    return this.fksByChildRelId.get(relIdKey(relId)) || null;
+    return this.fksByChildRelId.get(relIdKey(relId));
   }
 }
 
@@ -304,7 +305,7 @@ export function relIdsEqual(relId1: RelId, relId2: RelId)
 export function makeRelId
   (
     tableMaybeQualified: string,
-    defaultSchema: string | null,
+    defaultSchema: Nullable<string>,
     caseSensitivity: CaseSensitivity
   )
   : RelId

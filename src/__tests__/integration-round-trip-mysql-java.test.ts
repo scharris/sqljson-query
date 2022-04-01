@@ -10,7 +10,7 @@ import {
   makeTempDir,
 } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
-import { GeneratedResultTypes, ResultTypeSourceGenerator } from '../result-type-generation';
+import { GeneratedResultTypes, makeQueryResultTypesSource } from '../result-type-generation';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
 import { generateQuerySources, SourceGenerationOptions } from '../mod';
 import { spawnSync } from 'child_process';
@@ -25,8 +25,6 @@ const ccPropNameFn = propertyNameDefaultFunction('CAMELCASE', dbmd.caseSensitivi
 const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
 const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
 
-const srcGen = new ResultTypeSourceGenerator(dbmd, 'drugs', ccPropNameFn);
-
 test('results match generated class types for JSON_OBJECT_ROWS query of single table', async () => {
   const querySpec: QuerySpec =
     {
@@ -38,10 +36,10 @@ test('results match generated class types for JSON_OBJECT_ROWS query of single t
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!);
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: false } } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -69,10 +67,10 @@ test('results match generated record types for JSON_OBJECT_ROWS query of single 
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!);
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -100,10 +98,10 @@ test('results match generated class types for JSON_ARRAY_ROW query of single tab
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_ARRAY_ROW')!);
-
-  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: false } } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_ARRAY_ROW')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
+  const opts = { sourceLanguage: 'Java' } as const;
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -129,10 +127,10 @@ test('results match generated record types for JSON_ARRAY_ROW query of single ta
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_ARRAY_ROW')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_ARRAY_ROW')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -167,10 +165,10 @@ test('table field property names specified by jsonProperty attributes', async ()
       },
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -206,10 +204,10 @@ test('parent reference included properly for result classes', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
-  const opts = { sourceLanguage: 'Java', javaOptions: { emitRecords: false } } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
+  const opts = { sourceLanguage: 'Java' } as const;
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -245,10 +243,10 @@ test('parent reference included properly for result records', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -285,10 +283,10 @@ test('table field properties from inline parent tables', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -333,10 +331,10 @@ test('table field properties from an inlined parent and its own inlined parent',
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -376,10 +374,10 @@ test('referenced parent property from an inlined parent', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -418,10 +416,10 @@ test('child collection property from an inlined parent', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -461,10 +459,10 @@ test('unwrapped child collection property from an inlined parent', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -500,10 +498,10 @@ test('child collection', async () => {
     }
   };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -539,10 +537,10 @@ test('unwrapped child table collection of table field property', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -579,10 +577,10 @@ test('unwrapped child table collection of field exression property', async () =>
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -621,10 +619,10 @@ test('unwrapped child table collection of field expression property with lang-sp
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -664,10 +662,10 @@ test('unwrapped child table collection of parent reference property', async () =
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -707,10 +705,10 @@ test('unwrapped child table collection of inlined parent property', async () => 
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -752,10 +750,10 @@ test('unwrapped child collection of child collection property', async () => {
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 
@@ -797,10 +795,10 @@ test('unwrapped child collection of unwrapped child collection property', async 
       }
     };
 
-  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
-
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+  const sql = sqlSrcGen.makeSql(sqlSpec) || '';
   const opts = { sourceLanguage: 'Java' } as const;
-  const resTypesSrc = srcGen.makeQueryResultTypesSource(querySpec, [], opts);
+  const resTypesSrc = makeQueryResultTypesSource(sqlSpec, 'test query', [], [], opts);
 
   const dbConn = await getDbConnection();
 

@@ -1,11 +1,9 @@
-import { exactUnquotedName, makeMap, makeNameNotInSet } from '../util/mod';
-import { DatabaseMetadata, ForeignKey, RelId } from '../dbmd';
+import { caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn } from '../util/mod';
+import { DatabaseMetadata, Field, ForeignKey, RelId } from '../dbmd';
 import {
-  QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr,
-  ChildSpec, CustomJoinCondition, ParentSpec, ReferencedParentSpec, getInlineParentSpecs,
-  getReferencedParentSpecs, identifyTable, validateCustomJoinCondition,
-  verifyTableFieldExpressionsValid,
-  AdditionalObjectPropertyColumn
+  QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
+  CustomJoinCondition, ParentSpec, getInlineParentSpecs, getReferencedParentSpecs, identifyTable,
+  validateCustomJoinCondition, verifyTableFieldExpressionsValid, AdditionalObjectPropertyColumn
 } from '../query-specs';
 import {
   SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
@@ -17,7 +15,7 @@ export class SqlSpecGenerator
   constructor
     (
       private readonly dbmd: DatabaseMetadata,
-      private readonly defaultSchema: string | null,
+      private readonly defaultSchema: Nullable<string>,
       private readonly propertyNameFn: (fieldName: string) => string,
     )
   {}
@@ -60,8 +58,8 @@ export class SqlSpecGenerator
   private baseSql
     (
       tj: TableJsonSpec,
-      parentChildCond: ParentPrimaryKeyCondition | ChildForeignKeyCondition | null,
-      orderBy: string | null | undefined,
+      parentChildCond: Nullable<ParentPrimaryKeyCondition | ChildForeignKeyCondition>,
+      orderBy: Nullable<string>,
       specLoc: SpecLocation,
       exportPkFieldsHidden?: 'export-pk-fields-hidden',
     )
@@ -104,6 +102,9 @@ export class SqlSpecGenerator
     if (orderBy != null)
       sqlb.setOrderBy({ orderBy, tableAlias: alias });
 
+    if (tj.resultTypeName)
+      sqlb.setResultTypeName(tj.resultTypeName);
+
     const sqlSpec = sqlb.toSqlSpec();
 
     if (sqlSpec.selectEntries.length === 0)
@@ -119,8 +120,8 @@ export class SqlSpecGenerator
     (
       tj: TableJsonSpec,
       additionalObjectPropertyColumns: AdditionalObjectPropertyColumn[],
-      pkCond: ParentPrimaryKeyCondition | null,
-      orderBy: string | null | undefined,
+      pkCond: Nullable<ParentPrimaryKeyCondition>,
+      orderBy: Nullable<string>,
       specLoc: SpecLocation
     )
     : SqlSpec
@@ -138,9 +139,9 @@ export class SqlSpecGenerator
   private jsonArrayRowSql
     (
       tj: TableJsonSpec,
-      childFkCond: ChildForeignKeyCondition | null,
+      childFkCond: Nullable<ChildForeignKeyCondition>,
       unwrap: boolean,
-      orderBy: string | null | undefined,
+      orderBy: Nullable<string>,
       specLoc: SpecLocation
     )
     : SqlSpec
@@ -166,7 +167,7 @@ export class SqlSpecGenerator
     : HiddenPrimaryKeySelectEntry[]
   {
     return this.dbmd.getPrimaryKeyFieldNames(relId).map(pkField => ({
-      entryType: 'hidden-pkf',
+      entryType: 'se-hidden-pkf',
       pkFieldName: pkField,
       projectedName: HIDDEN_PK_PREFIX + pkField,
       tableAlias
@@ -186,36 +187,41 @@ export class SqlSpecGenerator
     if (!tj.fieldExpressions)
       return [];
 
+    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(tj.table, specLoc);
+
     return tj.fieldExpressions.map((tfe, ix) => {
       const feLoc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tj.table}`);
       const projectedName = this.jsonPropertyName(tfe, feLoc);
 
-      if (typeof tfe === 'string')
+      if (typeof tfe === 'string' || tfe.field != null)
+      {
+        const fieldName = typeof tfe === 'string' ? tfe : tfe.field;
+        const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
+        if (dbField == undefined)
+          throw new Error(`No metadata found for field ${tj.table}.${fieldName}.`);
+
         return {
-          entryType: 'field',
+          entryType: 'se-field',
+          field: dbField,
           projectedName,
-          fieldName: this.quotable(tfe),
-          tableAlias
-        };
-      else if (tfe.field)
-        return {
-          entryType: 'field',
-          projectedName,
-          fieldName: this.quotable(tfe.field),
           tableAlias,
-          displayOrder: tfe.displayOrder
+          displayOrder: typeof tfe === 'string' ? undefined : tfe.displayOrder,
+          sourceCodeFieldType: typeof tfe === 'string' ? null : tfe.fieldTypeInGeneratedSource,
         };
+      }
       else // general expression
       {
         if (!tfe.expression)
           throw new SpecError(feLoc, `'field' or 'expression' must be provided`);
+
         return {
-          entryType: 'expr',
+          entryType: 'se-expr',
           projectedName,
           expression: tfe.expression,
           tableAliasPlaceholderInExpr: tfe.withTableAliasAs,
           tableAlias,
-          displayOrder: tfe.displayOrder
+          displayOrder: tfe.displayOrder,
+          sourceCodeFieldType: tfe.fieldTypeInGeneratedSource,
         };
       }
     });
@@ -284,12 +290,11 @@ export class SqlSpecGenerator
     for (const [ix, parentPropSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
       sqlParts.addSelectEntry({
-        entryType: 'inline-parent-prop',
+        entryType: 'se-inline-parent-prop',
         projectedName: parentPropSelectEntry.projectedName,
         parentAlias,
         parentTable: parentRelId,
         comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null,
-        parentSelectEntry: parentPropSelectEntry,
         displayOrder: parentPropSelectEntry.displayOrder
       });
     }
@@ -351,7 +356,7 @@ export class SqlSpecGenerator
       const parentRowObjectSql = this.jsonObjectRowsSql(parentSpec, [], parentPkCond, null, parLoc);
 
       sqlParts.addSelectEntry({
-        entryType: 'parent-ref',
+        entryType: 'se-parent-ref',
         projectedName: parentSpec.referenceName,
         parentRowObjectSql,
         comment: `reference '${parentSpec.referenceName}' to parent table '${parentSpec.table}'`,
@@ -389,7 +394,7 @@ export class SqlSpecGenerator
       const collectionSql = this.jsonArrayRowSql(childSpec, childFkCond, unwrap, childSpec.orderBy, childLoc);
 
       return {
-        entryType: 'child-coll',
+        entryType: 'se-child-coll',
         projectedName: childSpec.collectionName,
         collectionSql,
         comment: `collection '${childSpec.collectionName}' of records from child table '${childSpec.table}'`,
@@ -433,7 +438,7 @@ export class SqlSpecGenerator
     (
       childRelId: RelId,
       parentRelId: RelId,
-      foreignKeyFields: Set<string> | undefined,
+      foreignKeyFields: Nullable<Set<string>>,
       specLoc: SpecLocation
     )
     : ForeignKey
@@ -446,6 +451,21 @@ export class SqlSpecGenerator
          : 'implicit foreign key fields') + '.');
 
     return fk;
+  }
+
+  private getTableFieldsByName
+    (
+      table: string,
+      specLoc: SpecLocation
+    )
+    : Map<string,Field>
+  {
+    const relId = identifyTable(table, this.defaultSchema, this.dbmd, specLoc);
+    const relMd = this.dbmd.getRelationMetadata(relId);
+    if (relMd == null)
+      throw new Error(`Metadata for table ${relIdDescn(relId)} not found.`);
+
+    return makeMap(relMd.fields, f => f.name, f => f);
   }
 
   getMatchedFields(customJoin: CustomJoinCondition)

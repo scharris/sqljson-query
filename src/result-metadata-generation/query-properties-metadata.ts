@@ -1,13 +1,14 @@
 import { RelId } from '../dbmd';
+import { Nullable } from '../util/mod';
 
 export interface QueryPropertiesMetadata
 {
   queryName: string;
   table: RelId;
-  properties: PropertyMetadata[];
+  properties: QueryPropertyMetadata[];
 }
 
-export type PropertyMetadata =
+export type QueryPropertyMetadata =
   FieldPropertyMetadata |
   ExpressionPropertyMetadata |
   ChildTableCollectionPropertyMetadata |
@@ -15,37 +16,37 @@ export type PropertyMetadata =
 
 export interface FieldPropertyMetadata
 {
-  type: 'field';
+  type: 'qpm-field';
   propertyName: string;
   sourceField: string;
-  inlinedFromAncestorVia?: ParentStep[];
+  inlinedFromAncestorVia?: Nullable<ParentStep[]>;
 }
 
 export interface ExpressionPropertyMetadata
 {
-  type: 'expr';
+  type: 'qpm-expr';
   propertyName: string;
   sourceExpression: string;
-  inlinedFromAncestorVia?: ParentStep[];
+  inlinedFromAncestorVia?: Nullable<ParentStep[]>;
 }
 
 export interface ChildTableCollectionPropertyMetadata
 {
-  type: 'child-coll';
+  type: 'qpm-child-coll';
   collectionPropertyName: string;
   table: RelId;
-  properties: PropertyMetadata[];
+  properties: QueryPropertyMetadata[];
   unwrapped: boolean;
-  inlinedFromAncestorVia?: ParentStep[];
+  inlinedFromAncestorVia?: Nullable<ParentStep[]>;
 }
 
 export interface ParentReferencePropertyMetadata
 {
-  type: 'parent-ref';
+  type: 'qpm-parent-ref';
   referencePropertyName: string;
   table: RelId;
-  properties: PropertyMetadata[];
-  inlinedFromAncestorVia?: ParentStep[];
+  properties: QueryPropertyMetadata[];
+  inlinedFromAncestorVia?: Nullable<ParentStep[]>;
 }
 
 export type ParentStep = { parent: RelId, fkFields: string[] };

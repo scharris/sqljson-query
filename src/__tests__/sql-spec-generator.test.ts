@@ -195,18 +195,18 @@ test('wrapped child collections and their row object properties are included pro
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
   expect(sqlSpec.selectEntries.length).toEqual(3);
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(2);
 
   const compoundsProp = childCollProps[0];
-  expect(compoundsProp.entryType).toEqual('child-coll');
+  expect(compoundsProp.entryType).toEqual('se-child-coll');
   const compoundsSubquery = (<ChildCollectionSelectEntry>compoundsProp).collectionSql;
   expect(compoundsSubquery.selectEntries.map(e => e.projectedName)).toEqual(
     ['id', 'displayName']
   );
 
   const drugsProp = childCollProps[1];
-  expect(drugsProp.entryType).toBe('child-coll');
+  expect(drugsProp.entryType).toBe('se-child-coll');
   const drugsSubquery = (<ChildCollectionSelectEntry>drugsProp).collectionSql;
   expect(drugsSubquery.selectEntries.map(e => e.projectedName)).toEqual(
     ['meshId', 'compoundId', 'name']
@@ -234,7 +234,7 @@ test('referenced parent property and sub-properties are generated properly', () 
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
-  const parentProps = sqlSpec.selectEntries.filter(e => e.entryType === 'parent-ref');
+  const parentProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-parent-ref');
   expect(parentProps.length).toEqual(1);
   const parentProp = <ParentReferenceSelectEntry>parentProps[0];
 
@@ -346,18 +346,22 @@ test('a referenced parent table property from an inlined parent should be includ
     ['id', 'name', 'compoundId', 'compoundDisplayName', 'enteredByAnalyst']
   );
 
-  const inlParProps = sqlSpec.selectEntries.filter(e => e.entryType === 'inline-parent-prop');
+  const inlParProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-inline-parent-prop');
   expect(inlParProps.length).toEqual(3);
   expect(inlParProps[2].projectedName).toEqual('enteredByAnalyst');
   const analystProp = inlParProps[2] as InlineParentSelectEntry;
 
-  expect(analystProp.parentSelectEntry.entryType === 'parent-ref');
-  const analystSql = (<ParentReferenceSelectEntry>analystProp.parentSelectEntry).parentRowObjectSql;
+  const parentFromEntry = sqlSpec.fromEntries.find(fe => fe.alias === analystProp.parentAlias);
+  expect(parentFromEntry?.entryType).toBe('query');
+  if (parentFromEntry?.entryType !== 'query') throw new Error('Expected query from entry.');
+  const parentSelectEntry = parentFromEntry.query.selectEntries.find(se => se.projectedName === analystProp.projectedName);
+  expect(parentSelectEntry?.entryType === 'se-parent-ref');
+  if (parentSelectEntry?.entryType !== 'se-parent-ref') throw new Error('Expected parent ref here.');
+  const analystSql = (<ParentReferenceSelectEntry>parentSelectEntry).parentRowObjectSql;
   expect(analystSql.selectEntries.map(e => e.projectedName)).toEqual(
     ['id', 'shortName']
   );
 });
-
 
 test('unwrapped child collection of a table field property is represented properly', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
@@ -384,7 +388,7 @@ test('unwrapped child collection of a table field property is represented proper
     ['idsOfCompoundsEntered']
   );
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.projectedName).toEqual('idsOfCompoundsEntered');
@@ -419,7 +423,7 @@ test('unwrapped child collection of field expression property is represented pro
     ['lowercaseNamesOfCompoundsEntered']
   );
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
@@ -454,7 +458,7 @@ test('unwrapped child collection of parent reference property is represented pro
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
@@ -491,7 +495,7 @@ test('unwrapped child collection of inlined parent property is represented prope
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
@@ -527,7 +531,7 @@ test('unwrapped child collection of child collection property is represented pro
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
@@ -563,14 +567,14 @@ test('unwrapped child collection of unwrapped child collection property is repre
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
 
-  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'child-coll');
+  const childCollProps = sqlSpec.selectEntries.filter(e => e.entryType === 'se-child-coll');
   expect(childCollProps.length).toEqual(1);
   const childCollProp = childCollProps[0] as ChildCollectionSelectEntry;
   expect(childCollProp.projectedName).toEqual('drugAdvisoryTypeIdLists');
   expect(childCollProp.collectionSql.objectWrapProperties).toBe(false);
   expect(childCollProp.collectionSql.selectEntries.length).toEqual(1);
   expect(childCollProp.collectionSql.selectEntries[0].projectedName).toEqual('advisoryTypeIds');
-  expect(childCollProp.collectionSql.selectEntries[0].entryType).toEqual('child-coll');
+  expect(childCollProp.collectionSql.selectEntries[0].entryType).toEqual('se-child-coll');
   const advTypeIdsSelEnt = childCollProp.collectionSql.selectEntries[0] as ChildCollectionSelectEntry;
   expect(advTypeIdsSelEnt.collectionSql.selectEntries.map(e => e.projectedName)).toEqual(
     ['atid']

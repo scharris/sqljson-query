@@ -6,12 +6,12 @@ import {
   writeTextFile,
   cwd,
   mapValues,
-  firstValue
+  firstValue,
 } from './util/mod';
 import { readDatabaseMetadata } from './dbmd';
-import { QueryGroupSpec, QuerySpec, ResultRepr, SpecError } from './query-specs';
+import { getQueryParamNames, QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
 import { SourceGenerationOptions } from './source-generation-options';
-import { ResultTypeSourceGenerator, QueryReprSqlPath } from './result-type-generation';
+import { makeQueryResultTypesSource, QueryReprSqlPath } from './result-type-generation';
 import { SqlSourceGenerator } from './sql-generation/sql-source-generator';
 import { SqlSpecGenerator } from './sql-generation/sql-spec-generator';
 import { SqlSpec } from './sql-generation/sql-specs';
@@ -37,29 +37,30 @@ export async function generateQuerySources
 
     const dbmd = await readDatabaseMetadata(dbmdFile);
     const queryGroupSpec = await readQueryGroupSpec(querySpecs);
-    const defaultSchema = queryGroupSpec.defaultSchema || null;
+    const defaultSchema = queryGroupSpec.defaultSchema;
     const unqualNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
     const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault, dbmd.caseSensitivity);
 
     // generators
     const sqlSpecGen = new SqlSpecGenerator(dbmd, defaultSchema, propNameFn);
     const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, unqualNameSchemas);
-    const resultTypesSrcGen = new ResultTypeSourceGenerator(dbmd, defaultSchema, propNameFn);
 
-    for (const querySpec of queryGroupSpec.querySpecs)
+    for (const query of queryGroupSpec.querySpecs)
     {
-      const sqlSpecsByRepr = sqlSpecGen.generateSqlSpecs(querySpec);
+      const sqlSpecsByRepr = sqlSpecGen.generateSqlSpecs(query);
+      const firstSqlSpec = firstValue(sqlSpecsByRepr);
 
       if (opts.sqlSpecOutputDir)
-        await writeSqlSpecs(querySpec.queryName, sqlSpecsByRepr, opts.sqlSpecOutputDir);
+        await writeSqlSpecs(sqlSpecsByRepr, query.queryName, opts.sqlSpecOutputDir);
 
       if (opts.queryPropertiesOutputDir)
-        await writePropertiesMetadata(firstValue(sqlSpecsByRepr), querySpec.queryName, opts.queryPropertiesOutputDir);
+        await writePropertiesMetadata(firstSqlSpec, query.queryName, opts.queryPropertiesOutputDir);
 
-      const sqlPaths = await writeSqls(querySpec.queryName, sqlSpecsByRepr, sqlSrcGen, opts.sqlOutputDir);
+      const sqlPaths =
+        await writeSqls(sqlSpecsByRepr, query.queryName, sqlSrcGen, opts.sqlOutputDir);
 
-      if (querySpec.generateResultTypes ?? true)
-        await writeResultTypes(resultTypesSrcGen, querySpec, sqlPaths, opts);
+      if (query.generateResultTypes ?? true)
+        await writeResultTypes(firstSqlSpec, query.queryName, sqlPaths, getQueryParamNames(query), opts);
     }
   }
   catch (e)
@@ -95,8 +96,8 @@ async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
 
 async function writeSqlSpecs
   (
-    queryName: string,
     resultReprToSqlSpecMap: Map<ResultRepr,SqlSpec>,
+    queryName: string,
     outputDir: string
   )
   : Promise<void>
@@ -131,8 +132,8 @@ async function writePropertiesMetadata
 
 async function writeSqls
   (
-    queryName: string,
     sqlSpecs: Map<ResultRepr,SqlSpec>,
+    queryName: string,
     sqlSrcGen: SqlSourceGenerator,
     outputDir: string
   )
@@ -161,20 +162,20 @@ async function writeSqls
 
 async function writeResultTypes
   (
-    resultTypesSrcGen: ResultTypeSourceGenerator,
-    querySpec: QuerySpec,
+    sqlSpec: SqlSpec,
+    queryName: string,
     sqlPaths: QueryReprSqlPath[],
+    params: string[],
     opts: SourceGenerationOptions
   )
   : Promise<void>
 {
-  const { resultTypesSourceCode, compilationUnitName } =
-    resultTypesSrcGen.makeQueryResultTypesSource(querySpec, sqlPaths, opts);
+  const generated = makeQueryResultTypesSource(sqlSpec, queryName, sqlPaths, params, opts);
 
-  const fileName = `${compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
-  const resultTypesOutputFile = path.join(opts.resultTypesOutputDir, fileName);
+  const fileName = `${generated.compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
+  const outputFile = path.join(opts.resultTypesOutputDir, fileName);
 
-  await writeTextFile(resultTypesOutputFile, resultTypesSourceCode, { avoidWritingSameContents: true });
+  await writeTextFile(outputFile, generated.resultTypesSourceCode, { avoidWritingSameContents: true });
 }
 
 async function checkFilesAndDirectoriesExist

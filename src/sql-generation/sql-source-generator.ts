@@ -6,6 +6,7 @@ import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, Sel
   from "./sql-specs";
 import { SqlDialect } from "./sql-dialects";
 import { AdditionalObjectPropertyColumn } from "../query-specs";
+import { Nullable } from "../util/mod";
 
 export class SqlSourceGenerator
 {
@@ -91,8 +92,8 @@ export class SqlSourceGenerator
       baseSql: string,
       propertyNames: string[],
       additionalColumns: AdditionalObjectPropertyColumn[],
-      orderBy: OrderBy | null | undefined,
-      baseTableDesc: string | null, // for comments
+      orderBy: Nullable<OrderBy>,
+      baseTableDesc: Nullable<string>, // for comments
     )
     : string
   {
@@ -131,8 +132,8 @@ export class SqlSourceGenerator
       sql: string,
       propertyNames: string[],
       wrapProps: boolean,
-      orderBy: OrderBy | null | undefined,
-      baseTableDesc: string | null, // for comments
+      orderBy: Nullable<OrderBy>,
+      baseTableDesc: Nullable<string>, // for comments
     )
     : string
   {
@@ -161,14 +162,14 @@ export class SqlSourceGenerator
 
     switch (selectEntry.entryType)
     {
-      case 'field':
+      case 'se-field':
       {
-        const fieldName = this.maybeQuoteColumn(selectEntry.fieldName);
+        const fieldName = this.maybeQuoteColumn(selectEntry.field.name);
         const sep = isProjectedNameQuoted ? ' ' : ' as ';
 
         return `${selectEntry.tableAlias}.${fieldName}${sep}${projectedName}`;
       }
-      case 'expr':
+      case 'se-expr':
       {
         const tableAliasPlaceholder = selectEntry.tableAliasPlaceholderInExpr || DEFAULT_TABLE_ALIAS_PLACEHOLDER;
         const expr = replaceAll(selectEntry.expression, tableAliasPlaceholder, selectEntry.tableAlias);
@@ -176,12 +177,12 @@ export class SqlSourceGenerator
 
         return `${expr}${sep}${projectedName}`;
       }
-      case 'inline-parent-prop':
+      case 'se-inline-parent-prop':
       {
         return (this.genComments && selectEntry.comment ? `-- ${selectEntry.comment}\n` : '') +
           `${selectEntry.parentAlias}.${projectedName}`;
       }
-      case 'parent-ref':
+      case 'se-parent-ref':
       {
         const parentRowObjSql = this.makeSql(selectEntry.parentRowObjectSql);
 
@@ -190,7 +191,7 @@ export class SqlSourceGenerator
             this.indent(parentRowObjSql) + '\n' +
           `) ${projectedName}`;
       }
-      case 'child-coll':
+      case 'se-child-coll':
       {
         const collectionSql = this.makeSql(selectEntry.collectionSql);
 
@@ -199,7 +200,7 @@ export class SqlSourceGenerator
             this.indent(collectionSql) + '\n' +
           `) ${projectedName}`;
       }
-      case 'hidden-pkf':
+      case 'se-hidden-pkf':
       {
         const fieldName = this.maybeQuoteColumn(selectEntry.pkFieldName);
         const isFieldNameQuoted = fieldName !== selectEntry.pkFieldName;

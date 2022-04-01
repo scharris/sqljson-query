@@ -1,15 +1,9 @@
 import * as path from 'path';
-import {
-  upperCamelCase,
-  indentLines,
-  readTextFileSync,
-  sorted,
-} from '../../util/mod';
+import { upperCamelCase, indentLines, readTextFileSync, Nullable } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
-  ResultTypeSpec, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty,
-  propertiesCount
+  ResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
+  TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty,
 } from '../result-type-specs';
 import {
   JavaSourceGenerationOptions,
@@ -21,11 +15,10 @@ import { assignResultTypeNames } from '../result-type-names-assignment';
 
 export default function makeSource
   (
-    queryName: string,
     resultTypeSpecs: ResultTypeSpec[],
-    queryTypesFileHeader: string | undefined,
-    queryParamNames: string[],
+    queryName: string,
     sqlPaths: QueryReprSqlPath[],
+    queryParamNames: string[],
     opts: JavaResultTypesSourceGenerationOptions
   )
   : GeneratedResultTypes
@@ -45,7 +38,7 @@ export default function makeSource
     resultTypesSourceCode:
       (opts?.javaOptions?.javaPackage ? `package ${opts.javaOptions.javaPackage};\n\n` : '') +
       generalTypesFileHeader(opts.typesHeaderFile) +
-      (queryTypesFileHeader || '') + '\n' +
+      (opts.typesHeaderFile || '') + '\n' +
       standardImports + '\n\n' +
       `public class ${compilationUnitName}\n` +
       '{\n' +
@@ -57,7 +50,7 @@ export default function makeSource
   };
 }
 
-function generalTypesFileHeader(typesHeaderFile: string | undefined): string
+function generalTypesFileHeader(typesHeaderFile: Nullable<string>): string
 {
   if (typesHeaderFile != null) return readTextFileSync(typesHeaderFile) + "\n";
   else return '';
@@ -67,7 +60,7 @@ function sqlFileReferences
   (
     queryName: string,
     queryReprSqlPaths: QueryReprSqlPath[],
-    sqlResourcePathPrefix: string | undefined,
+    sqlResourcePathPrefix: Nullable<string>,
   )
   : string
 {
@@ -111,7 +104,7 @@ function resultTypeDeclarations
     if (resTypeName == null)
       throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
 
-    if ( !writtenTypeNames.has(resTypeName) )
+    if (!writtenTypeNames.has(resTypeName))
     {
       typeDecls.push(makeResultTypeDeclaration(resType, resultTypeNameAssignments, opts) + '\n');
       writtenTypeNames.add(resTypeName);
@@ -132,56 +125,39 @@ function makeResultTypeDeclaration
   const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
   const vis = emitRecords ? '' : 'public ';
 
-  const decls: { decl: string; displayOrder: number }[] = [];
-
-  resType.tableFieldProperties.forEach(prop => {
-    decls.push({
-      decl: `${vis}${tableFieldPropertyType(prop, resType, opts)} ${prop.name}`,
-      displayOrder: prop.displayOrder ?? (decls.length + 1)
-    });
+  const decls = resType.properties.map(prop => {
+    switch(prop.type)
+    {
+      case 'rtp-field':
+        return `${vis}${tableFieldType(prop, resType, opts)} ${prop.propertyName}`;
+      case 'rtp-expr':
+        return `${vis}${tableExprType(prop, opts)} ${prop.propertyName}`;
+      case 'rtp-parent-ref':
+        return `${vis}${parentRefType(prop, resTypeNameAssignments, opts)} ${prop.propertyName}`;
+      case 'rtp-child-coll':
+        return `${vis}${childCollType(prop, resTypeNameAssignments, opts)} ${prop.propertyName}`;
+    }
   });
-  resType.tableExpressionProperties.forEach(prop => {
-    decls.push({
-      decl: `${vis}${tableExpressionPropertyType(prop, opts)} ${prop.name}`,
-      displayOrder: prop.displayOrder ?? (decls.length + 1)
-    });
-  });
-  resType.parentReferenceProperties.forEach(prop => {
-    decls.push({
-      decl: `${vis}${parentReferencePropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
-      displayOrder: prop.displayOrder ?? (decls.length + 1)
-    });
-  });
-  resType.childCollectionProperties.forEach(prop => {
-    decls.push({
-      decl: `${vis}${childCollectionPropertyType(prop, resTypeNameAssignments, opts)} ${prop.name}`,
-      displayOrder: prop.displayOrder ?? (decls.length + 1)
-    });
-  });
-
-  const sortedDecls =
-    sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
-    .map(decl => decl.decl);
 
   const resTypeName = resTypeNameAssignments.get(resType)!;
 
   if (emitRecords) return (
     `public record ${resTypeName}(\n` +
-      indentLines(sortedDecls.join(',\n'), 2) + '\n' +
+      indentLines(decls.join(',\n'), 2) + '\n' +
     '){}'
   );
   else return (
     '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
     `public static class ${resTypeName}\n` +
     '{\n' +
-      indentLines(sortedDecls.join(';\n'), 2) + ';\n' +
+      indentLines(decls.join(';\n'), 2) + ';\n' +
     '}'
   );
 }
 
-function tableFieldPropertyType
+function tableFieldType
   (
-    tfp: TableFieldProperty,
+    tfp: TableFieldResultTypeProperty,
     inResType: ResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
@@ -234,21 +210,48 @@ function tableFieldPropertyType
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
         return textTableFieldPropertyType(tfp);
-      else throw new Error(`unsupported type for database field '${tfp.name}' of type '${tfp.databaseType}'`);
+      else throw new Error(`unsupported type for field '${tfp.databaseFieldName}' of type '${tfp.databaseType}'`);
   }
 }
 
-function tableExpressionPropertyType
+function tableExprType
   (
-    tep: TableExpressionProperty,
+    tep: TableExpressionResultTypeProperty,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
   if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
-    throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
+    throw new Error(`Generated field type is required for table expression property ${tep.propertyName}.`);
 
   return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, opts);
+}
+
+function parentRefType
+  (
+    f: ParentReferenceResultTypeProperty,
+    resTypeNames: Map<ResultTypeSpec,string>,
+    opts: ResultTypesSourceGenerationOptions
+  )
+  : string
+{
+  const parentTypeName = resTypeNames.get(f.refResultType)!;
+  return withNullability(f.nullable, parentTypeName);
+}
+
+function childCollType
+  (
+    prop: ChildCollectionResultTypeProperty,
+    resTypeNames: Map<ResultTypeSpec,string>,
+    opts: ResultTypesSourceGenerationOptions
+  )
+  : string
+{
+  const collElType = prop.elResultType.unwrapped ?
+    getSolePropertyType(prop.elResultType, resTypeNames, opts)
+    : resTypeNames.get(prop.elResultType)!;
+
+  return withNullability(prop.nullable, `List<${toReferenceType(collElType)}>`);
 }
 
 function specifiedSourceCodeFieldType
@@ -270,33 +273,6 @@ function specifiedSourceCodeFieldType
   }
 }
 
-function parentReferencePropertyType
-  (
-    f: ParentReferenceProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
-  )
-  : string
-{
-  const parentTypeName = resTypeNames.get(f.refResultType)!;
-  return withNullability(f.nullable, parentTypeName);
-}
-
-function childCollectionPropertyType
-  (
-    p: ChildCollectionProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
-  )
-  : string
-{
-  const collElType = p.elResultType.unwrapped ?
-    getSolePropertyType(p.elResultType, resTypeNames, opts)
-    : resTypeNames.get(p.elResultType)!; // a regular (wrapped) child record is never nullable itself, by its nature
-
-  return withNullability(p.nullable, `List<${toReferenceType(collElType)}>`);
-}
-
 function getSolePropertyType
   (
     resType: ResultTypeSpec,
@@ -305,22 +281,27 @@ function getSolePropertyType
   )
   : string
 {
-  if (propertiesCount(resType) !== 1)
+  if (resType.properties.length !== 1)
     throw new Error(`Expected single field when unwrapping result type ${JSON.stringify(resType)}.`);
 
-  if (resType.tableFieldProperties.length === 1)
-    return tableFieldPropertyType(resType.tableFieldProperties[0], resType, opts);
-  else if (resType.tableExpressionProperties.length === 1)
-    return tableExpressionPropertyType(resType.tableExpressionProperties[0], opts);
-  else if (resType.childCollectionProperties.length === 1)
-    return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, opts);
-  else if (resType.parentReferenceProperties.length === 1)
-    return parentReferencePropertyType(resType.parentReferenceProperties[0], resTypeNames, opts);
-  else
-    throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
+  const prop = resType.properties[0];
+
+  switch(prop.type)
+  {
+    case 'rtp-field':
+      return tableFieldType(prop, resType, opts);
+    case 'rtp-expr':
+      return tableExprType(prop, opts);
+    case 'rtp-child-coll':
+      return childCollType(prop, resTypeNames, opts);
+    case 'rtp-parent-ref':
+      return parentRefType(prop, resTypeNames, opts);
+    default:
+      throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
+  }
 }
 
-function generalNumericTableFieldPropertyType(fp: TableFieldProperty): string
+function generalNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   if (fp.fractionalDigits == null || fp.fractionalDigits > 0)
     return withNullability(fp.nullable, 'BigDecimal');
@@ -331,29 +312,29 @@ function generalNumericTableFieldPropertyType(fp: TableFieldProperty): string
   }
 }
 
-function floatingNumericTableFieldPropertyType(fp: TableFieldProperty): string
+function floatingNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, "double");
 }
 
-function textTableFieldPropertyType(fp: TableFieldProperty): string
+function textTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, "String");
 }
 
-function booleanTableFieldPropertyType(fp: TableFieldProperty): string
+function booleanTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, "boolean");
 }
 
-function jsonTableFieldPropertyType(fp: TableFieldProperty): string
+function jsonTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, 'JsonNode');
 }
 
 function withNullability
   (
-    maybeNullable: boolean | null,
+    maybeNullable: Nullable<boolean>,
     typeName: string,
   )
   : string

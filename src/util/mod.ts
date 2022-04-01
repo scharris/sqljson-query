@@ -13,3 +13,5 @@ export function missingCase(caseVal: never): never
   console.log(_ = caseVal);
   return _;
 }
+
+export type Nullable<T> = T | null | undefined;

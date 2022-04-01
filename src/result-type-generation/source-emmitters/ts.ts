@@ -1,9 +1,9 @@
 import * as path from 'path';
-import { upperCamelCase, readTextFileSync, sorted } from '../../util/mod';
+import { upperCamelCase, readTextFileSync, Nullable } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
-  ResultTypeSpec, ChildCollectionProperty, TableFieldProperty, TableExpressionProperty,
-  ParentReferenceProperty, propertiesCount,
+  ResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
+  TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty,
 } from '../result-type-specs';
 import { ResultTypesSourceGenerationOptions } from '../../source-generation-options';
 import { GeneratedResultTypes } from "../generated-result-types";
@@ -12,11 +12,10 @@ import { assignResultTypeNames } from '../result-type-names-assignment';
 
 export default function makeSource
   (
-    queryName: string,
     resultTypeSpecs: ResultTypeSpec[],
-    queryTypesFileHeader: string | undefined,
-    queryParamNames: string[],
+    queryName: string,
     sqlPaths: QueryReprSqlPath[],
+    queryParamNames: string[],
     opts: ResultTypesSourceGenerationOptions
   )
   : GeneratedResultTypes
@@ -26,7 +25,7 @@ export default function makeSource
     resultTypeSpecs,
     resultTypesSourceCode:
       generalTypesFileHeader(opts.typesHeaderFile) +
-      (queryTypesFileHeader || '') + '\n\n' +
+      (opts.typesHeaderFile || '') + '\n\n' +
       '// The types defined in this file correspond to results of the following generated SQL queries.\n' +
       sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix) + "\n\n" +
       '// query parameters\n' +
@@ -36,7 +35,7 @@ export default function makeSource
   };
 }
 
-function generalTypesFileHeader(typesHeaderFile: string | undefined): string
+function generalTypesFileHeader(typesHeaderFile: Nullable<string>): string
 {
   if (typesHeaderFile != null) return readTextFileSync(typesHeaderFile) + "\n";
   else return '';
@@ -46,7 +45,7 @@ function sqlFileReferences
   (
     queryName: string,
     queryReprSqlPaths: QueryReprSqlPath[],
-    sqlResourcePathPrefix: string | undefined
+    sqlResourcePathPrefix: Nullable<string>,
   )
   : string
 {
@@ -102,45 +101,36 @@ function resultTypeDeclarations
 function makeResultTypeDeclaration
   (
     resType: ResultTypeSpec,
-    resTypeNameAssignments: Map<ResultTypeSpec,string>,
+    typeNameAssignments: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  const decls: { decl: string; displayOrder: number }[] = [];
-
-  resType.tableFieldProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${tableFieldPropertyType(prop, resType, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.tableExpressionProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${tableExpressionPropertyType(prop, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.parentReferenceProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${parentReferencePropertyType(prop, resTypeNameAssignments, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-  resType.childCollectionProperties.forEach(prop => decls.push({
-    decl: `  ${prop.name}: ${childCollectionPropertyType(prop, resTypeNameAssignments, opts)};`,
-    displayOrder: prop.displayOrder ?? (decls.length + 1)
-  }));
-
-  const resTypeName = resTypeNameAssignments.get(resType)!;
+  const decls = resType.properties.map(prop => {
+    switch(prop.type)
+    {
+      case 'rtp-field':
+        return `  ${prop.propertyName}: ${tableFieldType(prop, resType, opts)};`;
+      case 'rtp-expr':
+        return `  ${prop.propertyName}: ${tableExprType(prop, opts)};`;
+      case 'rtp-parent-ref':
+        return `  ${prop.propertyName}: ${parentRefType(prop, typeNameAssignments, opts)};`;
+      case 'rtp-child-coll':
+        return `  ${prop.propertyName}: ${childCollType(prop, typeNameAssignments, opts)};`;
+    }
+  });
 
   return (
-    `export interface ${resTypeName}\n` +
+    `export interface ${typeNameAssignments.get(resType)!}\n` +
     '{\n' +
-      sorted(decls, (decl1, decl2) => (decl1.displayOrder ?? 0) - (decl2.displayOrder ?? 0))
-      .map(decl => decl.decl)
-      .join('\n') + '\n' +
+      decls.join('\n') + '\n' +
     '}'
   );
 }
 
-function tableFieldPropertyType
+function tableFieldType
   (
-    tfp: TableFieldProperty,
+    tfp: TableFieldResultTypeProperty,
     inResType: ResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
@@ -193,21 +183,49 @@ function tableFieldPropertyType
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
         return textTableFieldPropertyType(tfp);
-      else throw new Error(`unsupported type for database field '${tfp.name}' of type '${tfp.databaseType}'`);
+      else
+        throw new Error(`unsupported type for field '${tfp.databaseFieldName}' of type '${tfp.databaseType}'`);
   }
 }
 
-function tableExpressionPropertyType
+function tableExprType
   (
-    tep: TableExpressionProperty,
+    prop: TableExpressionResultTypeProperty,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
-    throw new Error(`Generated field type is required for table expression property ${tep.name}.`);
+  if (!prop.specifiedSourceCodeFieldType) // This should have been caught in validation.
+    throw new Error(`Generated field type is required for table expression property ${prop.propertyName}.`);
 
-  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, opts);
+  return specifiedSourceCodeFieldType(prop.specifiedSourceCodeFieldType, opts);
+}
+
+function parentRefType
+  (
+    prop: ParentReferenceResultTypeProperty,
+    resTypeNames: Map<ResultTypeSpec,string>,
+    opts: ResultTypesSourceGenerationOptions
+  )
+  : string
+{
+  const parentTypeName = resTypeNames.get(prop.refResultType)!;
+  return withNullability(prop.nullable, parentTypeName);
+}
+
+function childCollType
+  (
+    p: ChildCollectionResultTypeProperty,
+    resTypeNames: Map<ResultTypeSpec,string>,
+    opts: ResultTypesSourceGenerationOptions
+  )
+  : string
+{
+  const collElType = p.elResultType.unwrapped ?
+    getSolePropertyType(p.elResultType, resTypeNames, opts)
+    : resTypeNames.get(p.elResultType)!;
+
+  return withNullability(p.nullable, `${collElType}[]`);
 }
 
 function specifiedSourceCodeFieldType
@@ -229,33 +247,6 @@ function specifiedSourceCodeFieldType
   }
 }
 
-function parentReferencePropertyType
-  (
-    f: ParentReferenceProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
-  )
-  : string
-{
-  const parentTypeName = resTypeNames.get(f.refResultType)!;
-  return withNullability(f.nullable, parentTypeName);
-}
-
-function childCollectionPropertyType
-  (
-    p: ChildCollectionProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
-  )
-  : string
-{
-  const collElType = p.elResultType.unwrapped ?
-    getSolePropertyType(p.elResultType, resTypeNames, opts)
-    : resTypeNames.get(p.elResultType)!; // a regular (wrapped) child record is never nullable itself, by its nature
-
-  return withNullability(p.nullable, `${collElType}[]`);
-}
-
 function getSolePropertyType
   (
     resType: ResultTypeSpec,
@@ -264,44 +255,49 @@ function getSolePropertyType
   )
   : string
 {
-  if (propertiesCount(resType) !== 1)
+  if (resType.properties.length !== 1)
     throw new Error(`Expected single field when unwrapping result type ${JSON.stringify(resType)}.`);
 
-  if (resType.tableFieldProperties.length === 1)
-    return tableFieldPropertyType(resType.tableFieldProperties[0], resType, opts);
-  else if (resType.tableExpressionProperties.length === 1)
-    return tableExpressionPropertyType(resType.tableExpressionProperties[0], opts);
-  else if (resType.childCollectionProperties.length === 1)
-    return childCollectionPropertyType(resType.childCollectionProperties[0], resTypeNames, opts);
-  else if (resType.parentReferenceProperties.length === 1)
-    return parentReferencePropertyType(resType.parentReferenceProperties[0], resTypeNames, opts);
-  else
-    throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
+  const prop = resType.properties[0];
+
+  switch(prop.type)
+  {
+    case 'rtp-field':
+      return tableFieldType(prop, resType, opts);
+    case 'rtp-expr':
+      return tableExprType(prop, opts);
+    case 'rtp-child-coll':
+      return childCollType(prop, resTypeNames, opts);
+    case 'rtp-parent-ref':
+      return parentRefType(prop, resTypeNames, opts);
+    default:
+      throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
+  }
 }
 
-function floatingNumericTableFieldPropertyType(fp: TableFieldProperty): string
+function floatingNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, 'number');
 }
 
-function textTableFieldPropertyType(fp: TableFieldProperty): string
+function textTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, 'string');
 }
 
-function booleanTableFieldPropertyType(fp: TableFieldProperty): string
+function booleanTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, 'boolean');
 }
 
-function jsonTableFieldPropertyType(fp: TableFieldProperty): string
+function jsonTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, 'any');
 }
 
 function withNullability
   (
-    maybeNullable: boolean | null,
+    maybeNullable: Nullable<boolean>,
     typeName: string,
   )
   : string

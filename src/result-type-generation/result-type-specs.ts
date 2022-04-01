@@ -1,66 +1,56 @@
+import { RelId } from "../dbmd";
+import { Nullable } from "../util/mod";
 import { deepEquals } from "../util/objects";
 
-export interface ResultTypeSpec extends ResultProperties
+export interface ResultTypeSpec
 {
-  readonly queryName: string;
-  readonly table: string;
+  readonly table: RelId;
+  readonly properties: ResultTypeProperty[];
   readonly unwrapped: boolean;
-  readonly resultTypeName?: string;
+  readonly resultTypeName?: Nullable<string>;
 }
 
-export interface ResultProperties
-{
-  readonly tableFieldProperties: TableFieldProperty[];
-  readonly tableExpressionProperties: TableExpressionProperty[];
-  readonly parentReferenceProperties: ParentReferenceProperty[];
-  readonly childCollectionProperties: ChildCollectionProperty[];
-}
+export type ResultTypeProperty =
+  TableFieldResultTypeProperty |
+  TableExpressionResultTypeProperty |
+  ParentReferenceResultTypeProperty |
+  ChildCollectionResultTypeProperty;
 
-export interface TableFieldProperty
+export interface TableFieldResultTypeProperty
 {
-  readonly name: string; // json property name
+  readonly type: 'rtp-field';
+  readonly propertyName: string;
   readonly databaseFieldName: string;
   readonly databaseType: string;
-  readonly length: number | null;
-  readonly precision: number | null;
-  readonly fractionalDigits: number | null;
-  readonly nullable: boolean | null;
-  readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As optionally specified in query spec.
-  readonly displayOrder?: number;
+  readonly length: Nullable<number>;
+  readonly precision: Nullable<number>;
+  readonly fractionalDigits: Nullable<number>;
+  readonly nullable: Nullable<boolean>;
+  readonly specifiedSourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
 }
 
-export interface TableExpressionProperty
+export interface TableExpressionResultTypeProperty
 {
-  readonly name: string;
-  readonly fieldExpression: string | null;
-  readonly specifiedSourceCodeFieldType: string | {[srcLang: string]: string} | null; // As specified in query spec.
-  readonly displayOrder?: number;
+  readonly type: 'rtp-expr';
+  readonly propertyName: string;
+  readonly fieldExpression: Nullable<string>;
+  readonly specifiedSourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
 }
 
-export interface ParentReferenceProperty
+export interface ParentReferenceResultTypeProperty
 {
-  readonly name: string;
+  readonly type: 'rtp-parent-ref';
+  readonly propertyName: string;
   readonly refResultType: ResultTypeSpec
-  readonly nullable: boolean | null;
-  readonly displayOrder?: number;
+  readonly nullable: Nullable<boolean>;
 }
 
-export interface ChildCollectionProperty
+export interface ChildCollectionResultTypeProperty
 {
-  readonly name: string;
+  readonly type: 'rtp-child-coll';
+  readonly propertyName: string;
   readonly elResultType: ResultTypeSpec; // Just the collection element type without the collection type itself.
-  readonly nullable: boolean | null; // Nullable when the field is inlined from a parent with a record condition.
-  readonly displayOrder?: number;
-}
-
-export function propertiesCount(resType: ResultTypeSpec): number
-{
-  return (
-    resType.tableFieldProperties.length +
-    resType.tableExpressionProperties.length +
-    resType.parentReferenceProperties.length +
-    resType.childCollectionProperties.length
-  );
+  readonly nullable: Nullable<boolean>; // Nullable when the field is inlined from a parent with a record condition.
 }
 
 export function resultTypeSpecsEqual
@@ -71,13 +61,9 @@ export function resultTypeSpecsEqual
   : boolean
 {
   return (
-    rt1.queryName === rt2.queryName &&
     rt1.table === rt2.table &&
     rt1.resultTypeName === rt2.resultTypeName &&
-    deepEquals(rt1.tableFieldProperties, rt2.tableFieldProperties) &&
-    deepEquals(rt1.tableExpressionProperties,    rt2.tableExpressionProperties) &&
-    deepEquals(rt1.parentReferenceProperties,  rt2.parentReferenceProperties) &&
-    deepEquals(rt1.childCollectionProperties,  rt2.childCollectionProperties) &&
-    rt1.unwrapped === rt2.unwrapped
+    rt1.unwrapped === rt2.unwrapped &&
+    deepEquals(rt1.properties, rt2.properties)
   );
 }

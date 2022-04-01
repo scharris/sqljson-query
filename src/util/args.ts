@@ -6,7 +6,7 @@ export function parseArgs
     requiredNamedArgs: string[],
     optionalNamedArgs: string[],
     minPositionalArgs: number,
-    maxPositionalArgs: number | null = null
+    maxPositionalArgs: number | null | undefined = null
   )
   : minimist.ParsedArgs | 'help' | string
 {
@@ -45,7 +45,7 @@ export function parseAppArgs
     requiredNamedArgs: string[],
     optionalNamedArgs: string[],
     minPositionalArgs: number,
-    maxPositionalArgs: number | null = null
+    maxPositionalArgs: number | null | undefined = null
   )
   : minimist.ParsedArgs | 'help' | string
 {
