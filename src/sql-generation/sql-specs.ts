@@ -94,7 +94,7 @@ export interface TableFromEntry
   readonly entryType: 'table';
   readonly table: RelId;
   readonly alias: string;
-  readonly joinCondition?: Nullable<JoinCondition>;
+  readonly join?: Nullable<Join>;
   readonly comment?: undefined;
 }
 
@@ -103,11 +103,11 @@ export interface QueryFromEntry
   readonly entryType: 'query';
   readonly query: SqlSpec;
   readonly alias: string;
-  readonly joinCondition?: Nullable<JoinCondition>;
+  readonly join?: Nullable<Join>;
   readonly comment?: Nullable<string>;
 }
 
-export interface JoinCondition
+export interface Join
 {
   readonly joinType: JoinType;
   readonly parentChildCondition: ParentChildCondition;
@@ -120,23 +120,25 @@ export type ParentChildCondition =
 
 export interface ParentPrimaryKeyCondition
 {
-  readonly condType: 'pk';
+  readonly condType: 'pcc-on-pk';
   readonly childAlias: string;
   readonly matchedFields: ForeignKeyComponent[];
+  readonly matchMustExist: boolean;
 }
 
 export interface ChildForeignKeyCondition
 {
-  readonly condType: 'fk';
+  readonly condType: 'pcc-on-fk';
   readonly parentAlias: string;
   readonly matchedFields: ForeignKeyComponent[];
+  readonly matchMustExist: boolean;
 }
 
 export type WhereEntry = GeneralSqlWhereEntry | ParentChildCondition;
 
 export interface GeneralSqlWhereEntry
 {
-  readonly condType: 'gen';
+  readonly condType: 'general';
   readonly condSql: string;
   readonly tableAliasPlaceholderInCondSql?: Nullable<string>; // default is '$$'
   readonly tableAlias: string;

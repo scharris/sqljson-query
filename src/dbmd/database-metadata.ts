@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   computeIfAbsent,
   setsEqual,
-  caseNormalizeName,
   relIdDescn,
   splitSchemaAndRelationNames,
   exactUnquotedName,
@@ -137,9 +136,8 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     )
     : Nullable<ForeignKey>
   {
-    // TODO: Probably should use exactUnquoted() here instead of caseNormalizeName(), to remove quotes but leave a quotable name (which is how the dbmd stores names).
     const normdFkFieldNames = fieldNames != null ?
-      new Set(Array.from(fieldNames).map(n => caseNormalizeName(n, this.caseSensitivity)))
+      new Set(Array.from(fieldNames).map(n => exactUnquotedName(n, this.caseSensitivity)))
       : null;
 
     let soughtFk: ForeignKey | null = null;

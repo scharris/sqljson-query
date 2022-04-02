@@ -57,7 +57,7 @@ export interface TableExpr
 export interface ParentSpec extends TableJsonSpec
 {
   referenceName?: Nullable<string>;
-  customJoinCondition?: Nullable<CustomJoinCondition>;
+  customMatchCondition?: Nullable<CustomMatchCondition>;
   viaForeignKeyFields?: Nullable<string[]>;
   alias?: Nullable<string>;
 }
@@ -77,17 +77,17 @@ export interface ChildSpec extends TableJsonSpec
 {
   collectionName: string;
   foreignKeyFields?: Nullable<string[]>;
-  customJoinCondition?: Nullable<CustomJoinCondition>;
+  customMatchCondition?: Nullable<CustomMatchCondition>;
   filter?: Nullable<string>;
   unwrap?: Nullable<boolean>;
   orderBy?: Nullable<string>;
   displayOrder?: Nullable<number>;
 }
 
-export interface CustomJoinCondition
+export interface CustomMatchCondition
 {
   equatedFields: FieldPair[];
-  // By default a custom join condition for a parent will cause a nullable parent reference or nullable inline
+  // By default a custom match condition for a parent will cause a nullable parent reference or nullable inline
   // fields from the parent. This option allows asserting that a matching parent record always exists for this
   // join condition, so the parent reference or inline fields can be non-nullable if other factors don't
   // prevent it (such as a parent record condition, or an inlined field being nullable in the parent itself).
@@ -219,9 +219,9 @@ export function verifyTableFieldExpressionsValid
   verifyFieldsExistInRelMd(simpleSelectFields, relMd, dbmd, specLoc);
 }
 
-export function validateCustomJoinCondition
+export function validateCustomMatchCondition
   (
-    customJoinCond: CustomJoinCondition,
+    customMatchCond: CustomMatchCondition,
     childRelId: RelId,
     parentRelId: RelId,
     dbmd: DatabaseMetadata,
@@ -232,14 +232,14 @@ export function validateCustomJoinCondition
   const childMd = dbmd.getRelationMetadata(childRelId);
 
   if (parentMd == null)
-    throw new SpecError({...specLoc, queryPart: "custom join condition"}, "Parent table not found.");
+    throw new SpecError({...specLoc, queryPart: "custom match condition"}, "Parent table not found.");
   if (childMd == null)
-    throw new SpecError({...specLoc, queryPart: "custom join condition"}, "Child table not found.");
+    throw new SpecError({...specLoc, queryPart: "custom match condition"}, "Child table not found.");
 
-  const parentMatchFields = customJoinCond.equatedFields.map(fieldPair => fieldPair.parentPrimaryKeyField);
+  const parentMatchFields = customMatchCond.equatedFields.map(fieldPair => fieldPair.parentPrimaryKeyField);
   verifyFieldsExistInRelMd(parentMatchFields, parentMd, dbmd, specLoc);
 
-  const childMatchFields = customJoinCond.equatedFields.map(fieldPair => fieldPair.childField);
+  const childMatchFields = customMatchCond.equatedFields.map(fieldPair => fieldPair.childField);
   verifyFieldsExistInRelMd(childMatchFields, childMd, dbmd, specLoc);
 }
 

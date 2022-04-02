@@ -830,7 +830,7 @@ test('providing foreign key fields avoids error when multiple fk constraints exi
   expect(sqlSpecGen.generateSqlSpecs(querySpec).size).toBe(1);
 });
 
-test('a custom join condition for a child table may be used when no suitable foreign key exists', () => {
+test('a custom match condition for a child table may be used when no suitable foreign key exists', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec =
   {
@@ -844,7 +844,7 @@ test('a custom join condition for a child table may be used when no suitable for
           collectionName: 'references',
           table: 'reference',
           fieldExpressions: ['id'],
-          customJoinCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'id' }] }
+          customMatchCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'id' }] }
         }
       ]
     }
@@ -853,7 +853,7 @@ test('a custom join condition for a child table may be used when no suitable for
   expect(sqlSpecGen.generateSqlSpecs(querySpec).size).toBe(1);
 });
 
-test('a custom join condition for a child table can only utilize fields which exist in database metadata', () => {
+test('a custom match condition for a child table can only utilize fields which exist in database metadata', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec =
   {
@@ -867,7 +867,7 @@ test('a custom join condition for a child table can only utilize fields which ex
           collectionName: 'references',
           table: 'reference',
           fieldExpressions: ['id'],
-          customJoinCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'field_which_dne' }] }
+          customMatchCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'field_which_dne' }] }
         }
       ]
     }
@@ -919,7 +919,7 @@ test('providing fk fields avoids error when multiple fk constraints exist with a
   expect(sqlSpecGen.generateSqlSpecs(querySpec).size).toBe(1);
 });
 
-test('a custom join condition for a parent table may be used when no suitable foreign key exists', () => {
+test('a custom match condition for a parent table may be used when no suitable foreign key exists', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec =
   {
@@ -932,7 +932,7 @@ test('a custom join condition for a parent table may be used when no suitable fo
         {
           table: 'reference',
           fieldExpressions: ['id'],
-          customJoinCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'id' }] }
+          customMatchCondition: { equatedFields: [{ childField: 'id', parentPrimaryKeyField: 'id' }] }
         }
       ]
     }
@@ -941,7 +941,7 @@ test('a custom join condition for a parent table may be used when no suitable fo
   expect(sqlSpecGen.generateSqlSpecs(querySpec).size).toBe(1);
 });
 
-test('a custom join condition for a parent table can only utilize fields which exist in database metadata', () => {
+test('a custom match condition for a parent table can only utilize fields which exist in database metadata', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec =
   {
@@ -954,7 +954,7 @@ test('a custom join condition for a parent table can only utilize fields which e
         {
           table: 'reference',
           fieldExpressions: ['id'],
-          customJoinCondition: { equatedFields: [{ childField: 'field_which_dne', parentPrimaryKeyField: 'id' }] }
+          customMatchCondition: { equatedFields: [{ childField: 'field_which_dne', parentPrimaryKeyField: 'id' }] }
         }
       ]
     }

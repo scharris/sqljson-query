@@ -867,7 +867,6 @@ test('generateQueries() produces expected output files', async () => {
   ]));
 });
 
-// TODO: Test generateRelationsMetadataSource().
 
 async function compileAndRunTest
   (

@@ -171,7 +171,7 @@ export class SqlSourceGenerator
       }
       case 'se-expr':
       {
-        const tableAliasPlaceholder = selectEntry.tableAliasPlaceholderInExpr || DEFAULT_TABLE_ALIAS_PLACEHOLDER;
+        const tableAliasPlaceholder = selectEntry.tableAliasPlaceholderInExpr || DEFAULT_ALIAS_PLACEHOLDER;
         const expr = replaceAll(selectEntry.expression, tableAliasPlaceholder, selectEntry.tableAlias);
         const sep = isProjectedNameQuoted ? ' ' : ' as ';
 
@@ -214,9 +214,9 @@ export class SqlSourceGenerator
   private fromEntrySql(fromEntry: FromEntry): string
   {
     const commentLine = this.genComments && fromEntry.comment ? `-- ${fromEntry.comment}\n` : '';
-    const joinParts = fromEntry.joinCondition
-      ? { joinType: fromEntry.joinCondition.joinType === 'INNER' ? 'join' : 'left join',
-          onCond: this.parentChildConditionSql(fromEntry.joinCondition.parentChildCondition) }
+    const joinParts = fromEntry.join
+      ? { joinType: fromEntry.join.joinType === 'INNER' ? 'join' : 'left join',
+          onCond: this.parentChildConditionSql(fromEntry.join.parentChildCondition) }
       : null;
 
     switch (fromEntry.entryType)
@@ -244,9 +244,9 @@ export class SqlSourceGenerator
 
   private whereEntrySql(whereEntry: WhereEntry): string
   {
-    if (whereEntry.condType === 'gen')
+    if (whereEntry.condType === 'general')
     {
-      const tableAliasPlaceholder = whereEntry.tableAliasPlaceholderInCondSql || DEFAULT_TABLE_ALIAS_PLACEHOLDER;
+      const tableAliasPlaceholder = whereEntry.tableAliasPlaceholderInCondSql || DEFAULT_ALIAS_PLACEHOLDER;
       return `(${replaceAll(whereEntry.condSql, tableAliasPlaceholder, whereEntry.tableAlias)})`;
     }
     else
@@ -255,7 +255,7 @@ export class SqlSourceGenerator
 
   parentChildConditionSql(pcCond: ParentChildCondition): string
   {
-    const [parentAlias, childAlias] = pcCond.condType === 'pk'
+    const [parentAlias, childAlias] = pcCond.condType === 'pcc-on-pk'
       ? [pcCond.fromAlias, pcCond.childAlias]
       : [pcCond.parentAlias, pcCond.fromAlias];
 
@@ -298,4 +298,4 @@ function nlterm(s: string): string
   return !s.endsWith('\n') ? s + '\n' : s;
 }
 
-const DEFAULT_TABLE_ALIAS_PLACEHOLDER = '$$';
+const DEFAULT_ALIAS_PLACEHOLDER = '$$';

@@ -1,9 +1,11 @@
-import { caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn } from '../util/mod';
-import { DatabaseMetadata, Field, ForeignKey, RelId } from '../dbmd';
+import {
+  caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn
+} from '../util/mod';
+import { DatabaseMetadata, Field, ForeignKey, foreignKeyFieldNames, RelId } from '../dbmd';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
-  CustomJoinCondition, ParentSpec, getInlineParentSpecs, getReferencedParentSpecs, identifyTable,
-  validateCustomJoinCondition, verifyTableFieldExpressionsValid, AdditionalObjectPropertyColumn
+  CustomMatchCondition, ParentSpec, getInlineParentSpecs, getReferencedParentSpecs, identifyTable,
+  validateCustomMatchCondition, verifyTableFieldExpressionsValid, AdditionalObjectPropertyColumn, InlineParentSpec
 } from '../query-specs';
 import {
   SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
@@ -23,6 +25,8 @@ export class SqlSpecGenerator
   public generateSqlSpecs(querySpec: QuerySpec): Map<ResultRepr,SqlSpec>
   {
     const resReps = querySpec.resultRepresentations ?? ['JSON_OBJECT_ROWS'];
+    if (resReps.length === 0)
+      throw specError(querySpec, 'resultRepresentations', 'One or more result representations must be specified.');
 
     return makeMap(resReps, rep => rep, rep => this.makeSqlSpec(querySpec, rep));
   }
@@ -73,9 +77,12 @@ export class SqlSpecGenerator
 
     sqlb.addFromEntry({ entryType: 'table', table: { ...relId }, alias });
 
-    // If we have a condition from a related table, register the other table's alias to avoid shadowing it.
+    // If we have a condition from a related table, register other table's alias to avoid shadowing it.
     if (parentChildCond)
-      sqlb.addAlias(parentChildCond.condType === 'fk' ? parentChildCond.parentAlias : parentChildCond.childAlias);
+      sqlb.addAlias(parentChildCond.condType === 'pcc-on-fk'
+        ? parentChildCond.parentAlias
+        : parentChildCond.childAlias
+      );
 
     if (exportPkFieldsHidden)
       sqlb.addSelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
@@ -93,7 +100,7 @@ export class SqlSpecGenerator
 
     if (tj.recordCondition)
       sqlb.addWhereEntry({
-        condType: 'gen',
+        condType: 'general',
         condSql: tj.recordCondition.sql,
         tableAliasPlaceholderInCondSql: tj.recordCondition.withTableAliasAs,
         tableAlias: alias
@@ -198,7 +205,7 @@ export class SqlSpecGenerator
         const fieldName = typeof tfe === 'string' ? tfe : tfe.field;
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
-          throw new Error(`No metadata found for field ${tj.table}.${fieldName}.`);
+          throw new SpecError(specLoc, `No metadata found for field ${tj.table}.${fieldName}.`);
 
         return {
           entryType: 'se-field',
@@ -252,7 +259,7 @@ export class SqlSpecGenerator
   // Return sql parts for the *including* (child) table's SQL query which are contributed by the inline parent table.
   private inlineParentSqlParts
     (
-      parent: ParentSpec,
+      parentSpec: InlineParentSpec,
       childRelId: RelId,
       childAlias: string,
       avoidAliases: Set<string>,
@@ -262,30 +269,41 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts();
 
-    const parentAlias = parent.alias || makeNameNotInSet('q', avoidAliases);
+    const parentAlias = parentSpec.alias || makeNameNotInSet('q', avoidAliases);
     sqlParts.addAlias(parentAlias);
 
-    const parentPropsSql = this.baseSql(parent, null, null, specLoc, 'export-pk-fields-hidden');
-    // The parent subquery exports "hidden" ('_'-prefixed) primary keys to support the join "ON"
-    // condition in its FROM clause entry in the including (child) query. Prefixing is used here
-    // to avoid possible name collisions with existing parent properties.
+    const parentPropsSql = this.baseSql(parentSpec, null, null, specLoc, 'export-pk-fields-hidden');
+
     const matchedFields =
-      this.getParentPrimaryKeyCondition(parent, childRelId, childAlias, specLoc)
+      this.getParentPrimaryKeyCondition(parentSpec, childRelId, childAlias, specLoc)
       .matchedFields
       .map(fp => ({ ...fp, primaryKeyFieldName: HIDDEN_PK_PREFIX + fp.primaryKeyFieldName }));
+
+    const matchMustExist =
+      parentSpec.recordCondition == null && (
+        parentSpec.customMatchCondition == null ?
+          this.someFkFieldNotNullable(childRelId, parentSpec, specLoc)
+          : (parentSpec.customMatchCondition?.matchAlwaysExists ?? false)
+      );
 
     sqlParts.addFromEntry({
       entryType: 'query',
       query: parentPropsSql,
       alias: parentAlias,
-      joinCondition: {
+      join: {
         joinType: 'LEFT',
-        parentChildCondition: { condType: 'fk', fromAlias: childAlias, parentAlias, matchedFields }
+        parentChildCondition: {
+          condType: 'pcc-on-fk',
+          fromAlias: childAlias,
+          parentAlias,
+          matchedFields,
+          matchMustExist
+        },
       },
-      comment: `parent table '${parent.table}', joined for inlined fields`
+      comment: `parent table '${parentSpec.table}', joined for inlined fields`
     });
 
-    const parentRelId = identifyTable(parent.table, this.defaultSchema, this.dbmd, specLoc);
+    const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
 
     for (const [ix, parentPropSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
@@ -294,8 +312,8 @@ export class SqlSpecGenerator
         projectedName: parentPropSelectEntry.projectedName,
         parentAlias,
         parentTable: parentRelId,
-        comment: ix === 0 ? `field(s) inlined from parent table '${parent.table}'` : null,
-        displayOrder: parentPropSelectEntry.displayOrder
+        comment: ix === 0 ? `field(s) inlined from parent table '${parentSpec.table}'` : null,
+        displayOrder: parentPropSelectEntry.displayOrder,
       });
     }
 
@@ -311,18 +329,23 @@ export class SqlSpecGenerator
     )
     : ParentPrimaryKeyCondition
   {
-    const customJoin = parentSpec.customJoinCondition;
+    const customMatch = parentSpec.customMatchCondition;
 
-    if (customJoin)
+    if (customMatch)
     {
       if (parentSpec.viaForeignKeyFields != undefined)
-        throw new SpecError(specLoc, 'Parent with customJoinCondition cannot specify foreignKeyFields.');
+        throw new SpecError(specLoc, 'Parent with customMatchCondition cannot specify foreignKeyFields.');
 
       const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
 
-      validateCustomJoinCondition(customJoin, childRelId, parentRelId, this.dbmd, addLocPart(specLoc, 'custom join'));
+      validateCustomMatchCondition(customMatch, childRelId, parentRelId, this.dbmd, addLocPart(specLoc,'custom match'));
 
-      return { condType: 'pk', childAlias, matchedFields: this.getMatchedFields(customJoin) };
+      return {
+        condType: 'pcc-on-pk',
+        childAlias,
+        matchedFields: this.getMatchedFields(customMatch),
+        matchMustExist: customMatch.matchAlwaysExists ?? false,
+      };
     }
     else
     {
@@ -330,7 +353,12 @@ export class SqlSpecGenerator
       const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
       const fk = this.getForeignKey(childRelId, parentRelId, childForeignKeyFieldsSet, specLoc);
 
-      return { condType: 'pk', childAlias, matchedFields: fk.foreignKeyComponents };
+      return {
+        condType: 'pcc-on-pk',
+        childAlias,
+        matchedFields: fk.foreignKeyComponents,
+        matchMustExist: this.someFkFieldNotNullable(childRelId, parentSpec, specLoc)
+      };
     }
   }
 
@@ -413,24 +441,34 @@ export class SqlSpecGenerator
     )
     : ChildForeignKeyCondition
   {
-    const customJoin = childSpec.customJoinCondition;
+    const customMatchCond = childSpec.customMatchCondition;
 
-    if (customJoin != undefined) // custom join condition specified
+    if (customMatchCond)
     {
       if (childSpec.foreignKeyFields)
-        throw new SpecError(specLoc, 'Child collection with customJoinCondition cannot also specify foreignKeyFields.');
+        throw new SpecError(specLoc, 'Child collection with customMatchCondition cannot also specify foreignKeyFields.');
 
-      const customJoinLoc = addLocPart(specLoc, 'custom join condition');
-      validateCustomJoinCondition(customJoin, childRelId, parentRelId, this.dbmd, customJoinLoc);
+      const customMatchLoc = addLocPart(specLoc, 'custom match condition');
+      validateCustomMatchCondition(customMatchCond, childRelId, parentRelId, this.dbmd, customMatchLoc);
 
-      return { condType: 'fk', parentAlias, matchedFields: this.getMatchedFields(customJoin) };
+      return {
+        condType: 'pcc-on-fk',
+        parentAlias,
+        matchedFields: this.getMatchedFields(customMatchCond),
+        matchMustExist: false,
+      };
     }
     else // foreign key join condition
     {
       const fkFields = childSpec.foreignKeyFields && new Set(childSpec.foreignKeyFields);
       const fk = this.getForeignKey(childRelId, parentRelId, fkFields, specLoc);
 
-      return { condType: 'fk', parentAlias, matchedFields: fk.foreignKeyComponents };
+      return {
+        condType: 'pcc-on-fk',
+        parentAlias,
+        matchedFields: fk.foreignKeyComponents,
+        matchMustExist: false
+      };
     }
   }
 
@@ -455,22 +493,25 @@ export class SqlSpecGenerator
 
   private getTableFieldsByName
     (
-      table: string,
+      table: string | RelId,
       specLoc: SpecLocation
     )
     : Map<string,Field>
   {
-    const relId = identifyTable(table, this.defaultSchema, this.dbmd, specLoc);
+    const relId =
+      typeof table === 'string'
+        ? identifyTable(table, this.defaultSchema, this.dbmd, specLoc)
+        : table;
     const relMd = this.dbmd.getRelationMetadata(relId);
     if (relMd == null)
-      throw new Error(`Metadata for table ${relIdDescn(relId)} not found.`);
+      throw new SpecError(specLoc, `Metadata for table ${relIdDescn(relId)} not found.`);
 
     return makeMap(relMd.fields, f => f.name, f => f);
   }
 
-  getMatchedFields(customJoin: CustomJoinCondition)
+  getMatchedFields(customMatch: CustomMatchCondition)
   {
-    return customJoin.equatedFields.map(eqfs => ({
+    return customMatch.equatedFields.map(eqfs => ({
       foreignKeyFieldName: this.quotable(eqfs.childField),
       primaryKeyFieldName: this.quotable(eqfs.parentPrimaryKeyField)
     }));
@@ -496,6 +537,32 @@ export class SqlSpecGenerator
       return tfe.jsonProperty;
     }
   }
+
+  private someFkFieldNotNullable
+  (
+    childRelId: RelId,
+    parentSpec: ParentSpec,
+    specLoc: SpecLocation
+  )
+  : boolean
+{
+  const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
+  const specFkFields = parentSpec.viaForeignKeyFields && new Set(parentSpec.viaForeignKeyFields) || null;
+  const fk = this.dbmd.getForeignKeyFromTo(childRelId, parentRelId, specFkFields);
+  if (!fk) throw new SpecError(specLoc,
+    `Foreign key from ${relIdDescn(childRelId)} to parent ${relIdDescn(parentRelId)} not found.`
+  );
+  const childFieldsByName = this.getTableFieldsByName(childRelId, specLoc);
+
+  return foreignKeyFieldNames(fk).some(fkFieldName => {
+    const fkField = childFieldsByName.get(fkFieldName);
+    if (!fkField) throw new SpecError(specLoc,
+      `Field not found for fk field ${fkFieldName} of table ${relIdDescn(childRelId)}.`
+    );
+    return fkField?.nullable === false;
+  });
+}
+
 
   // Return a string put into canonical unquoted and properly-cased form for the database.
   // If double quotes were added arond the returned name, it should be interpreted as the original

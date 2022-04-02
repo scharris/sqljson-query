@@ -1,4 +1,4 @@
-FROM mysql:8
+FROM mysql:8.0.28-oracle
 
 COPY sql/create-schema-objects.sql /docker-entrypoint-initdb.d/01-schema-objects.sql
 COPY sql/create-test-data.sql /docker-entrypoint-initdb.d/02-test-data.sql

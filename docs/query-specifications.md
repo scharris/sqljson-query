@@ -343,7 +343,7 @@ single object reference property.
   {
     referenceName?: string | undefined;
     alias?: string | undefined;
-    customJoinCondition?: CustomJoinCondition;
+    customMatchCondition?: CustomMatchCondition;
     viaForeignKeyFields?: string[];
   }
   ```
@@ -362,7 +362,7 @@ necessary, but it may be used in expressions provided in property `recordConditi
 described further below as a way of filtering records via custom conditions.
 
 
-- At most one of `customJoinCondition` and `viaForeignKeyFields` can be specified, in both cases to
+- At most one of `customMatchCondition` and `viaForeignKeyFields` can be specified, in both cases to
 control how the join to the parent is accomplished from the table named in `table`. Normally neither
 of these properties is needed, for the common case that there is one and only one foreign key between
 the table named in `table` and the parent table as found in the database metadata. If neither property
@@ -377,12 +377,12 @@ here, but they must exist as foreign key fields in the database metadata or else
 generation will fail with an error.
 
 
-- The `customJoinCondition` allows matching via fields that do not have a foreign key constraint
+- The `customMatchCondition` allows matching via fields that do not have a foreign key constraint
 defined in the database (metadata). The structure is a list of field pairs between the child and
 parent tables that should be equated to form the join condition:
 
   ```typescript
-  interface CustomJoinCondition
+  interface CustomMatchCondition
   {
     equatedFields: FieldPair[];
   }
@@ -399,7 +399,7 @@ parent tables that should be equated to form the join condition:
         {
           table: 'foo',
           // ...
-          customJoinCondition: {equatedFields: [{childField: 'fooId', parentPrimaryKeyField: 'id'}]}
+          customMatchCondition: {equatedFields: [{childField: 'fooId', parentPrimaryKeyField: 'id'}]}
         }
       ]
   ```
@@ -422,7 +422,7 @@ interface ChildSpec extends TableJsonSpec
 {
   collectionName: string;
   foreignKeyFields?: string[];
-  customJoinCondition?: CustomJoinCondition;
+  customMatchCondition?: CustomMatchCondition;
   unwrap?: boolean;
   filter?: string;
   orderBy?: string;
@@ -441,12 +441,12 @@ specify this property; it is intended to disambiguate when multiple foreign keys
 child and parent are defined.
 
 
-- The `customJoinCondition` allows matching via fields that do not have a foreign key constraint
+- The `customMatchCondition` allows matching via fields that do not have a foreign key constraint
 defined in the database (metadata). The structure is a list of field pairs between the child and
 parent tables that should be equated to form the join condition:
 
   ```typescript
-  interface CustomJoinCondition
+  interface CustomMatchCondition
   {
     equatedFields: FieldPair[];
   }
@@ -469,8 +469,8 @@ parent tables that should be equated to form the join condition:
           collectionName: "foos",
           table: 'foo',
           // ...
-          // (This custom join condition is not necessary if a proper foreign key constraint is defined on barId.)
-          customJoinCondition: {equatedFields: [{childField: 'barId', parentPrimaryKeyField: 'id'}]}
+          // (This custom match condition is not necessary if a proper foreign key constraint is defined on barId.)
+          customMatchCondition: {equatedFields: [{childField: 'barId', parentPrimaryKeyField: 'id'}]}
         }
       ]
     }

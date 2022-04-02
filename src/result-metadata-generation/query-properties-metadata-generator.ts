@@ -130,13 +130,13 @@ function resolveInlineParentProperty
 
 function makeParentStep(parentFromEntry: QueryFromEntry): ParentStep
 {
-  if (!parentFromEntry.joinCondition)
-    throw new Error(`Expected join condition for inline parent.`);
+  if (!parentFromEntry.join)
+    throw new Error(`Expected join clause for inline parent.`);
 
   const parent = getBaseTable(parentFromEntry.query);
   const viaFkFields =
     parentFromEntry
-    .joinCondition
+    .join
     .parentChildCondition
     .matchedFields
     .map(fp => fp.foreignKeyFieldName);

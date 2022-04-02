@@ -735,7 +735,6 @@ test('generateQueries() produces expected output files', async () => {
   ]));
 });
 
-// TODO: Test generateRelationsMetadataSource().
 
 async function compile(testSource: string): Promise<void>
 {
