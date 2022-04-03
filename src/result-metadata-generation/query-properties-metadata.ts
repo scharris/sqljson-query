@@ -16,7 +16,7 @@ export type QueryPropertyMetadata =
 
 export interface FieldPropertyMetadata
 {
-  type: 'qpm-field';
+  type: 'field';
   propertyName: string;
   sourceField: string;
   inlinedFromAncestorVia?: Nullable<ParentStep[]>;
@@ -24,7 +24,7 @@ export interface FieldPropertyMetadata
 
 export interface ExpressionPropertyMetadata
 {
-  type: 'qpm-expr';
+  type: 'expr';
   propertyName: string;
   sourceExpression: string;
   inlinedFromAncestorVia?: Nullable<ParentStep[]>;
@@ -32,7 +32,7 @@ export interface ExpressionPropertyMetadata
 
 export interface ChildTableCollectionPropertyMetadata
 {
-  type: 'qpm-child-coll';
+  type: 'child-coll';
   collectionPropertyName: string;
   table: RelId;
   properties: QueryPropertyMetadata[];
@@ -42,7 +42,7 @@ export interface ChildTableCollectionPropertyMetadata
 
 export interface ParentReferencePropertyMetadata
 {
-  type: 'qpm-parent-ref';
+  type: 'parent-ref';
   referencePropertyName: string;
   table: RelId;
   properties: QueryPropertyMetadata[];

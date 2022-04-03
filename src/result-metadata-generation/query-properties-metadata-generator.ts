@@ -37,13 +37,13 @@ function makePropertyMetadata
   {
     case 'se-field':
       return {
-        type: 'qpm-field',
+        type: 'field',
         propertyName: selectEntry.projectedName,
         sourceField: selectEntry.field.name,
       };
     case 'se-expr':
       return {
-        type: 'qpm-expr',
+        type: 'expr',
         propertyName: selectEntry.projectedName,
         sourceExpression: selectEntry.expression,
       };
@@ -51,7 +51,7 @@ function makePropertyMetadata
     {
       const parentSql = selectEntry.parentRowObjectSql;
       return {
-        type: 'qpm-parent-ref',
+        type: 'parent-ref',
         referencePropertyName: selectEntry.projectedName,
         table: getBaseTable(parentSql),
         properties: makePropertyMetadatas(parentSql)
@@ -61,7 +61,7 @@ function makePropertyMetadata
     {
       const childSql = selectEntry.collectionSql;
       return {
-        type: 'qpm-child-coll',
+        type: 'child-coll',
         collectionPropertyName: selectEntry.projectedName,
         table: getBaseTable(childSql),
         properties: makePropertyMetadatas(childSql),
