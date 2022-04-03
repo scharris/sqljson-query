@@ -117,8 +117,8 @@ function resolveInlineParentProperty
     const propResolvedFromParent =
       resolveInlineParentProperty(
         parentSql,
+        parentSelectEntry.projectedName,
         parentSelectEntry.parentAlias,
-        parentSelectEntry.projectedName
       );
 
     return {

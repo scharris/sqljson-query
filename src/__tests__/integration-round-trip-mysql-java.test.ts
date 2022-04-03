@@ -8,6 +8,7 @@ import {
   readTextFileSync,
   readDirSync,
   makeTempDir,
+  rm,
 } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
 import { GeneratedResultTypes, makeQueryResultTypesSource } from '../result-type-generation';
@@ -891,9 +892,15 @@ async function compileAndRunTest
 
   expect(cp.status).toBe(0);
   expect(cp.stdout || '').toContain('[INFO] BUILD SUCCESS');
+  await rm(tmpDir, { recursive: true, force: true });
 }
 
-function testWithResultTypes(resTypesSrc: GeneratedResultTypes, testSrc: string): Promise<void>
+function testWithResultTypes
+  (
+    resTypesSrc: GeneratedResultTypes,
+    testSrc: string
+  )
+  :Promise<void>
 {
   return compileAndRunTest(
     'package testpkg;\n' +

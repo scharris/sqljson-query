@@ -2,12 +2,6 @@ import {ResultTypeSpec, resultTypeSpecsEqual} from '../result-type-generation';
 
 const table = { name: 'table' };
 
-const emptyResultTypeSpec: ResultTypeSpec = {
-  table,
-  properties: [],
-  unwrapped: false
-};
-
 function makeExampleResultTypeSpec(): ResultTypeSpec
 {
   return {

@@ -5,7 +5,8 @@ import {
   propertyNameDefaultFunction,
   readDirSync,
   readTextFileSync,
-  writeTextFile
+  writeTextFile,
+  rm
 } from '../util/mod';
 import { DatabaseMetadata } from '../dbmd';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';
@@ -749,4 +750,5 @@ async function compile(testSource: string): Promise<void>
 
   expect(cp.error).toBeUndefined();
   expect(cp.stderr == null || cp.stderr === '' || cp.stderr.match(/^Debugger attached.\n..*to disconnect\.\.\./));
+  await rm(tmpDir, { recursive: true, force: true });
 }

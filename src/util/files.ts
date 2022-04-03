@@ -50,6 +50,11 @@ export async function makeTempDir(prefix: string): Promise<string>
   return fs.mkdtemp(path.join(os.tmpdir(), prefix))
 }
 
+export async function rm(path: string, opts?: any): Promise<void>
+{
+  await fs.rm(path, opts);
+}
+
 function dirEntExists(path: string): Promise<boolean>
 {
   return new Promise((resolve, reject) => {

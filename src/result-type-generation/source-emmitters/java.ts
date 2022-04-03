@@ -2,8 +2,8 @@ import * as path from 'path';
 import { upperCamelCase, indentLines, readTextFileSync, Nullable } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
-  ResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
-  TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty,
+  ChildCollectionResultTypeProperty, TableFieldResultTypeProperty, TableExpressionResultTypeProperty,
+  ParentReferenceResultTypeProperty, NamedResultTypeSpec, requireNamedResultType,
 } from '../result-type-specs';
 import {
   JavaSourceGenerationOptions,
@@ -11,11 +11,10 @@ import {
 } from '../../source-generation-options';
 import { GeneratedResultTypes } from "../generated-result-types";
 import { QueryReprSqlPath } from "../query-repr-sql-path";
-import { assignResultTypeNames } from '../result-type-names-assignment';
 
 export default function makeSource
   (
-    resultTypeSpecs: ResultTypeSpec[],
+    resultTypeSpecs: NamedResultTypeSpec[],
     queryName: string,
     sqlPaths: QueryReprSqlPath[],
     queryParamNames: string[],
@@ -86,38 +85,17 @@ function queryParamDefinitions(paramNames: string[]): string
 
 function resultTypeDeclarations
   (
-    resultTypes: ResultTypeSpec[],
+    resultTypes: NamedResultTypeSpec[],
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  if (resultTypes.length === 0) return '';
-
-  const typeDecls: string[] = [];
-  const writtenTypeNames = new Set();
-
-  const resultTypeNameAssignments: Map<ResultTypeSpec,string> = assignResultTypeNames(resultTypes);
-
-  for (const resType of resultTypes)
-  {
-    const resTypeName = resultTypeNameAssignments.get(resType);
-    if (resTypeName == null)
-      throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
-
-    if (!writtenTypeNames.has(resTypeName))
-    {
-      typeDecls.push(makeResultTypeDeclaration(resType, resultTypeNameAssignments, opts) + '\n');
-      writtenTypeNames.add(resTypeName);
-    }
-  }
-
-  return typeDecls.join('\n');
+  return resultTypes.map(resType => makeResultTypeDeclaration(resType, opts) + '\n').join('\n');
 }
 
 function makeResultTypeDeclaration
   (
-    resType: ResultTypeSpec,
-    resTypeNameAssignments: Map<ResultTypeSpec,string>,
+    resType: NamedResultTypeSpec,
     opts: JavaResultTypesSourceGenerationOptions
   )
   : string
@@ -133,22 +111,20 @@ function makeResultTypeDeclaration
       case 'rtp-expr':
         return `${vis}${tableExprType(prop, opts)} ${prop.propertyName}`;
       case 'rtp-parent-ref':
-        return `${vis}${parentRefType(prop, resTypeNameAssignments, opts)} ${prop.propertyName}`;
+        return `${vis}${parentRefType(prop)} ${prop.propertyName}`;
       case 'rtp-child-coll':
-        return `${vis}${childCollType(prop, resTypeNameAssignments, opts)} ${prop.propertyName}`;
+        return `${vis}${childCollType(prop, opts)} ${prop.propertyName}`;
     }
   });
 
-  const resTypeName = resTypeNameAssignments.get(resType)!;
-
   if (emitRecords) return (
-    `public record ${resTypeName}(\n` +
+    `public record ${resType.resultTypeName}(\n` +
       indentLines(decls.join(',\n'), 2) + '\n' +
     '){}'
   );
   else return (
     '@SuppressWarnings("nullness") // because fields will be set directly by the deserializer not by constructor\n' +
-    `public static class ${resTypeName}\n` +
+    `public static class ${resType.resultTypeName}\n` +
     '{\n' +
       indentLines(decls.join(';\n'), 2) + ';\n' +
     '}'
@@ -158,7 +134,7 @@ function makeResultTypeDeclaration
 function tableFieldType
   (
     tfp: TableFieldResultTypeProperty,
-    inResType: ResultTypeSpec,
+    inResType: NamedResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -229,27 +205,23 @@ function tableExprType
 
 function parentRefType
   (
-    f: ParentReferenceResultTypeProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
+    prop: ParentReferenceResultTypeProperty,
   )
   : string
 {
-  const parentTypeName = resTypeNames.get(f.refResultType)!;
-  return withNullability(f.nullable, parentTypeName);
+  return withNullability(prop.nullable, requireNamedResultType(prop.refResultType).resultTypeName);
 }
 
 function childCollType
   (
     prop: ChildCollectionResultTypeProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
   const collElType = prop.elResultType.unwrapped ?
-    getSolePropertyType(prop.elResultType, resTypeNames, opts)
-    : resTypeNames.get(prop.elResultType)!;
+    getSolePropertyType(requireNamedResultType(prop.elResultType), opts)
+    : requireNamedResultType(prop.elResultType).resultTypeName;
 
   return withNullability(prop.nullable, `List<${toReferenceType(collElType)}>`);
 }
@@ -266,17 +238,18 @@ function specifiedSourceCodeFieldType
     case 'string':
       return specSourceCodeFieldType;
     default:
-      if ( !(opts.sourceLanguage in specSourceCodeFieldType) ) throw new Error(
-        `Expression type for language ${opts.sourceLanguage} not specified for table expression property ${specSourceCodeFieldType}.`
-      );
+      if ( !(opts.sourceLanguage in specSourceCodeFieldType) )
+        throw new Error(
+          `Expression type for language ${opts.sourceLanguage} not specified for table expression ` +
+          `property ${specSourceCodeFieldType}.`
+        );
       return specSourceCodeFieldType[opts.sourceLanguage];
   }
 }
 
 function getSolePropertyType
   (
-    resType: ResultTypeSpec,
-    resTypeNames: Map<ResultTypeSpec,string>,
+    resType: NamedResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -293,9 +266,9 @@ function getSolePropertyType
     case 'rtp-expr':
       return tableExprType(prop, opts);
     case 'rtp-child-coll':
-      return childCollType(prop, resTypeNames, opts);
+      return childCollType(prop, opts);
     case 'rtp-parent-ref':
-      return parentRefType(prop, resTypeNames, opts);
+      return parentRefType(prop);
     default:
       throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
   }

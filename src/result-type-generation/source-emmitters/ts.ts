@@ -2,17 +2,16 @@ import * as path from 'path';
 import { upperCamelCase, readTextFileSync, Nullable } from '../../util/mod';
 import { ResultRepr } from '../../query-specs';
 import {
-  ResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
-  TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty,
+  NamedResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
+  TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty, requireNamedResultType,
 } from '../result-type-specs';
 import { ResultTypesSourceGenerationOptions } from '../../source-generation-options';
 import { GeneratedResultTypes } from "../generated-result-types";
 import { QueryReprSqlPath } from "../query-repr-sql-path";
-import { assignResultTypeNames } from '../result-type-names-assignment';
 
 export default function makeSource
   (
-    resultTypeSpecs: ResultTypeSpec[],
+    resultTypeSpecs: NamedResultTypeSpec[],
     queryName: string,
     sqlPaths: QueryReprSqlPath[],
     queryParamNames: string[],
@@ -70,38 +69,18 @@ function queryParamDefinitions(paramNames: string[]): string
 
 function resultTypeDeclarations
   (
-    resultTypes: ResultTypeSpec[],
+    resultTypes: NamedResultTypeSpec[],
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  if (resultTypes.length === 0) return '';
-
-  const typeDecls: string[] = [];
-  const writtenTypeNames = new Set();
-
-  const resultTypeNameAssignments: Map<ResultTypeSpec,string> = assignResultTypeNames(resultTypes);
-
-  for (const resType of resultTypes)
-  {
-    const resTypeName = resultTypeNameAssignments.get(resType);
-    if (resTypeName == null)
-      throw new Error(`Error: result type name not found for ${JSON.stringify(resType)}.`);
-
-    if (!writtenTypeNames.has(resTypeName))
-    {
-      typeDecls.push(makeResultTypeDeclaration(resType, resultTypeNameAssignments, opts) + '\n');
-      writtenTypeNames.add(resTypeName);
-    }
-  }
-
-  return typeDecls.join('\n');
+  return resultTypes.map(resType => makeResultTypeDeclaration(resType, opts) + '\n').join('\n');
 }
+
 
 function makeResultTypeDeclaration
   (
-    resType: ResultTypeSpec,
-    typeNameAssignments: Map<ResultTypeSpec,string>,
+    resType: NamedResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -114,14 +93,14 @@ function makeResultTypeDeclaration
       case 'rtp-expr':
         return `  ${prop.propertyName}: ${tableExprType(prop, opts)};`;
       case 'rtp-parent-ref':
-        return `  ${prop.propertyName}: ${parentRefType(prop, typeNameAssignments, opts)};`;
+        return `  ${prop.propertyName}: ${parentRefType(prop)};`;
       case 'rtp-child-coll':
-        return `  ${prop.propertyName}: ${childCollType(prop, typeNameAssignments, opts)};`;
+        return `  ${prop.propertyName}: ${childCollType(prop, opts)};`;
     }
   });
 
   return (
-    `export interface ${typeNameAssignments.get(resType)!}\n` +
+    `export interface ${resType.resultTypeName}\n` +
     '{\n' +
       decls.join('\n') + '\n' +
     '}'
@@ -131,7 +110,7 @@ function makeResultTypeDeclaration
 function tableFieldType
   (
     tfp: TableFieldResultTypeProperty,
-    inResType: ResultTypeSpec,
+    inResType: NamedResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -204,26 +183,23 @@ function tableExprType
 function parentRefType
   (
     prop: ParentReferenceResultTypeProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
-    opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
-  const parentTypeName = resTypeNames.get(prop.refResultType)!;
+  const parentTypeName = prop.refResultType.resultTypeName!;
   return withNullability(prop.nullable, parentTypeName);
 }
 
 function childCollType
   (
     p: ChildCollectionResultTypeProperty,
-    resTypeNames: Map<ResultTypeSpec,string>,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
 {
   const collElType = p.elResultType.unwrapped ?
-    getSolePropertyType(p.elResultType, resTypeNames, opts)
-    : resTypeNames.get(p.elResultType)!;
+    getSolePropertyType(requireNamedResultType(p.elResultType), opts)
+    : p.elResultType.resultTypeName!;
 
   return withNullability(p.nullable, `${collElType}[]`);
 }
@@ -249,8 +225,7 @@ function specifiedSourceCodeFieldType
 
 function getSolePropertyType
   (
-    resType: ResultTypeSpec,
-    resTypeNames: Map<ResultTypeSpec,string>,
+    resType: NamedResultTypeSpec,
     opts: ResultTypesSourceGenerationOptions
   )
   : string
@@ -267,9 +242,9 @@ function getSolePropertyType
     case 'rtp-expr':
       return tableExprType(prop, opts);
     case 'rtp-child-coll':
-      return childCollType(prop, resTypeNames, opts);
+      return childCollType(prop, opts);
     case 'rtp-parent-ref':
-      return parentRefType(prop, resTypeNames, opts);
+      return parentRefType(prop);
     default:
       throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
   }

@@ -1,5 +1,5 @@
 import {
-  computeIfAbsent, setsEqual, mapSet, makeMap, makeArrayValuesMap, partitionByEquality
+  computeIfAbsent, setsEqual, mapSet, makeMap, makeArrayValuesMap, partitionByEquality, dedupe
 } from '../util/collections';
 
 test('computeIfAbsent', () => {
@@ -56,4 +56,23 @@ test('partitionByEquality', () => {
     [{ n: 2, s: 'v2' }],
     [{ n: 4, s: 'v4' }],
   ]);
+});
+
+test('dedupe empty', () => {
+  expect(dedupe([])).toEqual([]);
+});
+
+test('dedupe on array without dupes', () => {
+  const o1 = { a: 1, b: 2 };
+  const o2 = { c: 1 };
+  const o3 = { d: 1 };
+  expect(dedupe([o1,o2,o3])).toEqual([o1,o2,o3]);
+});
+
+test('dedupe on array with dupes', () => {
+  const o11 = { a: 1, b: 2 };
+  const o12 = o11;
+  const o2 = { c: 1 };
+  const o3 = { d: 1 };
+  expect(dedupe([o11, o2, o12, o3])).toEqual([o11, o2, o3]);
 });

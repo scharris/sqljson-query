@@ -110,7 +110,7 @@ export function partitionByEquality<T>
   const origItemIxs = getItemIndexMap(ts);
   const eqGroupToMinItemIx = new Map<T[],number>();
 
-  const hashGroups = makeArrayValuesMap(ts, hash, t => t).values();
+  const hashGroups = Array.from(makeArrayValuesMap(ts, hash, t => t).values());
 
   for (const hashGroup of hashGroups)
   {
@@ -153,6 +153,27 @@ export function sorted<T>(ts: T[], f: ((e1: T, e2: T) => number) | undefined): T
 {
   const res = ts.slice();
   res.sort(f);
+  return res;
+}
+
+export function dedupe<T>
+  (
+    ts: T[]
+  )
+  : T[]
+{
+  const res = [];
+  const seen = new Set();
+
+  for (const t of ts)
+  {
+    if (!seen.has(t))
+    {
+      res.push(t);
+      seen.add(t);
+    }
+  }
+
   return res;
 }
 

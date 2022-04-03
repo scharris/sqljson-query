@@ -4,11 +4,21 @@ import {
   getPropertySelectEntries, InlineParentSelectEntry, ParentReferenceSelectEntry, QueryFromEntry,
   SelectEntry, SqlSpec
 } from "../sql-generation/sql-specs";
-import { ResultTypeProperty, ResultTypeSpec } from "./result-type-specs";
+import { dedupedWithAssignedNames } from "./result-type-names-assignment";
+import { NamedResultTypeSpec, ResultTypeProperty, ResultTypeSpec } from "./result-type-specs";
 
-export function makeResultTypeSpecs
+export function makeNamedResultTypeSpecs
   (
-    sqlSpec: SqlSpec
+    sqlSpec: SqlSpec,
+  )
+  : NamedResultTypeSpec[]
+{
+  return dedupedWithAssignedNames(makeResultTypeSpecs(sqlSpec));
+}
+
+function makeResultTypeSpecs
+  (
+    sqlSpec: SqlSpec,
   )
   : ResultTypeSpec[]
 {
@@ -24,10 +34,7 @@ export function makeResultTypeSpecs
     resultTypeName: sqlSpec.resultTypeName,
   };
 
-  return [
-    topType,
-    ...resultTypeProperties.flatMap(rtp => rtp.contributedResultTypes)
-  ];
+  return [topType, ...resultTypeProperties.flatMap(rtp => rtp.contributedResultTypes)];
 }
 
 function makeResultTypeProperty

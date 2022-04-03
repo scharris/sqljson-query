@@ -4,7 +4,7 @@ import { QueryReprSqlPath } from "./query-repr-sql-path";
 import makeTypeScriptSource from './source-emmitters/ts';
 import makeJavaSource from './source-emmitters/java';
 import { SqlSpec } from '../sql-generation/sql-specs';
-import { makeResultTypeSpecs } from './result-type-spec-generator';
+import { makeNamedResultTypeSpecs } from './result-type-spec-generator';
 
 export function makeQueryResultTypesSource
   (
@@ -16,7 +16,7 @@ export function makeQueryResultTypesSource
   )
   : GeneratedResultTypes
 {
-  const resultTypes = makeResultTypeSpecs(sqlSpec);
+  const resultTypes = makeNamedResultTypeSpecs(sqlSpec);
 
   switch (opts.sourceLanguage)
   {

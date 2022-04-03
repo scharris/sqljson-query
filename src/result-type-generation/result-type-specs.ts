@@ -1,4 +1,4 @@
-import { RelId } from "../dbmd";
+import { RelId, relIdsEqual } from "../dbmd";
 import { Nullable } from "../util/mod";
 import { deepEquals } from "../util/objects";
 
@@ -8,6 +8,11 @@ export interface ResultTypeSpec
   readonly properties: ResultTypeProperty[];
   readonly unwrapped: boolean;
   readonly resultTypeName?: Nullable<string>;
+}
+
+export interface NamedResultTypeSpec extends ResultTypeSpec
+{
+  readonly resultTypeName: string;
 }
 
 export type ResultTypeProperty =
@@ -35,6 +40,7 @@ export interface TableExpressionResultTypeProperty
   readonly propertyName: string;
   readonly fieldExpression: Nullable<string>;
   readonly specifiedSourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
+  readonly nullable?: undefined; // Determined by specifiedSourceCodeFieldType.
 }
 
 export interface ParentReferenceResultTypeProperty
@@ -61,9 +67,21 @@ export function resultTypeSpecsEqual
   : boolean
 {
   return (
-    rt1.table === rt2.table &&
+    relIdsEqual(rt1.table, rt2.table) &&
     rt1.resultTypeName === rt2.resultTypeName &&
     rt1.unwrapped === rt2.unwrapped &&
     deepEquals(rt1.properties, rt2.properties)
   );
+}
+
+export function requireNamedResultType
+  (
+    resType: ResultTypeSpec
+  )
+  : NamedResultTypeSpec
+{
+  if (resType.resultTypeName != null)
+    return <NamedResultTypeSpec>resType;
+  else
+    throw new Error(`Expected named result type, got ${resType}.`);
 }
