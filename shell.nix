@@ -2,7 +2,7 @@ with (import <nixpkgs> {});
 
 mkShell {
   buildInputs = [
-    nodejs
+    nodejs-slim-16_x
     nodePackages.typescript
     openjdk17
     maven
