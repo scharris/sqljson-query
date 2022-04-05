@@ -16,7 +16,7 @@
     <jdbi.version>3.21.0</jdbi.version>
     <slf4j.version>1.7.32</slf4j.version>
     <ora.jdbc.version>21.1.0.0</ora.jdbc.version>
-    <pg.jdbc.version>42.2.20</pg.jdbc.version>
+    <pg.jdbc.version>42.3.3</pg.jdbc.version>
     <dbmd.file>${project.basedir}/dbmd.json</dbmd.file>
     <dbmd.include.regex>^[^$].*</dbmd.include.regex>
     <dbmd.exclude.regex>^$</dbmd.exclude.regex>
