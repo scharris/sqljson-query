@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { promises as fs } from 'fs';
 import {
   propertyNameDefaultFunction,
   requireDirExists,
@@ -7,6 +8,9 @@ import {
   cwd,
   mapValues,
   firstValue,
+  parseArgs,
+  parseBoolOption,
+  replaceAll
 } from './util/mod';
 import { readDatabaseMetadata } from './dbmd';
 import { getQueryParamNames, QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
@@ -22,6 +26,133 @@ export * from './source-generation-options';
 export * from './query-specs';
 export * from './result-type-generation';
 export * from './dbmd/relations-md-source-generator';
+
+export interface QueryGenerationOptions {
+  dbmdFile: string;
+  sqlOutputDir: string;
+  sqlSpecOutputDir?: string;
+  queryPropsMdOutputDir?: string;
+  tsOutputDir?: string | null;
+  javaBaseOutputDir?: string | null;
+  javaPackage?: string | null;
+  javaEmitRecords?: boolean | null;
+  tsTypesHeaderFile?: string;
+  javaHeaderFile?: string | null;
+  sqlResourcePath?: string;
+}
+
+export async function generateQueriesWithArgvOptions
+  (
+    queryGroupSpec: QueryGroupSpec,
+    args: string[],
+  )
+{
+  const requiredOptions = [
+    'dbmd', // database metadata json file path
+    'sqlDir'
+  ];
+  const optionalOptions = [
+    'sqlSpecDir',
+    'propsMdDir',
+    'sqlResourcePath',
+    'tsQueriesDir', 'tsTypesHeader',
+    'javaBaseDir', 'javaQueriesPkg', 'javaTypesHeader', 'javaEmitRecords'
+  ];
+
+  const parsedArgs = parseArgs(args, requiredOptions, optionalOptions, 0);
+  if ( typeof parsedArgs === 'string' ) // arg parsing error
+    throw new Error(parsedArgs);
+
+  const opts = {
+    dbmdFile: parsedArgs['dbmd'],
+    sqlOutputDir: parsedArgs['sqlDir'],
+    sqlSpecOutputDir: parsedArgs['sqlSpecDir'],
+    queryPropsMdOutputDir: parsedArgs['propsMdDir'],
+    tsOutputDir: parsedArgs['tsQueriesDir'],
+    javaBaseOutputDir: parsedArgs['javaBaseDir'],
+    javaPackage: parsedArgs['javaQueriesPkg'] ?? '',
+    javaEmitRecords: parseBoolOption(parsedArgs['javaEmitRecords'] ?? 'true', 'javaEmitRecords'),
+    tsTypesHeaderFile: parsedArgs['tsTypesHeader'],
+    javaTypesHeaderFile: parsedArgs['javaTypesHeader'],
+    sqlResourcePath: parsedArgs['sqlResourcePath'],
+  };
+
+  generateQueriesWithOptions(queryGroupSpec, opts);
+}
+
+
+export async function generateQueriesWithOptions
+  (
+    queryGroupSpec: QueryGroupSpec,
+    opts: QueryGenerationOptions
+  )
+{
+  // Generate SQL source files if specified.
+
+  const javaOutputDir =
+    opts.javaBaseOutputDir
+      ? `${opts.javaBaseOutputDir}/${replaceAll(opts.javaPackage ?? '', '.','/')}`
+      : null;
+
+  if ( opts.sqlOutputDir == null )
+    throw new Error('SQL output directory is required.');
+  if ( opts.tsOutputDir == null && javaOutputDir == null )
+    throw new Error('An output directory argument for result types is required.');
+
+  await fs.mkdir(opts.sqlOutputDir, {recursive: true});
+  if (opts.sqlSpecOutputDir)
+    await fs.mkdir(opts.sqlSpecOutputDir, {recursive: true});
+  if (opts.queryPropsMdOutputDir)
+    await fs.mkdir(opts.queryPropsMdOutputDir, {recursive: true});
+
+  // Generate TS query/result-type source files if specified.
+  if (opts.tsOutputDir)
+  {
+    await fs.mkdir(opts.tsOutputDir, {recursive: true});
+
+    console.log(`Writing TS source files to ${opts.tsOutputDir}.`);
+
+    await generateQuerySources(
+      queryGroupSpec,
+      opts.dbmdFile,
+      {
+        sourceLanguage: 'TS',
+        resultTypesOutputDir: opts.tsOutputDir,
+        sqlSpecOutputDir: opts.sqlSpecOutputDir,
+        queryPropertiesOutputDir: opts.queryPropsMdOutputDir,
+        sqlOutputDir: opts.sqlOutputDir,
+        typesHeaderFile: opts.tsTypesHeaderFile,
+        sqlResourcePathPrefix: opts.sqlResourcePath,
+      }
+    );
+  }
+
+  // Generate Java sources if specified.
+  if (javaOutputDir)
+  {
+    await fs.mkdir(javaOutputDir, {recursive: true});
+
+    console.log(`Writing Java query source files to ${javaOutputDir}.`);
+
+    await generateQuerySources(
+      queryGroupSpec,
+      opts.dbmdFile,
+      {
+        sourceLanguage: 'Java',
+        resultTypesOutputDir: javaOutputDir,
+        sqlSpecOutputDir: opts.sqlSpecOutputDir,
+        queryPropertiesOutputDir: opts.queryPropsMdOutputDir,
+        sqlOutputDir: opts.sqlOutputDir,
+        javaOptions: {
+          javaPackage: opts.javaPackage ?? '',
+          emitRecords: opts.javaEmitRecords ?? true
+        },
+        typesHeaderFile: opts.tsTypesHeaderFile,
+        sqlResourcePathPrefix: opts.sqlResourcePath,
+      }
+    );
+  }
+}
 
 export async function generateQuerySources
   (

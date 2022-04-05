@@ -51,3 +51,14 @@ export function parseAppArgs
 {
   return parseArgs(process.argv, requiredNamedArgs, optionalNamedArgs, minPositionalArgs, maxPositionalArgs);
 }
+
+export function parseBoolOption(valStr: string, optionName: string): boolean
+{
+  const valLc = valStr.toLowerCase();
+  if ( valLc === 'true' || valLc === 't' || valLc === '1' )
+    return true;
+  else if ( valLc === 'false' || valLc === 'f' || valLc === '0' )
+    return false;
+  else
+    throw new Error(`Could not parse value "${valStr}" for boolean option ${optionName}.`);
+}
