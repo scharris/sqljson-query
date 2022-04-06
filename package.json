@@ -1,12 +1,12 @@
 {
   "name": "sqljson-query",
-  "version": "1.7.8",
+  "version": "1.7.9`",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
     "SQL/JSON",
     "database",
-    "ORM"
+    "NO-ORM"
   ],
   "author": "Stephen C. Harris",
   "license": "MIT",
@@ -16,6 +16,10 @@
   },
   "main": "./lib/mod.js",
   "exports": "./lib/mod.js",
+  "bin": {
+    "gen-dbmd": "./lib/dbmd/generation/gen-dbmd.js",
+    "gen-relsmd": "./lib/dbmd/generation/gen-relsmd.js"
+  },
   "scripts": {
     "build-pg": "docker build -t drugs-pg src/__tests__/db/pg",
     "start-pg": "npm run build-pg && docker run -d --name drugs-pg --rm -p 127.0.0.1:5432:5432 --shm-size=256MB drugs-pg",

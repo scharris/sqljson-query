@@ -1,7 +1,8 @@
-node_modules
 .*
+./src
 jest.config.json
 NOTES
 *.md
 shell.nix
 docs
+__tests__

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import path from 'path';
 import { parseArgs } from './utils';
 import { generateRelationsMetadata } from './gen-relsmd-lib';
