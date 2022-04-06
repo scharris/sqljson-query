@@ -1,6 +1,0 @@
-**/*.js
-.build
-node_modules
-*.iml
-.idea
-target
