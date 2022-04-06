@@ -10,7 +10,7 @@
 See [Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java).
 
 If using Maven and Java to fetch database metadata, make sure that `mvn` and `java` are on your PATH.
-The NodeJS commands `npm`, `node`, and `npx` commands are assumed to be on your path as well.
+The NodeJS commands `npm`, `node`, and `npx` are assumed to be on your path as well.
 
 ## Project Directory Setup
 
@@ -143,8 +143,8 @@ generateQueriesWithArgvOptions(queryGroupSpec, process.argv)
 Here the first definition, `drugsQuery1` is our first query and is of type `QuerySpec`. The lower
 definition, `queryGroupSpec`, represents the total set of queries to be generated, and sets a few
 options applying to all queries that it contains, such as the default schema name to be assumed
-for unqualified table names. We'll ignore the fhe function call at the bottom which actually runs
-the query generation process.
+for unqualified table names. We'll ignore the function call at the bottom, which actually runs
+the query generation process with our query definitions when the script is executed.
 
 <img align="right" src="img/drug.svg" alt="drug table" width="150" height="170">
 <img align="right" src="img/spacer.png" width="20" height="170" alt="schema diagram">
