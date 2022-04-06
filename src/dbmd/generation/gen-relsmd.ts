@@ -1,41 +1,37 @@
-import { promises as fs } from 'fs';
-import { generateRelationsMetadataSource } from '../relations-md-source-generator';
-import { replaceAll } from './utils';
+import path from 'path';
+import { parseArgs } from './utils';
+import { generateRelationsMetadata } from './gen-relsmd-lib';
 
-export interface RelsMdGenerationOptions {
-  dbmdFile: string;
-  tsOutputDir?: string | null;
-  javaOutputBaseDir?: string | null;
-  javaPackage?: string | null;
-}
+const optionNames = [
+  'dbmd',        // database metadata json file path
+  'tsOutputDir',
+  'javaOutputBaseDir',
+  'javaPackage',
+];
 
-export async function generateRelationsMetadata(opts: RelsMdGenerationOptions)
+const parsedArgs = parseArgs(process.argv, [], optionNames, 0);
+
+if ( typeof parsedArgs === 'string' ) // arg parsing error
 {
-  if (!opts.tsOutputDir && !opts.javaOutputBaseDir)
-    throw new Error('No output directory option was specified for relations metadata generation.');
+  console.error(`Error: ${parsedArgs}`);
+  throw new Error(parsedArgs);
+}
+else
+{
+  const internalDbmdDir = path.join(__dirname, '..', 'dbmd');
 
-  if (opts.tsOutputDir)
-  {
-    await fs.mkdir(opts.tsOutputDir, {recursive: true});
+  const opts = {
+    dbmdFile: parsedArgs['dbmd'] || path.join(internalDbmdDir, 'dbmd.json'),
+    tsOutputDir: parsedArgs['tsOutputDir'],
+    javaOutputBaseDir: parsedArgs['javaOutputBaseDir'],
+    javaPackage: parsedArgs['javaPackage'],
+  };
 
-    console.log(`Writing TS relation metadatas source file to ${opts.tsOutputDir}.`);
-
-    await generateRelationsMetadataSource(opts.dbmdFile, opts.tsOutputDir, 'TS');
-  }
-
-  // Write Java relation metadatas if specified.
-  if (opts.javaOutputBaseDir)
-  {
-    if (!opts.javaPackage)
-      throw new Error('javaRelsMdPkg options is required for Java source generation');
-    const jpkg = opts.javaPackage;
-
-    const javaRelsMdOutputDir = `${opts.javaOutputBaseDir}/${replaceAll(jpkg, '.','/')}`;
-
-    await fs.mkdir(javaRelsMdOutputDir, {recursive: true});
-
-    console.log(`Writing Java relations metadata file to ${javaRelsMdOutputDir}.`);
-
-    await generateRelationsMetadataSource(opts.dbmdFile, javaRelsMdOutputDir, 'Java', jpkg);
-  }
+  generateRelationsMetadata(opts)
+  .then(() => console.log("Generation of relations metadata completed."))
+  .catch((e: any) => {
+    console.error(e);
+    console.error("Generation of relations metadata failed due to error - see error detail above.");
+    process.exit(1);
+  });
 }

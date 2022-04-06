@@ -1,49 +1,40 @@
-import * as path from 'path';
-import { promises as fs } from 'fs';
-import { spawnSync } from 'child_process';
-import { generateRelationsMetadata } from './gen-relsmd';
+import path from 'path';
+import { parseArgs } from './utils';
+import { generateDatabaseMetadata } from './gen-dbmd-lib';
 
-export interface DbmdGenerationOptions
+const requiredParams = [
+  'jdbcProps', // jdbc connection properties file
+  'db',        // database type: pg | mysql | ora ...
+  'pom',       // Maven pom file for the database metadata generator
+  'outputDir', // database metadata output directory
+]
+const optionNames = [
+  'include',   // table include pattern regular expression, defaulting to '.*'
+  'exclude',   // table exclude pattern regular expression, defaulting to '^$'
+];
+
+const parsedArgs = parseArgs(process.argv, requiredParams, optionNames, 0);
+
+if (typeof parsedArgs === 'string') // arg parsing error
 {
-  jdbcPropsFile: string;
-  dbType: string;
-  includeRegex?: string | null;
-  excludeRegex?: string | null;
-  generatorPomFile: string;
-  dbmdOutputDir: string;
+  console.error(`Error: ${parsedArgs}`);
+  process.exit(1);
 }
-
-export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
+else
 {
-  const dbmdFile = path.join(opts.dbmdOutputDir, 'dbmd.json');
-  const include = opts.includeRegex || '.*';
-  const exclude = opts.excludeRegex || '^$';
-
-  try { await fs.stat(opts.jdbcPropsFile); }
-  catch { throw new Error(`JDBC properties file was not found at '${opts.jdbcPropsFile}'.`); }
-
-  console.log(`Generating database metadata to file ${dbmdFile}.`);
-  console.log(`Including table/view pattern: '${include}'.`)
-  console.log(`Excluding table/view pattern: '${exclude}'.`)
-
-  const mvnProc = spawnSync(
-    'mvn',
-    ['-f', opts.generatorPomFile,
-     'compile', 'exec:java',
-     `-Djdbc.props=${opts.jdbcPropsFile}`,
-     `-Ddb=${opts.dbType}`,
-     `-Ddbmd.file=${dbmdFile}`,
-     `-Ddbmd.include.regex=${include}`,
-     `-Ddbmd.exclude.regex=${exclude}`],
-    { cwd: process.cwd(), env: process.env, encoding: 'utf8' }
-  );
-
-  if (mvnProc.status !== 0)
-  {
-    console.error('Maven command to generate database metadata failed:');
-    console.error(mvnProc);
-    throw new Error('Database metadata generation failed.');
-  }
-
-  await generateRelationsMetadata({ dbmdFile, tsOutputDir: opts.dbmdOutputDir });
+  const opts = {
+    jdbcPropsFile: parsedArgs['jdbcProps'],
+    dbType: parsedArgs['db'],
+    include: parsedArgs['include'] || '.*',
+    exclude: parsedArgs['exclude'] || '^$',
+    generatorPomFile: parsedArgs['pom'] || path.join(__dirname, 'pom.xml'),
+    dbmdOutputDir: parsedArgs['outputDir'],
+  };
+  generateDatabaseMetadata(opts)
+  .then(() => { console.log("Database metadata generation completed."); })
+  .catch((e) => {
+    console.error(e);
+    console.error("Database metadata generation failed due to error - see error detail above.");
+    process.exit(1);
+  });
 }
