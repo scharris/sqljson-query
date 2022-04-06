@@ -19,57 +19,60 @@ language for that purpose (e.g. Jackson for Java, or just JSON.parse() for TypeS
 
 For each of a set of TypeScript *query specifications* written by the developer, which describes a hierarchy of
 related tables from which to fetch data, the tool:
- - Generates a SQL query conforming to the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html),
+
+- Generates a SQL query conforming to the [ISO SQL/JSON standard](https://www.iso.org/standard/78937.html),
    or the closest approximation supported by the database, which when executed will yield JSON data for the
    related tables via a single query execution.
- - Generates the matching type declarations for the query results in either TypeScript or Java, to which the
+
+- Generates the matching type declarations for the query results in either TypeScript or Java, to which the
    query results can be directly deserialized.
 
-An advantage of using SQL/JSON aggregation functions, as found in the generated queries, is that it allows us to
-efficiently pull data from multiple independent child hierarchies of any given parent table in a single query,
-which is not achievable practically or efficiently via traditional joins. The downside of SQL/JSON is that it's
-somewhat difficult and tedious to actually write these queries directly in SQL, and more so to also create types
-to match the query result structures. This was the motivation for the source generator: to make it easy to create
-the nested data SQL/JSON queries from a simple specification and to auto-generate their result types at the same
-time.
+An advantage of using SQL/JSON aggregation functions, as found in the generated queries, is that it allows
+us to efficiently pull data from multiple independent child hierarchies of any given parent table in a
+single query, which is not achievable practically or efficiently via traditional joins. The downside of
+SQL/JSON is that it's somewhat difficult and tedious to actually write these queries directly in SQL,
+and more so to also create types to match the query result structures. This was the motivation for the
+source generator: to make it easy to create the nested data SQL/JSON queries from a simple specification
+and to auto-generate their result types at the same time.
 
-When generating queries, database metadata is used to verify all tables, fields, and foreign key relationships
-referenced in the query specifications, failing with an error if any such items are not found in database metadata.
-A self-contained tool is included to fetch the database metadata for each supported database.
+When generating queries, database metadata is used to verify all tables, fields, and foreign key
+relationships referenced in the query specifications, failing with an error if any such items are not
+found in database metadata. A self-contained tool is included to fetch the database metadata for each
+supported database.
 
-As a developer, your primary job in the process is to supply a file `query-specs.ts` which provides a list of query
-specifications, where each specification describes a hierarchy of data to be fetched for a query. An example of the
-query specifications and generated sources follows.
+As a developer, your primary job in the process is to supply a file `query-specs.ts` which provides a list
+of query specifications, where each specification describes a hierarchy of data to be fetched for a query.
+An example of the query specifications and generated sources follows.
 
 
 ## Example Inputs and Outputs
 
-Let's look at example inputs and outputs to clarify what the tool does. For an actual follow-along executable example,
-please see the [the tutorial](tutorial.md).
+Let's look at example inputs and outputs to clarify what the tool does. For an actual follow-along
+executable example, please see the [the tutorial](tutorial.md).
 
 
 ### Inputs
 
-Out first "input" is the database itself, for which we'll use the example schema diagrammed below (which is about
-clinical drugs). The database is used to generate database metadata in JSON form, which is needed by the tool
-during source generation, both to verify references to database objects and to find foreign key information
-for related tables in query specifications. Generally we would only generate database metadata initially and then
-whenever the database has changes that we want to incorporate into our queries.
+Out first "input" is the database itself, for which we'll use the example schema diagrammed below (which is
+about clinical drugs). The database is used to generate database metadata in JSON form, which is needed by
+the tool during source generation, both to verify references to database objects and to find foreign key
+information for related tables in query specifications. Generally we would only generate database
+metadata initially and then whenever the database has changes that we want to incorporate into our queries.
 
 <img align="right" src="img/db-box.dot.svg" alt="database diagram">
 <img src="img/drug-almost-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
 <img align="right" src="img/query-spec-box.dot.svg" alt="query-specification">
 
-The other input for the source generator is a set of query specifications. A query specification describes how
-to form JSON output for each table, including how related table data is nested via parent/child table
+The other input for the source generator is a set of query specifications. A query specification describes
+how to form JSON output for each table, including how related table data is nested via parent/child table
 relationships within a table's output. These query specifications are expressed in TypeScript, regardless of
 target language, and are checked against database metadata whenever the tool is run. This checking ensures
 validity of all references to database objects, including implicit reliance on foreign keys in parent/child
 relationships.
 
-In this example we supply a specification for a single drugs query, which fetches data from all tables in the above
-diagram:
+In this example we supply a specification for a single drugs query, which fetches data from all tables in
+the above diagram:
 
 ```typescript
 const drugAdvisoriesReferencesQuery: QuerySpec = {
@@ -141,10 +144,10 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
 ### Outputs
 Given the inputs above, SQL/JSON-Query produces the following outputs:
 
-1) <img align="right" src="img/sql-output-oval.dot.svg" alt="SQL files"> SQL files are generated and written to a
-specified output directory, for each query specification that was supplied. The SQL utilizes ISO standard SQL/JSON
-operators or their closest equivalent for the chosen type of database. For the query specification above the following
-SQL is produced.
+1) <img align="right" src="img/sql-output-oval.dot.svg" alt="SQL files"> SQL files are generated and written
+ to a specified output directory, for each query specification that was supplied. The SQL utilizes ISO
+ standard SQL/JSON operators or their closest equivalent for the chosen type of database. For the query
+ specification above the following SQL is produced:
 
 ```sql
 select
@@ -272,11 +275,11 @@ from (
 ) q
 ```
 
-2) <img align="right" src="img/result-types-oval.dot.svg" alt="result types"> A TypeScript or Java source code file
-   is generated for each query, which declares the result types for the objects appearing in the query results of
-   the generated SQL for the query. The JSON value from each result row can be directly deserialized to the first
-   result type declared in this file. For our example query specification, the following TypeScript source file
-   is generated (Java source would be similar).
+2) <img align="right" src="img/result-types-oval.dot.svg" alt="result types"> A TypeScript or Java source
+ code file is generated for each query, which declares the result types for the objects appearing in the
+ query results of the generated SQL for the query. The JSON value from each result row can be
+ directly deserialized to the first result type declared in this file. For our example query specification,
+ the following TypeScript source file is generated (Java source would be similar).
 
 ```typescript
 // The types defined in this file correspond to results of the following generated SQL queries.
@@ -314,14 +317,14 @@ export interface DrugReference
 }
 ```
 
-For a step-by-step guide to setting up the tool and progressively building and executing queries like the above
-against an actual example database, see [the tutorial](tutorial.md).
+For a step-by-step guide to setting up the tool and progressively building and executing queries like
+the above against an actual example database, see [the tutorial](tutorial.md).
 
 ## Setup
 
 The following is a brief overview of what's involved in using the tool. It's recommended to work through
-or at least to review [the tutorial](tutorial.md) to see a stepwise guide through a working example, which
-will provide more details.
+or at least to review [the tutorial](tutorial.md) to see a stepwise guide through a working example,
+which will provide more details.
 
 ### Setup the tool folder
 
@@ -343,7 +346,8 @@ will provide more details.
 ### Generate database metadata
 
   Create a properties file containing JDBC connection information for your database, with the format:
-  ```
+
+  ```console
   jdbc.driverClassName=...
   jdbc.url=...
   jdbc.username=...
@@ -353,23 +357,23 @@ will provide more details.
   Then generate the database metadata:
 
   ```console
-  query-gen/scripts/generate-dbmd.sh <jdbc-props> <pg|mysql|ora>
+    # in query-gen/
+    npx gen-dbmd --jdbcProps <connect-info-file> --db <pg|mysql|ora> --outputDir .
   ```
-  where `jdbc-props` is the properties file create above and the second argument represents your database type.
+
+  where `jdbc-props` is the properties file create above and the second argument represents your
+  database type.
 
   Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be
   easily avoided. See
   [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java)
   in the tutorial, if you want to generate database metadata without those dependencies.
 
-  The database metadata files are generated at `query-gen/dbmd/dbmd.json` and
-  `query-gen/dbmd/relations-metadata.ts`, which is where the tool expects to find them when generating queries. On first run of metadata generation, examine the `dbmd.json` file to make sure that the
-  expected tables have been found by the metadata generator.
+  The database metadata files are `dbmd.json` and `relations-metadata.ts`.
 
 ### Define application query specifications
 
-  Create and edit file `query-specs.ts` in folder `query-gen/` to define application queries.
-  The file should export a `QueryGroupSpec` instance as `queryGroupSpec`.
+  Edit the included file `gen-queries.ts` in `query-gen/` to define application queries.
 
   ```typescript
   // (file <query-gen-folder>/query-specs.ts)
@@ -393,18 +397,18 @@ will provide more details.
   To generate SQL and matching TypeScript result types:
 
   ```console
-  tsc query-gen/query-specs.ts
-  node query-gen/js/gen-queries.js --sqlDir=../src/sql --tsQueriesDir=../src/lib
+  # in query-gen/
+  tsc && node gen-queries.js --dbmd dbmd.json --sqlDir sql --tsDir ts
   ```
 
-  This will generate the SQL and TypeScript sources for your queries in whatever directories you specify for
-  the `sqlDir` and `tsQueriesDir` arguments.
+  This will generate the SQL and TypeScript sources for your queries in the directories you specify for
+  the `sqlDir` and `tsDir` arguments.
 
   Or for Java result types instead:
 
   ```console
-  tsc query-gen/query-specs.ts
-  node query-gen/js/gen-queries.js --sqlDir=../src/sql --javaBaseDir=../src/lib --javaQueriesPkg=gen.queries
+  # in query-gen/
+  tsc && node gen-queries.js --dbmd dbmd.json --sqlDir src/sql --javaBaseDir src/generated --javaQueriesPkg my.pkg
   ```
 
 ## Tutorial
@@ -432,10 +436,10 @@ statements, without compile time checks of the tables and fields referenced? Or 
 another library for the purpose?
 
 One light-weight solution to this is shown here. The idea is for the developer to write the data-modifying
-SQL statements, but to use the relations metadata already made available by SQL/JSON-Query for referencing all
-table and field names. This gives us compile-time verification of the table and field names used in the data
-modification statements. It is the same technique used to obtain compile-time verification of filter conditions
-shown at
+SQL statements, but to use the relations metadata already made available by SQL/JSON-Query for referencing
+all table and field names. This gives us compile-time verification of the table and field names used in the
+data modification statements. It is the same technique used to obtain compile-time verification of filter
+conditions shown at
 [the end of the tutorial](tutorial.md#validating-database-object-names-in-free-form-expressions).
 
 Here's an example pulled from the
