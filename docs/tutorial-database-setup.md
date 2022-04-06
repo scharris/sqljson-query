@@ -171,7 +171,8 @@ insert into advisory(id, drug_id, advisory_type_id, text)
 ;
 ```
 
-To complete the database setup, create properties file `db/jdbc.props` to hold our connection information:
+To complete the database setup, create properties file `db/jdbc.props` in folder `query-gen`
+to hold our connection information:
 ```shell
 # db/jdbc.props
 jdbc.driverClassName=org.postgresql.Driver

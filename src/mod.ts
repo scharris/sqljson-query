@@ -55,7 +55,7 @@ export async function generateQueriesWithArgvOptions
     'sqlSpecDir',
     'propsMdDir',
     'sqlResourcePath',
-    'tsQueriesDir', 'tsTypesHeader',
+    'tsDir', 'tsTypesHeader',
     'javaBaseDir', 'javaQueriesPkg', 'javaTypesHeader', 'javaEmitRecords'
   ];
 
@@ -68,7 +68,7 @@ export async function generateQueriesWithArgvOptions
     sqlOutputDir: parsedArgs['sqlDir'],
     sqlSpecOutputDir: parsedArgs['sqlSpecDir'],
     queryPropsMdOutputDir: parsedArgs['propsMdDir'],
-    tsOutputDir: parsedArgs['tsQueriesDir'],
+    tsOutputDir: parsedArgs['tsDir'],
     javaBaseOutputDir: parsedArgs['javaBaseDir'],
     javaPackage: parsedArgs['javaQueriesPkg'] ?? '',
     javaEmitRecords: parseBoolOption(parsedArgs['javaEmitRecords'] ?? 'true', 'javaEmitRecords'),

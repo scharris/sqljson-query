@@ -6,6 +6,7 @@ to run on their own MySQL instance without relying on Docker.
 
 Fetch the SQL scripts which create the database tables and load them with our tutorial example data:
 ```shell
+# (in query-gen folder if following main tutorial)
 mkdir db
 curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/mysql/sql/create-schema-objects.sql > db/create-schema-objects.sql
 curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/mysql/sql/create-test-data.sql > db/create-test-data.sql

@@ -7,7 +7,7 @@
 		// Update 'VARIANT' to pick a Node version: 16, 14, 12.
 		// Append -bullseye or -buster to pin to an OS version.
 		// Use -bullseye variants on local on arm64/Apple Silicon.
-		"args": { 
+		"args": {
 			"VARIANT": "16-bullseye"
 		}
 	},
@@ -21,7 +21,6 @@
 		"dbaeumer.vscode-eslint",
     "stevencl.addDocComments",
     "DavidAnson.vscode-markdownlint",
-    "WallabyJs.quokka-vscode"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

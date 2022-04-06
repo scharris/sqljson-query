@@ -2,11 +2,12 @@ with (import <nixpkgs> {});
 
 mkShell {
   buildInputs = [
-    nodejs-slim-16_x
+    nodejs-16_x
     nodePackages.typescript
     openjdk17
     maven
     graphviz-nox
+    deno
   ];
 
   shellHook = ''
