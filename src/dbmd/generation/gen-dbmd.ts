@@ -5,10 +5,10 @@ import { generateDatabaseMetadata } from './gen-dbmd-lib';
 const requiredParams = [
   'jdbcProps', // jdbc connection properties file
   'db',        // database type: pg | mysql | ora ...
-  'pom',       // Maven pom file for the database metadata generator
   'outputDir', // database metadata output directory
 ]
 const optionNames = [
+  'pom',       // Maven pom file for the database metadata generator
   'include',   // table include pattern regular expression, defaulting to '.*'
   'exclude',   // table exclude pattern regular expression, defaulting to '^$'
 ];
