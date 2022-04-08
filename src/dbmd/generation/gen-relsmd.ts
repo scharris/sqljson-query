@@ -5,8 +5,8 @@ import { generateRelationsMetadata } from './gen-relsmd-lib';
 
 const optionNames = [
   'dbmd',        // database metadata json file path
-  'tsOutputDir',
-  'javaOutputBaseDir',
+  'tsDir',       'tsOutputDir',
+  'javaBaseDir', 'javaOutputBaseDir',
   'javaPackage',
 ];
 
@@ -23,8 +23,8 @@ else
 
   const opts = {
     dbmdFile: parsedArgs['dbmd'] || path.join(internalDbmdDir, 'dbmd.json'),
-    tsOutputDir: parsedArgs['tsOutputDir'],
-    javaOutputBaseDir: parsedArgs['javaOutputBaseDir'],
+    tsOutputDir: parsedArgs['tsDir'] ?? parsedArgs['tsOutputDir'],
+    javaOutputBaseDir: parsedArgs['javaBaseDir'] ?? parsedArgs['javaOutputBaseDir'],
     javaPackage: parsedArgs['javaPackage'],
   };
 
