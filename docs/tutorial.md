@@ -1,6 +1,8 @@
 # SQL/JSON-Query TUTORIAL
 
-## Prerequisites
+## Setup
+
+### Prerequisites
 
 - [NodeJS 14+](https://nodejs.org/en/)
 - [Java JDK 11+](https://jdk.java.net) (optional &dagger;)
@@ -12,14 +14,12 @@ See [Generating Database Metadata without Maven and Java](#generating-database-m
 If using Maven and Java to fetch database metadata, make sure that `mvn` and `java` are on your PATH.
 The NodeJS commands `npm`, `node`, and `npx` are assumed to be on your path as well.
 
-## Project Directory Setup
+### Project Directory Setup
 
 Install the query generator by cloning the "sqljson-query-dropin" repository:
 
 ```console
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
-
-cd query-gen
 ```
 
 This folder defines a small NodeJS project to facilitate query generation. It defines commands for
@@ -27,20 +27,24 @@ generating query-related source files and for fetching the database metadata nee
 generator. From here on, we'll execute our commands from within the `query-gen` directory unless
 otherwise noted.
 
+```console
+cd query-gen
+```
+
 Next initialize the dependencies and compile the query generation script:
 
 ```console
 npm i && tsc
 ```
 
-## Database Setup
+### Database Setup
 
 Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres or
 MySQL database for use in this tutorial. After you've completed the database setup, the database
 should be listening for connections with the connection information properties as provided in file
-`db/jdbc.props`.
+`db/conn.props`.
 
-## Generate Database Metadata
+### Generate Database Metadata
 
 Now that the database is created and SQL/JSON-Query is installed, we can generate our database metadata
 via the following command:
@@ -48,7 +52,7 @@ via the following command:
 For Postgres:
 
 ```console
-npx gen-dbmd --jdbcProps db/jdbc.props --db pg --outputDir .
+npx gen-dbmd --connProps db/conn.props --db pg --outputDir .
 ```
 
 For MySQL, substitute `--db mysql` instead.
@@ -63,38 +67,12 @@ npm run gen-dbmd
 For either variant of the command, two metadata files should have been generated in the same directory,
 `dbmd.json` and `relations-metadata.ts`.
 
-### Generating Database Metadata without Maven and Java
-
-The above commands generating database metadata depend on Maven and Java, and if you completed those
-then you can skip this section and proceed with query generation. But if you cannot or will not use
-Maven and Java as above, then it's easy to generate the database metadata without them. There are two
-database metadata files which need to be generated.
-
-- First generate the primary database metadata, `dbmd.json`, by executing the
-  [SQL database metadata query](https://github.com/scharris/sqljson-query/tree/main/src/dbmd/generation/src/main/resources)
-  for your database type, by whatever means you prefer to execute queries for your database. The query
-  has two parameters, `relIncludePat` and `relExcludePat`, which are regular expressions for table names
-  to be included and excluded, respectively. If you just want all tables to be included in the metadata,
-  then pass (or textually replace) '.*' for `relIncludePat` and '^$' `relExcludePat`. Save the resulting
-  single json value to file `dbmd.json` in folder `query-gen`.
-
-- Next generate the additional "relations" metadata which is derived from the main metadata generated
-  above. This is done via the command:
-
-   ```console
-   # (in query-gen/)
-   npx gen-relsmd --dbmd dbmd.json --tsOutputDir .
-   ```
-
-   This command depends on the primary database metadata already existing, so these steps need to be
-   run in the order above. This command should produce a metadata file at `relations-metadata.ts`.
-
-# Query Generation
+## Query Generation
 
 Now with the database metadata generated, we're ready to write our query specifications and
 to generate the SQL and result types sources. We'll start with a simple query of a single table.
 
-## Single-Table Query
+### Single-Table Query
 
 We'll define our queries in file `gen-queries.ts`. Our folder contains a self-contained TypeScript
 project, so you should be able to get proper TypeScript language support from your editor or IDE as
@@ -311,7 +289,7 @@ each row of the query results. It also defines a constant for the parameter name
 safety feature, and lets you know the corresponding SQL file that was generated from the same query
 specification as well.
 
-## Adding Parent Tables
+### Adding Parent Tables
 
 <img align="right" src="img/drug-parents.svg" alt="drug compound relationship" width="400" height="300">
 <img align="right" src="img/spacer.png" width="20" height="300" alt="schema diagram">
@@ -428,7 +406,7 @@ registering analyst is represented in the string valued property `registeredByAn
 the registering analyst information does not have a wrapping object (it is "inlined"), because
 `referenceName` was omitted in its parent table entry.
 
-## Adding Parent Tables with Explicit Foreign Keys
+### Adding Parent Tables with Explicit Foreign Keys
 
 <img align="right" src="img/drug-compound-analyst.svg" alt="drug table" width="350" height="300">
 <img align="right" src="img/spacer.png" width="20" height="300" alt="schema diagram">
@@ -551,7 +529,7 @@ with each compound:
 That covers the main points for obtaining data from parent tables. For more information see the
 [Parent Table Specification](query-specifications.md#parent-table-specification) documentation.
 
-## Adding a Child Collection
+### Adding a Child Collection
 
 <img align="right" src="img/drug-advisory.svg" alt="drug and advisory tables" width="150" height="380">
 <img align="right" src="img/spacer.png" width="20" height="380" alt="schema diagram">
@@ -674,7 +652,7 @@ produces an array of drug advisories. The json value in each row should look lik
 }
 ```
 
-## Pulling Fields through Multiple Parents
+### Pulling Fields through Multiple Parents
 
 <img align="right" src="img/drug-advisory-advtype-auth.svg" alt="drug and advisory tables" width="480" height="430">
 <img align="right" src="img/spacer.png" width="20" height="430" alt="schema diagram">
@@ -790,7 +768,7 @@ export interface Advisory
 Running the SQL at `sql/drugs-query-5.sql`, we should see advisory the additional information in each
 advisory entry.
 
-## Including Data from Many-Many Relationships
+### Including Data from Many-Many Relationships
 
 We've discussed above the handling of relationships with parent tables (many to one), and with child
 tables (one to many), but nothing yet about how to include data through many-to-many relationships.
@@ -916,7 +894,7 @@ as before:
 npm run gen-queries
 ```
 
-## Validating Database Object Names in Free-Form Expressions
+### Validating Database Object Names in Free-Form Expressions
 
 As mentioned previously, field and table references in queries are verified against database metadata
 when queries are generated. However, there are exceptions where custom expressions are used in a
@@ -1038,7 +1016,7 @@ That completes our final query specification. Add it to the query group spec and
 npm run gen-queries
 ```
 
-## Final Query Review
+### Final Query Review
 
 Let's review what's been accomplished with the [final query specification](#final-query) above.
 

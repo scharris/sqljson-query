@@ -41,13 +41,14 @@ docker exec -it drugs-mysql mysql --user=drugs --password=drugs drugs
 # \q
 ```
 
-To complete the database setup, create properties file `db/jdbc.props` to hold our connection information:
-```shell
-# db/jdbc.props
-jdbc.driverClassName=com.mysql.cj.jdbc.Driver
-jdbc.url=jdbc:mysql://localhost:3306/drugs
-jdbc.username=drugs
-jdbc.password=drugs
+To complete the database setup, create properties file `db/conn.props` to hold our connection information:
+
+```console
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=drugs
+MYSQL_PASSWORD=drugs
+MYSQL_DATABASE=drugs
 ```
 
 That's it! You're now ready to continue with the tutorial.

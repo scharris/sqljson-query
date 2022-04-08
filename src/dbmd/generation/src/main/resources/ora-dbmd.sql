@@ -84,5 +84,5 @@ select
       'foreignKeys' value (select fks from foreignKeys)
       returning clob
     ) returning clob pretty
-  ) dbmd
+  ) json
 from dual

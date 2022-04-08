@@ -74,7 +74,9 @@ function resultTypeDeclarations
   )
   : string
 {
-  return resultTypes.map(resType => makeResultTypeDeclaration(resType, opts) + '\n').join('\n');
+  return resultTypes.flatMap(resType =>
+    resType.unwrapped ? [] : [ makeResultTypeDeclaration(resType, opts) + '\n' ]
+  ).join('\n');
 }
 
 

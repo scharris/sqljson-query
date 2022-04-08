@@ -130,6 +130,7 @@ function getChildCollectionResultTypeProperty
   : { resultTypeProperty: ResultTypeProperty, contributedResultTypes: ResultTypeSpec[] }
 {
   const childResultTypes = makeResultTypeSpecs(selectEntry.collectionSql);
+
   return {
     resultTypeProperty: {
       type: 'rtp-child-coll',

@@ -171,13 +171,14 @@ insert into advisory(id, drug_id, advisory_type_id, text)
 ;
 ```
 
-To complete the database setup, create properties file `db/jdbc.props` to hold our connection information:
-```shell
-# db/jdbc.props
-jdbc.driverClassName=org.postgresql.Driver
-jdbc.url=jdbc:postgresql://localhost:5432/drugs
-jdbc.username=drugs
-jdbc.password=drugs
+To complete the database setup, create properties file `db/conn.props` to hold our connection information:
+
+```console
+PGHOST=localhost
+PGDATABASE=drugs
+PGUSER=drugs
+PGPASSWORD=drugs
+PGPORT=5432
 ```
 
 That's it! You're now ready to continue with the tutorial.

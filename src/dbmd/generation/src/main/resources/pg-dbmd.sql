@@ -106,4 +106,4 @@ select jsonb_pretty(jsonb_build_object(
   'caseSensitivity', 'INSENSITIVE_STORED_LOWER',
   'relationMetadatas', (select json from relationMetadatasQuery),
   'foreignKeys', (select json from foreignKeysQuery)
-))
+)) json

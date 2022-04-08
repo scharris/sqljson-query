@@ -102,4 +102,4 @@ select json_pretty(json_object(
   'caseSensitivity', 'SENSITIVE',
   'relationMetadatas', (select json from relationMetadatasQuery),
   'foreignKeys', (select json from foreignKeysQuery)
-))
+)) json

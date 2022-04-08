@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.7.10",
+  "version": "1.7.11",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -30,15 +30,17 @@
     "rm-test-dbs": "docker rm -vf drugs-mysql drugs-pg",
     "start-test-dbs": "npm run start-pg && npm run start-mysql",
     "typecheck": "tsc --noEmit # (compile without emitting outputs)",
-    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/generation/**/*.* src/dbmd/generation/src lib/dbmd/",
+    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/generation/**/*.* src/dbmd/generation/src/ lib/dbmd/",
     "test": "jest",
-    "clean": "rimraf lib",
+    "clean": "rimraf lib pack",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot"
   },
   "dependencies": {
     "ajv": "^8.10.0",
     "lodash": "^4.17.20",
     "minimist": "^1.2.5",
+    "mysql2": "^2.3.3",
+    "pg": "^8.7.3",
     "zod": "^3.13.4"
   },
   "devDependencies": {
@@ -53,9 +55,7 @@
     "jest": "^27.5.1",
     "jest-cli": "^27.5.1",
     "mkdirp": "^1.0.4",
-    "mysql2": "^2.3.3",
     "path": "^0.12.7",
-    "pg": "^8.7.3",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.1.3",
     "typescript": "^4.5.5"

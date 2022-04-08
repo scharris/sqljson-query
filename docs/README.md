@@ -142,6 +142,7 @@ const drugAdvisoriesReferencesQuery: QuerySpec = {
 ```
 
 ### Outputs
+
 Given the inputs above, SQL/JSON-Query produces the following outputs:
 
 1) <img align="right" src="img/sql-output-oval.dot.svg" alt="SQL files"> SQL files are generated and written
@@ -328,24 +329,47 @@ which will provide more details.
 
 ### Setup the tool folder
 
-  Clone from [the sqljson-query-dropin repo](https://github.com/scharris/sqljson-query-dropin) which
-  contains a ready-to-go form of the tool:
+Clone from [the sqljson-query-dropin repo](https://github.com/scharris/sqljson-query-dropin) which
+contains a ready-to-go form of the tool:
 
-  ```git clone https://github.com/scharris/sqljson-query-dropin query-gen```
+```git clone https://github.com/scharris/sqljson-query-dropin query-gen```
 
-  Here we've installed the tool in a directory named `query-gen` but you can name and position the
-  folder however you like &mdash; just adjust commands accordingly below.
+Here we've installed the tool in a directory named `query-gen` but you can name and position the
+folder however you like &mdash; just adjust commands accordingly below.
 
-  Install the dependencies for the tool via npm:
+Install the dependencies for the tool via npm:
 
-  ```console
-  cd query-gen
-  npm i && tsc
-  ```
+```console
+cd query-gen
+npm i && tsc
+```
 
 ### Generate database metadata
 
-  Create a properties file containing JDBC connection information for your database, with the format:
+Create a properties file containing connection information for your database, with the format depending
+on the type of your database:
+
+- For Postgres:
+
+  ```console
+  PGHOST=...
+  PGDATABASE=...
+  PGUSER=...
+  PGPASSWORD=...
+  PGPORT=...
+  ```
+
+- For MySQL:
+
+  ```console
+  MYSQL_HOST=...
+  MYSQL_PORT=...
+  MYSQL_USER=...
+  MYSQL_PASSWORD=...
+  MYSQL_DATABASE=...
+  ```
+
+- For Oracle:
 
   ```console
   jdbc.driverClassName=...
@@ -354,62 +378,61 @@ which will provide more details.
   jdbc.password=...
   ```
 
-  Then generate the database metadata:
+Then generate the database metadata:
 
-  ```console
-    # in query-gen/
-    npx gen-dbmd --jdbcProps <connect-info-file> --db <pg|mysql|ora> --outputDir .
-  ```
+```console
+  # in query-gen/
+  npx gen-dbmd --connProps <conn-props> --db <pg|mysql|ora> --outputDir <dir>
+```
 
-  where `jdbc-props` is the properties file create above and the second argument represents your
-  database type.
+where `conn-props` is the file created above and the second argument represents your database type.
 
-  Note: Maven and Java are used here to fetch database metadata, but the Java/Maven dependency can be
-  easily avoided. See
-  [Generating Database Metadata without Maven and Java](tutorial.md#generating-database-metadata-without-maven-and-java)
-  in the tutorial, if you want to generate database metadata without those dependencies.
+Note: Maven and Java are used here to fetch database metadata for Oracle database (only), but the
+Java/Maven dependency can be easily avoided. See
+[Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java)
+below if you want to generate database metadata without those dependencies.
 
-  The database metadata files are `dbmd.json` and `relations-metadata.ts`.
+The database metadata files are `dbmd.json` and `relations-metadata.ts`.
 
 ### Define application query specifications
 
-  Edit the included file `gen-queries.ts` in `query-gen/` to define application queries.
+Edit the included file `gen-queries.ts` in directory `query-gen/` to define application queries.
 
-  ```typescript
-  // (file <query-gen-folder>/query-specs.ts)
-  export const queryGroupSpec: QueryGroupSpec = {
-     defaultSchema: "foos",
-     generateUnqualifiedNamesForSchemas: ["foos"],
-     propertyNameDefault: "CAMELCASE",
-     querySpecs: [
-       // <your query specifications here>
-     ]
-  };
-  ```
+```typescript
+// (file <query-gen-folder>/query-specs.ts)
+export const queryGroupSpec: QueryGroupSpec = {
+    defaultSchema: "foos",
+    generateUnqualifiedNamesForSchemas: ["foos"],
+    propertyNameDefault: "CAMELCASE",
+    querySpecs: [
+      // <your query specifications here>
+    ]
+};
+```
 
-  The details of how to write query specifications are described in the [the tutorial](tutorial.md) and
-  further in [the query specifications documentation](query-specifications.md). It is recommended to work
-  through the tutorial before consulting the detailed documentation.
+The details of how to write query specifications are described in the [the tutorial](tutorial.md) and
+further in [the query specifications documentation](query-specifications.md). It is recommended to work
+through the tutorial before consulting the detailed documentation.
 
 
 ### Generate SQL and result types:
 
-  To generate SQL and matching TypeScript result types:
+To generate SQL and matching TypeScript result types:
 
-  ```console
-  # in query-gen/
-  tsc && node gen-queries.js --dbmd dbmd.json --sqlDir sql --tsDir ts
-  ```
+```console
+# in query-gen/
+tsc && node gen-queries.js --dbmd dbmd.json --sqlDir sql --tsDir ts
+```
 
-  This will generate the SQL and TypeScript sources for your queries in the directories you specify for
-  the `sqlDir` and `tsDir` arguments.
+This will generate the SQL and TypeScript sources for your queries in the directories you specify for
+the `sqlDir` and `tsDir` arguments.
 
-  Or for Java result types instead:
+Or for Java result types instead:
 
-  ```console
-  # in query-gen/
-  tsc && node gen-queries.js --dbmd dbmd.json --sqlDir src/sql --javaBaseDir src/generated --javaQueriesPkg my.pkg
-  ```
+```console
+# in query-gen/
+tsc && node gen-queries.js --dbmd dbmd.json --sqlDir src/sql --javaBaseDir src/generated --javaQueriesPkg my.pkg
+```
 
 ## Tutorial
 
@@ -424,6 +447,33 @@ A small example app using SQL/JSON-Query with NodeJs/TypeScript and a Postgres d
 [SQL/JSON-Query example app](https://github.com/scharris/sqljson-query-example-pg)
 
 Setup instructions are available in the README of that repository.
+
+### Generating Database Metadata without Maven and Java
+
+For Oracle database, the command in [Generate Database Metadata](#generate-database-metadata) above
+depend on Maven and Java being installed on your system. If you don't want to use Maven and Java, then
+it's easy to generate the database metadata without them. There are two database metadata files which
+need to be generated.
+
+- First generate the primary database metadata, `dbmd.json`, by executing the
+  [SQL database metadata query](https://github.com/scharris/sqljson-query/tree/main/src/dbmd/generation/src/main/resources)
+  for your database type, by whatever means you prefer to execute queries for your database. The query
+  has two parameters, `relIncludePat` and `relExcludePat`, which are regular expressions for table names
+  to be included and excluded, respectively. If you just want all tables to be included in the metadata,
+  then pass (or textually replace) '.*' for `relIncludePat` and '^$' `relExcludePat`. Save the resulting
+  single json value to file `dbmd.json` in folder `query-gen`.
+
+- Next generate the additional "relations" metadata which is derived from the main metadata generated
+  above. This is done via the command:
+
+   ```console
+   # (in query-gen/)
+   npx gen-relsmd --dbmd dbmd.json --tsDir .
+   ```
+
+   This command depends on the primary database metadata already existing, so these steps need to be
+   run in the order above. This command should produce a metadata file at `relations-metadata.ts`.
+
 
 ## End Note &mdash; What about data modification statements?
 

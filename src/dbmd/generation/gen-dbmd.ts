@@ -1,15 +1,13 @@
 #!/usr/bin/env node
-import path from 'path';
 import { parseArgs } from './utils';
 import { generateDatabaseMetadata } from './gen-dbmd-lib';
 
 const requiredParams = [
-  'jdbcProps', // jdbc connection properties file
+  'connProps', // connection properties file
   'db',        // database type: pg | mysql | ora ...
   'outputDir', // database metadata output directory
 ]
 const optionNames = [
-  'pom',       // Maven pom file for the database metadata generator
   'include',   // table include pattern regular expression, defaulting to '.*'
   'exclude',   // table exclude pattern regular expression, defaulting to '^$'
 ];
@@ -24,11 +22,10 @@ if (typeof parsedArgs === 'string') // arg parsing error
 else
 {
   const opts = {
-    jdbcPropsFile: parsedArgs['jdbcProps'],
+    connPropsFile: parsedArgs['connProps'],
     dbType: parsedArgs['db'],
     include: parsedArgs['include'] || '.*',
     exclude: parsedArgs['exclude'] || '^$',
-    generatorPomFile: parsedArgs['pom'] || path.join(__dirname, 'pom.xml'),
     dbmdOutputDir: parsedArgs['outputDir'],
   };
   generateDatabaseMetadata(opts)

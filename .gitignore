@@ -5,3 +5,5 @@ lib
 *.iml
 .DS_Store
 *.js
+*.tgz
+pack/

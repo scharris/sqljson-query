@@ -13,7 +13,8 @@ export function dedupedWithAssignedNames
   const rtHash = (rt: ResultTypeSpec) =>
     hashString(relIdDescn(rt.table)) +
     2 * hashString(rt.resultTypeName ?? '') +
-    3 * rt.properties.reduce((acc, prop) => acc * hashString(prop.propertyName), 1);
+    3 * rt.properties.reduce((acc, prop) => acc * hashString(prop.propertyName), 1) +
+    5 * (rt.unwrapped ? 7 : 1);
 
   const equalityGroups = partitionByEquality(resTypes, rtHash, resultTypeSpecsEqual);
 
@@ -25,8 +26,9 @@ export function dedupedWithAssignedNames
   for (const equalityGroup of equalityGroups)
   {
     const typeName =
-      equalityGroup[0].resultTypeName ||
-      makeNameNotInSet(upperCamelCase(equalityGroup[0].table.name), typeNames, '_');
+      (equalityGroup[0].unwrapped ? '_|_' : '') + // Don't let unwrapped (not emitted) types grab good names.
+      ( equalityGroup[0].resultTypeName ||
+        makeNameNotInSet(upperCamelCase(equalityGroup[0].table.name), typeNames, '_') );
 
     const reprInstance = { ...equalityGroup[0], resultTypeName: typeName };
 
