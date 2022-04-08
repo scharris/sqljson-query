@@ -13,7 +13,7 @@ curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__
 curl https://raw.githubusercontent.com/scharris/sqljson-query/main/src/__tests__/db/pg/sql/create-test-data.sql > db/create-test-data.sql
 ```
 
-Next create file `db/Dockerfile` in folder `query-gen`, with these contents:
+Next create file `db/Dockerfile` with these contents:
 ```dockerfile
 # db/Dockerfile
 FROM postgres:14
@@ -42,8 +42,7 @@ docker exec -it drugs-pg psql -U drugs
 # \q
 ```
 
-To complete the database setup, create properties file `db/jdbc.props` in folder `query-gen`,
-to hold our connection information:
+To complete the database setup, create properties file `db/jdbc.props` to hold our connection information:
 ```shell
 # db/jdbc.props
 jdbc.driverClassName=org.postgresql.Driver
