@@ -349,7 +349,7 @@ npm i && tsc
 Create a properties file containing connection information for your database, with the format depending
 on the type of your database:
 
-- For Postgres:
+- Postgres
 
   ```console
   PGHOST=...
@@ -359,7 +359,7 @@ on the type of your database:
   PGPORT=...
   ```
 
-- For MySQL:
+- MySQL
 
   ```console
   MYSQL_HOST=...
@@ -369,7 +369,7 @@ on the type of your database:
   MYSQL_DATABASE=...
   ```
 
-- For Oracle:
+- Oracle
 
   ```console
   jdbc.driverClassName=...
@@ -385,14 +385,15 @@ Then generate the database metadata:
   npx gen-dbmd --connProps <conn-props> --db <pg|mysql|ora> --outputDir <dir>
 ```
 
-where `conn-props` is the file created above and the second argument represents your database type.
+where `conn-props` is the connection properties file created above, and the second argument represents
+your database type.
 
-Note: Maven and Java are used here to fetch database metadata for Oracle database (only), but the
-Java/Maven dependency can be easily avoided. See
+Note: For an Oracle database, Maven and Java are used to fetch database metadata, but the Java/Maven
+dependency can be easily avoided. See
 [Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java)
 below if you want to generate database metadata without those dependencies.
 
-The database metadata files are `dbmd.json` and `relations-metadata.ts`.
+The generated database metadata files are `dbmd.json` and `relations-metadata.ts`.
 
 ### Define application query specifications
 

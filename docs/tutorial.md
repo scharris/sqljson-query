@@ -5,14 +5,6 @@
 ### Prerequisites
 
 - [NodeJS 14+](https://nodejs.org/en/)
-- [Java JDK 11+](https://jdk.java.net) (optional &dagger;)
-- [Apache Maven 3.6+](https://maven.apache.org/download.cgi) (optional &dagger;)
-
-&dagger; Maven and Java are only used here to fetch database metadata, and they can be easily avoided.
-See [Generating Database Metadata without Maven and Java](#generating-database-metadata-without-maven-and-java).
-
-If using Maven and Java to fetch database metadata, make sure that `mvn` and `java` are on your PATH.
-The NodeJS commands `npm`, `node`, and `npx` are assumed to be on your path as well.
 
 ### Project Directory Setup
 
