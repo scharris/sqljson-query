@@ -5,6 +5,7 @@
 ### Prerequisites
 
 - [NodeJS 14+](https://nodejs.org/en/)
+- [Git](https://git-scm.com/)
 
 ### Project Directory Setup
 
