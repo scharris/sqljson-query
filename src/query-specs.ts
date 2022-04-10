@@ -107,7 +107,7 @@ export interface RecordCondition
   withTableAliasAs?: Nullable<string>;
 }
 
-export type PropertyNameDefault = "AS_IN_DB" | "CAMELCASE";
+export type PropertyNameDefault = 'AS_IN_DB' | 'CAMELCASE' | 'UPPER_CAMELCASE' | 'INIT_CAPS_SNAKE_CASE';
 
 export type ResultRepr = "MULTI_COLUMN_ROWS" | "JSON_OBJECT_ROWS" | "JSON_ARRAY_ROW";
 

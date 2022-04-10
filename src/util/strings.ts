@@ -51,6 +51,24 @@ function camelCase(name: string, upperFirst: boolean): string
   return parts.join("");
 }
 
+export function snakeCase(name: string, capitalizeWords: boolean): string
+{
+  const parts: string[] = [];
+
+  for ( const word of name.split(/[^a-zA-Z0-9]/) )
+  {
+    const wordStartChar = word.charAt(0);
+
+    parts.push(
+      (capitalizeWords ? wordStartChar.toUpperCase(): wordStartChar.toLowerCase()) +
+      word.substring(1).toLowerCase()
+    );
+  }
+
+  return parts.join('_');
+}
+
+
 export function makeNameNotInSet
   (
     baseName: string,

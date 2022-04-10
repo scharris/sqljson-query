@@ -1,6 +1,6 @@
 import { CaseSensitivity } from '../dbmd';
 import { PropertyNameDefault } from '../query-specs';
-import { lowerCamelCase } from './strings';
+import { lowerCamelCase, snakeCase, upperCamelCase } from './strings';
 
 export function propertyNameDefaultFunction
   (
@@ -21,7 +21,12 @@ export function propertyNameDefaultFunction
         default:
           return fieldName => fieldName;
       }
-    case 'CAMELCASE': return lowerCamelCase;
+    case 'CAMELCASE':
+      return lowerCamelCase;
+    case 'UPPER_CAMELCASE':
+      return upperCamelCase;
+    case 'INIT_CAPS_SNAKE_CASE':
+      return name => snakeCase(name, true);
   }
 }
 
