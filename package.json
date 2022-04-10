@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.7.13",
+  "version": "1.7.14",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -43,13 +43,13 @@
     "pg": "^8.7.3",
     "zod": "^3.13.4",
     "dotenv": "^10.0.0",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "@types/minimist": "^1.2.1"
   },
   "devDependencies": {
     "@types/ajv": "^1.0.0",
     "@types/jest": "^27.4.1",
     "@types/lodash": "^4.14.179",
-    "@types/minimist": "^1.2.1",
     "@types/node": "^16.11.25",
     "@types/pg": "^8.6.4",
     "copyfiles": "^2.4.1",

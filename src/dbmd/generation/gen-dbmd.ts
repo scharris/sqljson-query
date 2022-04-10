@@ -31,7 +31,7 @@ else
 
   if (opts.dbType === 'ora' && (opts.includeRegex || opts.excludeRegex))
   {
-    console.error("Options includeRegex and excludeRegex are not supported for Oracle databases.");
+    console.error("Options 'include' and 'exclude' are not supported for Oracle databases.");
     process.exit(1);
   }
 
