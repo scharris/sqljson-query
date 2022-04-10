@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from './utils';
-import { generateDatabaseMetadata } from './gen-dbmd-lib';
+import { DbmdGenerationOptions, generateDatabaseMetadata } from './gen-dbmd-lib';
 
 const requiredParams = [
   'connProps', // connection properties file
@@ -21,13 +21,20 @@ if (typeof parsedArgs === 'string') // arg parsing error
 }
 else
 {
-  const opts = {
+  const opts: DbmdGenerationOptions = {
     connPropsFile: parsedArgs['connProps'],
     dbType: parsedArgs['db'],
-    include: parsedArgs['include'] || '.*',
-    exclude: parsedArgs['exclude'] || '^$',
+    includeRegex: parsedArgs['include'],
+    excludeRegex: parsedArgs['exclude'],
     dbmdOutputDir: parsedArgs['outputDir'],
   };
+
+  if (opts.dbType === 'ora' && (opts.includeRegex || opts.excludeRegex))
+  {
+    console.error("Options includeRegex and excludeRegex are not supported for Oracle databases.");
+    process.exit(1);
+  }
+
   generateDatabaseMetadata(opts)
   .then(() => { console.log("Database metadata generation completed."); })
   .catch((e) => {

@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as os from 'os';
 import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import * as dotenv from 'dotenv';
@@ -33,50 +34,21 @@ export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
   switch (opts.dbType)
   {
     case 'pg':
-      await queryViaPgDriver(opts.connPropsFile, include, exclude, dbmdFile);
+      await queryViaPgClient(opts.connPropsFile, include, exclude, dbmdFile);
       break;
     case 'mysql':
-      await queryViaMySQLDriver(opts.connPropsFile, include, exclude, dbmdFile);
+      await queryViaMySQLClient(opts.connPropsFile, include, exclude, dbmdFile);
       break;
     case 'ora':
       const pomFile = path.join(__dirname, 'pom.xml');
-      queryViaMaven(pomFile, opts.connPropsFile, opts.dbType, include, exclude, dbmdFile);
+      queryViaMaven(pomFile, opts.connPropsFile, opts.dbType, dbmdFile);
       break;
   }
 
   await generateRelationsMetadata({ dbmdFile, tsOutputDir: opts.dbmdOutputDir });
 }
 
-function queryViaMaven
-  (
-    generatorPomFile: string,
-    jdbcPropsFile: string,
-    dbType: string,
-    include: string,
-    exclude: string,
-    outputFile: string,
-  )
-{
-  const mvnProc = spawnSync(
-    'mvn',
-    ['-f', generatorPomFile,
-      'compile', 'exec:java',
-      `-Djdbc.props=${jdbcPropsFile}`,
-      `-Ddb=${dbType}`,
-      `-Ddbmd.file=${outputFile}`,
-      `-Ddbmd.include.regex=${include}`,
-      `-Ddbmd.exclude.regex=${exclude}`],
-    { cwd: process.cwd(), env: process.env, encoding: 'utf8' }
-  );
-
-  if (mvnProc.status !== 0)
-  {
-    console.error('Maven command to generate database metadata failed:\n', mvnProc);
-    throw new Error('Database metadata generation failed.');
-  }
-}
-
-async function queryViaPgDriver
+async function queryViaPgClient
   (
     connPropsFile: string,
     include: string,
@@ -108,7 +80,7 @@ async function queryViaPgDriver
   }
 }
 
-async function queryViaMySQLDriver
+async function queryViaMySQLClient
   (
     connPropsFile: string,
     include: string,
@@ -148,5 +120,30 @@ async function queryViaMySQLDriver
   finally
   {
     await dbConn.end();
+  }
+}
+
+function queryViaMaven
+  (
+    generatorPomFile: string,
+    jdbcPropsFile: string,
+    dbType: string,
+    outputFile: string,
+  )
+{
+  const mvnProc = spawnSync(
+    os.platform() === 'win32' ? 'mvn.CMD' : 'mvn',
+    ['-f', generatorPomFile,
+      'compile', 'exec:java',
+      `-Djdbc.props=${jdbcPropsFile}`,
+      `-Ddb=${dbType}`,
+      `-Ddbmd.file=${outputFile}`],
+    { cwd: process.cwd(), env: process.env, encoding: 'utf8' }
+  );
+
+  if (mvnProc.status !== 0)
+  {
+    console.error('Maven command to generate database metadata failed:\n', mvnProc);
+    throw new Error('Database metadata generation failed.');
   }
 }
