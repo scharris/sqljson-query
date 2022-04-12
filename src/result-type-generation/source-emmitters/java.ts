@@ -1,45 +1,39 @@
-import * as path from 'path';
-import { upperCamelCase, indentLines, readTextFileSync, Nullable } from '../../util/mod';
-import { ResultRepr } from '../../query-specs';
+import { upperCamelCase, indentLines, Nullable } from '../../util/mod';
+import { QueryTypesFileHeader, ResultRepr } from '../../query-specs';
 import {
   ChildCollectionResultTypeProperty, TableFieldResultTypeProperty, TableExpressionResultTypeProperty,
   ParentReferenceResultTypeProperty, NamedResultTypeSpec, requireNamedResultType,
 } from '../result-type-specs';
-import {
-  JavaSourceGenerationOptions,
-  ResultTypesSourceGenerationOptions
-} from '../../source-generation-options';
-import { GeneratedResultTypes } from "../generated-result-types";
-import { QueryReprSqlPath } from "../query-repr-sql-path";
+import { SourceGenerationOptions } from '../../source-generation-options';
+import { ResultTypesSource } from "../result-types-source";
 
 export default function makeSource
   (
     resultTypeSpecs: NamedResultTypeSpec[],
     queryName: string,
-    sqlPaths: QueryReprSqlPath[],
+    queryTypesFileHeader: Nullable<QueryTypesFileHeader>,
+    sqlResources: Map<ResultRepr, string>,
     queryParamNames: string[],
-    opts: JavaResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
-  : GeneratedResultTypes
+  : ResultTypesSource
 {
-  const sqlPathMembers = sqlPaths.length == 0 ? '' :
+  const sqlPathMembers = sqlResources.size == 0 ? '' :
     '  // The types defined in this file correspond to results of the following generated SQL queries.\n' +
-    indentLines(sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix), 2) + '\n\n';
+    indentLines(sqlFileReferences(sqlResources), 2) + '\n\n';
   const sqlParamMembers = queryParamNames.length == 0 ? '' :
     "  // query parameters\n" +
     indentLines(queryParamDefinitions(queryParamNames), 2) + '\n\n';
 
-  const compilationUnitName = makeCompilationUnitName(queryName);
+  const compilationUnitNameNoExt = makeCompilationUnitNameNoExt(queryName);
 
   return {
-    compilationUnitName,
-    resultTypeSpecs,
-    resultTypesSourceCode:
-      (opts?.javaOptions?.javaPackage ? `package ${opts.javaOptions.javaPackage};\n\n` : '') +
-      generalTypesFileHeader(opts.typesHeaderFile) +
-      (opts.typesHeaderFile || '') + '\n' +
+    compilationUnitName: compilationUnitNameNoExt + '.java',
+    sourceCode:
+      (opts?.javaPackage ? `package ${opts.javaPackage};\n\n` : '') +
+      typesFileHeaders(opts, queryTypesFileHeader) +
       standardImports + '\n\n' +
-      `public class ${compilationUnitName}\n` +
+      `public class ${compilationUnitNameNoExt}\n` +
       '{\n' +
         sqlPathMembers +
         sqlParamMembers +
@@ -49,27 +43,34 @@ export default function makeSource
   };
 }
 
-function generalTypesFileHeader(typesHeaderFile: Nullable<string>): string
+function typesFileHeaders
+  (
+    opts: SourceGenerationOptions,
+    queryTypesFileHeader: Nullable<QueryTypesFileHeader>
+  )
+  : string
 {
-  if (typesHeaderFile != null) return readTextFileSync(typesHeaderFile) + "\n";
-  else return '';
+  const generalHeaders = opts?.typesHeaders?.get('Java');
+  return (generalHeaders ? generalHeaders + '\n' : '') +
+    queryTypesFileHeader == null ? '' :
+      (typeof queryTypesFileHeader === 'string'
+        ? queryTypesFileHeader
+        : queryTypesFileHeader?.Java ?? '');
+
 }
 
 function sqlFileReferences
   (
-    queryName: string,
-    queryReprSqlPaths: QueryReprSqlPath[],
-    sqlResourcePathPrefix: Nullable<string>,
+    sqlResources: Map<ResultRepr, string>
   )
   : string
 {
   const lines = [];
-  const sqlPathsByRepr = makeQueryResultReprToSqlPathMap(queryName, queryReprSqlPaths);
 
-  for ( const repr of Array.from(sqlPathsByRepr.keys()).sort() )
+  for (const repr of Array.from(sqlResources.keys()).sort())
   {
-    const memberName = 'sqlResource' + (sqlPathsByRepr.size == 1 ? '' : upperCamelCase(repr));
-    const resourceName = (sqlResourcePathPrefix || '') + path.basename(sqlPathsByRepr.get(repr) || '');
+    const memberName = 'sqlResource' + (sqlResources.size == 1 ? '' : upperCamelCase(repr));
+    const resourceName = sqlResources.get(repr);
     lines.push(`public static final String ${memberName} = "${resourceName}";`);
   }
 
@@ -86,7 +87,7 @@ function queryParamDefinitions(paramNames: string[]): string
 function resultTypeDeclarations
   (
     resultTypes: NamedResultTypeSpec[],
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -98,11 +99,11 @@ function resultTypeDeclarations
 function makeResultTypeDeclaration
   (
     resType: NamedResultTypeSpec,
-    opts: JavaResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
-  const emitRecords: boolean = opts?.javaOptions?.emitRecords ?? true;
+  const emitRecords: boolean = opts?.javaEmitRecords ?? true;
   const vis = emitRecords ? '' : 'public ';
 
   const decls = resType.properties.map(prop => {
@@ -137,12 +138,12 @@ function tableFieldType
   (
     tfp: TableFieldResultTypeProperty,
     inResType: NamedResultTypeSpec,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
   if (tfp.specifiedSourceCodeFieldType != null)
-    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, opts);
+    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType);
 
   const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType);
   if (customizedType)
@@ -195,14 +196,14 @@ function tableFieldType
 function tableExprType
   (
     tep: TableExpressionResultTypeProperty,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
   if (!tep.specifiedSourceCodeFieldType) // This should have been caught in validation.
     throw new Error(`Generated field type is required for table expression property ${tep.propertyName}.`);
 
-  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType, opts);
+  return specifiedSourceCodeFieldType(tep.specifiedSourceCodeFieldType);
 }
 
 function parentRefType
@@ -217,7 +218,7 @@ function parentRefType
 function childCollType
   (
     prop: ChildCollectionResultTypeProperty,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -230,8 +231,7 @@ function childCollType
 
 function specifiedSourceCodeFieldType
   (
-    specSourceCodeFieldType: string | {[srcLang: string]: string},
-    opts: ResultTypesSourceGenerationOptions
+    specSourceCodeFieldType: string | {[srcLang: string]: string}
   )
   : string
 {
@@ -240,19 +240,19 @@ function specifiedSourceCodeFieldType
     case 'string':
       return specSourceCodeFieldType;
     default:
-      if ( !(opts.sourceLanguage in specSourceCodeFieldType) )
+      if ( !('Java' in specSourceCodeFieldType) )
         throw new Error(
-          `Expression type for language ${opts.sourceLanguage} not specified for table expression ` +
+          `Expression type for language 'Java' not specified for table expression ` +
           `property ${specSourceCodeFieldType}.`
         );
-      return specSourceCodeFieldType[opts.sourceLanguage];
+      return specSourceCodeFieldType['Java'];
   }
 }
 
 function getSolePropertyType
   (
     resType: NamedResultTypeSpec,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -335,27 +335,6 @@ function toReferenceType(typeName: string): string
   }
 }
 
-function makeQueryResultReprToSqlPathMap
-  (
-    queryName: string,
-    queryReprPathsAllQueries: QueryReprSqlPath[]
-  )
-  : Map<ResultRepr, string>
-{
-  const res = new Map<ResultRepr, string>();
-  for (const qrp of queryReprPathsAllQueries)
-  {
-    if (qrp.queryName === queryName)
-    {
-      if ( res.has(qrp.resultRepr) )
-        throw new Error(`Duplicate query representation path encountered for query ${qrp.queryName}.`);
-
-      res.set(qrp.resultRepr, qrp.sqlPath);
-    }
-  }
-  return res;
-}
-
 const standardImports: string =
   'import java.util.*;\n' +
   'import java.math.*;\n' +
@@ -367,11 +346,7 @@ const standardImports: string =
   'import com.fasterxml.jackson.databind.JsonNode;\n' +
   'import com.fasterxml.jackson.databind.node.*;\n';
 
-function makeCompilationUnitName(queryName: string): string
+function makeCompilationUnitNameNoExt(queryName: string): string
 {
   return upperCamelCase(queryName);
 }
-
-type JavaResultTypesSourceGenerationOptions =
-  ResultTypesSourceGenerationOptions &
-  { javaOptions?: JavaSourceGenerationOptions };

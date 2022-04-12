@@ -1,28 +1,42 @@
-import { ResultTypesSourceGenerationOptions } from '../source-generation-options';
-import { GeneratedResultTypes } from "./generated-result-types";
-import { QueryReprSqlPath } from "./query-repr-sql-path";
+import { SourceGenerationOptions, SourceLanguage } from '../source-generation-options';
+import { ResultTypesSource } from "./result-types-source";
 import makeTypeScriptSource from './source-emmitters/ts';
 import makeJavaSource from './source-emmitters/java';
-import { SqlSpec } from '../sql-generation/sql-specs';
-import { makeNamedResultTypeSpecs } from './result-type-spec-generator';
+import { NamedResultTypeSpec } from './result-type-specs';
+import { QueryTypesFileHeader, ResultRepr } from '../query-specs';
+import { Nullable } from '../util/mod';
 
-export function makeQueryResultTypesSource
+export function makeResultTypesSource
   (
-    sqlSpec: SqlSpec,
+    resultTypes: NamedResultTypeSpec[],
+    sourceLanguage: SourceLanguage,
     queryName: string,
-    sqlPaths: QueryReprSqlPath[],
+    queryTypesFileHeader: Nullable<QueryTypesFileHeader>,
+    sqlPaths: Map<ResultRepr, string>,
     queryParamNames: string[],
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
-  : GeneratedResultTypes
+  : ResultTypesSource
 {
-  const resultTypes = makeNamedResultTypeSpecs(sqlSpec);
-
-  switch (opts.sourceLanguage)
+  switch (sourceLanguage)
   {
     case 'TS':
-      return makeTypeScriptSource(resultTypes, queryName, sqlPaths, queryParamNames, opts);
+      return makeTypeScriptSource(
+        resultTypes,
+        queryName,
+        queryTypesFileHeader,
+        sqlPaths,
+        queryParamNames,
+        opts
+      );
     case 'Java':
-      return makeJavaSource(resultTypes, queryName, sqlPaths, queryParamNames, opts);
+      return makeJavaSource(
+        resultTypes,
+        queryName,
+        queryTypesFileHeader,
+        sqlPaths,
+        queryParamNames,
+        opts
+      );
   }
 }

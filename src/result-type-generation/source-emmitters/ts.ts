@@ -1,32 +1,29 @@
-import * as path from 'path';
-import { upperCamelCase, readTextFileSync, Nullable } from '../../util/mod';
-import { ResultRepr } from '../../query-specs';
+import { upperCamelCase, Nullable } from '../../util/mod';
+import { QueryTypesFileHeader, ResultRepr } from '../../query-specs';
 import {
   NamedResultTypeSpec, ChildCollectionResultTypeProperty, TableFieldResultTypeProperty,
   TableExpressionResultTypeProperty, ParentReferenceResultTypeProperty, requireNamedResultType,
 } from '../result-type-specs';
-import { ResultTypesSourceGenerationOptions } from '../../source-generation-options';
-import { GeneratedResultTypes } from "../generated-result-types";
-import { QueryReprSqlPath } from "../query-repr-sql-path";
+import { SourceGenerationOptions } from '../../source-generation-options';
+import { ResultTypesSource } from "../result-types-source";
 
 export default function makeSource
   (
     resultTypeSpecs: NamedResultTypeSpec[],
     queryName: string,
-    sqlPaths: QueryReprSqlPath[],
+    queryTypesFileHeader: Nullable<QueryTypesFileHeader>,
+    sqlResources: Map<ResultRepr, string>,
     queryParamNames: string[],
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
-  : GeneratedResultTypes
+  : ResultTypesSource
 {
   return {
-    compilationUnitName: makeCompilationUnitName(queryName),
-    resultTypeSpecs,
-    resultTypesSourceCode:
-      generalTypesFileHeader(opts.typesHeaderFile) +
-      (opts.typesHeaderFile || '') + '\n\n' +
+    compilationUnitName: makeCompilationUnitNameNoExt(queryName) + '.ts',
+    sourceCode:
+      typesFileHeaders(opts, queryTypesFileHeader) + '\n\n' +
       '// The types defined in this file correspond to results of the following generated SQL queries.\n' +
-      sqlFileReferences(queryName, sqlPaths, opts.sqlResourcePathPrefix) + "\n\n" +
+      sqlFileReferences(sqlResources) + "\n\n" +
       '// query parameters\n' +
       queryParamDefinitions(queryParamNames) + '\n\n' +
       '// Below are types representing the result data for the generated query, with top-level type first.\n' +
@@ -34,27 +31,34 @@ export default function makeSource
   };
 }
 
-function generalTypesFileHeader(typesHeaderFile: Nullable<string>): string
+function typesFileHeaders
+  (
+    opts: SourceGenerationOptions,
+    queryTypesFileHeader: Nullable<QueryTypesFileHeader>
+  )
+  : string
 {
-  if (typesHeaderFile != null) return readTextFileSync(typesHeaderFile) + "\n";
-  else return '';
+  const generalHeaders = opts?.typesHeaders?.get('TS');
+  return (generalHeaders ? generalHeaders + '\n' : '') +
+    queryTypesFileHeader == null ? '' :
+      (typeof queryTypesFileHeader === 'string'
+        ? queryTypesFileHeader
+        : queryTypesFileHeader?.TS ?? '');
+
 }
 
 function sqlFileReferences
   (
-    queryName: string,
-    queryReprSqlPaths: QueryReprSqlPath[],
-    sqlResourcePathPrefix: Nullable<string>,
+    sqlResources: Map<ResultRepr, string>
   )
   : string
 {
   const lines = [];
-  const sqlPathsByRepr = makeQueryResultReprToSqlPathMap(queryName, queryReprSqlPaths);
 
-  for ( const repr of Array.from(sqlPathsByRepr.keys()).sort() )
+  for (const repr of Array.from(sqlResources.keys()).sort())
   {
-    const memberName = 'sqlResource' + (sqlPathsByRepr.size == 1 ? '' : upperCamelCase(repr));
-    const resourceName = (sqlResourcePathPrefix || '') + path.basename(sqlPathsByRepr.get(repr) || '');
+    const memberName = 'sqlResource' + (sqlResources.size == 1 ? '' : upperCamelCase(repr));
+    const resourceName = sqlResources.get(repr);
     lines.push(`export const ${memberName} = "${resourceName}";`); break;
   }
 
@@ -70,7 +74,7 @@ function queryParamDefinitions(paramNames: string[]): string
 function resultTypeDeclarations
   (
     resultTypes: NamedResultTypeSpec[],
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -79,11 +83,10 @@ function resultTypeDeclarations
   ).join('\n');
 }
 
-
 function makeResultTypeDeclaration
   (
     resType: NamedResultTypeSpec,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -113,12 +116,12 @@ function tableFieldType
   (
     tfp: TableFieldResultTypeProperty,
     inResType: NamedResultTypeSpec,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
   if (tfp.specifiedSourceCodeFieldType != null)
-    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType, opts);
+    return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType);
 
   const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType);
   if (customizedType)
@@ -172,14 +175,14 @@ function tableFieldType
 function tableExprType
   (
     prop: TableExpressionResultTypeProperty,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
   if (!prop.specifiedSourceCodeFieldType) // This should have been caught in validation.
     throw new Error(`Generated field type is required for table expression property ${prop.propertyName}.`);
 
-  return specifiedSourceCodeFieldType(prop.specifiedSourceCodeFieldType, opts);
+  return specifiedSourceCodeFieldType(prop.specifiedSourceCodeFieldType);
 }
 
 function parentRefType
@@ -195,7 +198,7 @@ function parentRefType
 function childCollType
   (
     p: ChildCollectionResultTypeProperty,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -208,8 +211,7 @@ function childCollType
 
 function specifiedSourceCodeFieldType
   (
-    specSourceCodeFieldType: string | {[srcLang: string]: string},
-    opts: ResultTypesSourceGenerationOptions
+    specSourceCodeFieldType: string | {[srcLang: string]: string}
   )
   : string
 {
@@ -218,17 +220,18 @@ function specifiedSourceCodeFieldType
     case 'string':
       return specSourceCodeFieldType;
     default:
-      if ( !(opts.sourceLanguage in specSourceCodeFieldType) ) throw new Error(
-        `Expression type for language ${opts.sourceLanguage} not specified for table expression property ${specSourceCodeFieldType}.`
-      );
-      return specSourceCodeFieldType[opts.sourceLanguage];
+      if ( !('TS' in specSourceCodeFieldType) )
+        throw new Error(
+          `Expression type for language 'TS' not specified for table expression ` +
+          `property ${specSourceCodeFieldType}.`
+        );
+      return specSourceCodeFieldType['TS'];
   }
 }
-
 function getSolePropertyType
   (
     resType: NamedResultTypeSpec,
-    opts: ResultTypesSourceGenerationOptions
+    opts: SourceGenerationOptions
   )
   : string
 {
@@ -283,27 +286,7 @@ function withNullability
   return typeName + (nullable ? ' | null' : '');
 }
 
-function makeQueryResultReprToSqlPathMap
-  (
-    queryName: string,
-    queryReprPathsAllQueries: QueryReprSqlPath[]
-  )
-  : Map<ResultRepr, string>
-{
-  const res = new Map<ResultRepr, string>();
-  for (const qrp of queryReprPathsAllQueries)
-  {
-    if (qrp.queryName === queryName)
-    {
-      if ( res.has(qrp.resultRepr) )
-        throw new Error(`Duplicate query representation path encountered for query ${qrp.queryName}.`);
-
-      res.set(qrp.resultRepr, qrp.sqlPath);
-    }
-  }
-  return res;
-}
-function makeCompilationUnitName(queryName: string): string
+function makeCompilationUnitNameNoExt(queryName: string): string
 {
   return queryName.replace(/ /g, '-').toLowerCase();
 }

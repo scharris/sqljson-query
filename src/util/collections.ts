@@ -74,6 +74,21 @@ export function mapValues<K,V,U>
   return m;
 }
 
+export function mapEntries<K,V,U>
+  (
+    map: Map<K,V>,
+    f: (k: K, v: V) => U
+  )
+  : Map<K,U>
+{
+  const m = new Map<K,U>();
+
+  for (const [k,v] of map.entries())
+    m.set(k, f(k, v));
+
+  return m;
+}
+
 export function makeArrayValuesMap<T,K,V>
   (
     ts: T[],

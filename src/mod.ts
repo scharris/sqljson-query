@@ -1,44 +1,29 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import {
-  propertyNameDefaultFunction,
-  requireDirExists,
-  requireFileExists,
-  writeTextFile,
-  cwd,
-  mapValues,
-  firstValue,
-  parseArgs,
-  parseBoolOption,
-  replaceAll
+  requireFileExists, writeTextFile, parseArgs, parseBoolOption, replaceAll, readTextFile, Nullable
 } from './util/mod';
 import { readDatabaseMetadata } from './dbmd';
-import { getQueryParamNames, QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
-import { SourceGenerationOptions } from './source-generation-options';
-import { makeQueryResultTypesSource, QueryReprSqlPath } from './result-type-generation';
-import { SqlSourceGenerator } from './sql-generation/sql-source-generator';
-import { SqlSpecGenerator } from './sql-generation/sql-spec-generator';
-import { SqlSpec } from './sql-generation/sql-specs';
-import { getSqlDialect } from './sql-generation';
-import { makeQueryPropertiesMetadata } from './result-metadata-generation/query-properties-metadata-generator';
+import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
+import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
+import { QueryPropertiesMetadata } from './query-properties-metadata-generation';
+import { GeneratedResultTypes, GeneratedSql, generateQueryGroupSources } from './lib';
 
-export * from './source-generation-options';
-export * from './query-specs';
-export * from './result-type-generation';
+export * from './lib';
 export * from './dbmd/relations-md-source-generator';
 
-export interface QueryGenerationOptions {
-  dbmdFile: string;
-  sqlOutputDir: string;
-  sqlSpecOutputDir?: string;
-  queryPropsMdOutputDir?: string;
-  tsOutputDir?: string | null;
-  javaBaseOutputDir?: string | null;
-  javaPackage?: string | null;
-  javaEmitRecords?: boolean | null;
-  tsTypesHeaderFile?: string;
-  javaHeaderFile?: string | null;
-  sqlResourcePath?: string;
+export interface QueryGenerationOptions
+{
+  readonly dbmdFile: string;
+  readonly sqlOutputDir: string;
+  readonly sqlSpecOutputDir?: Nullable<string>;
+  readonly queryPropsMdOutputDir?: Nullable<string>;
+  readonly tsOutputDir?: Nullable<string>;
+  readonly tsTypesHeaderFile?: Nullable<string>;
+  readonly javaBaseOutputDir?: Nullable<string>;
+  readonly javaPackage?: Nullable<string>;
+  readonly javaEmitRecords?: Nullable<boolean>;
+  readonly javaTypesHeaderFile?: Nullable<string>;
 }
 
 export async function generateQueriesWithArgvOptions
@@ -54,227 +39,115 @@ export async function generateQueriesWithArgvOptions
   const optionalOptions = [
     'sqlSpecDir',
     'propsMdDir',
-    'sqlResourcePath',
     'tsDir', 'tsTypesHeader',
-    'javaBaseDir', 'javaQueriesPkg', 'javaTypesHeader', 'javaEmitRecords'
+    'javaBaseDir', 'javaPackage', 'javaTypesHeader', 'javaEmitRecords'
   ];
 
   const parsedArgs = parseArgs(args, requiredOptions, optionalOptions, 0);
   if ( typeof parsedArgs === 'string' ) // arg parsing error
     throw new Error(parsedArgs);
 
-  const opts = {
+  const opts: QueryGenerationOptions = {
     dbmdFile: parsedArgs['dbmd'],
     sqlOutputDir: parsedArgs['sqlDir'],
     sqlSpecOutputDir: parsedArgs['sqlSpecDir'],
     queryPropsMdOutputDir: parsedArgs['propsMdDir'],
     tsOutputDir: parsedArgs['tsDir'],
-    javaBaseOutputDir: parsedArgs['javaBaseDir'],
-    javaPackage: parsedArgs['javaQueriesPkg'] ?? '',
-    javaEmitRecords: parseBoolOption(parsedArgs['javaEmitRecords'] ?? 'true', 'javaEmitRecords'),
     tsTypesHeaderFile: parsedArgs['tsTypesHeader'],
+    javaBaseOutputDir: parsedArgs['javaBaseDir'],
+    javaPackage: parsedArgs['javaPackage'] ?? '',
+    javaEmitRecords: parseBoolOption(parsedArgs['javaEmitRecords'] ?? 'true', 'javaEmitRecords'),
     javaTypesHeaderFile: parsedArgs['javaTypesHeader'],
-    sqlResourcePath: parsedArgs['sqlResourcePath'],
   };
 
-  generateQueriesWithOptions(queryGroupSpec, opts);
+  if ( opts.sqlOutputDir == null )
+    throw new Error('SQL output directory is required.');
+  if ( opts.tsOutputDir == null && opts.javaBaseOutputDir == null )
+    throw new Error('An output directory for result types is required.');
+
+  await requireFileExists(opts.dbmdFile, 'The database metadata file was not found.');
+
+  await createOutputDirs(opts);
+
+  try
+  {
+    generateQueries(queryGroupSpec, opts);
+  }
+  catch (e)
+  {
+    if (e instanceof SpecError)
+      return new Error(
+        "Error in query specification.\n" +
+        "-----------------------------\n" +
+        "In query: " + e.specLocation.queryName + "\n" +
+        (e.specLocation.queryPart ? "At part: " + e.specLocation.queryPart + "\n" : '') +
+        "Problem: " + e.problem + "\n" +
+        "-----------------------------\n"
+      );
+    else throw e; // unexpected error
+  }
 }
 
-
-export async function generateQueriesWithOptions
+export async function generateQueries
   (
     queryGroupSpec: QueryGroupSpec,
     opts: QueryGenerationOptions
   )
+  : Promise<void>
 {
   // Generate SQL source files if specified.
 
-  const javaOutputDir =
-    opts.javaBaseOutputDir
-      ? `${opts.javaBaseOutputDir}/${replaceAll(opts.javaPackage ?? '', '.','/')}`
-      : null;
+  const dbmd = await readDatabaseMetadata(opts.dbmdFile);
 
-  if ( opts.sqlOutputDir == null )
-    throw new Error('SQL output directory is required.');
-  if ( opts.tsOutputDir == null && javaOutputDir == null )
-    throw new Error('An output directory argument for result types is required.');
+  const srcGenOpts: SourceGenerationOptions = {
+    resultTypeLanguages: resultTypeLanguages(opts),
+    typesHeaders: await readTypesHeaderFiles(opts),
+    customPropertyTypeFn: null, // not available for command line executions
+    javaPackage: opts.javaPackage,
+    javaEmitRecords: opts.javaEmitRecords
+  };
 
-  await fs.mkdir(opts.sqlOutputDir, {recursive: true});
-  if (opts.sqlSpecOutputDir)
-    await fs.mkdir(opts.sqlSpecOutputDir, {recursive: true});
-  if (opts.queryPropsMdOutputDir)
-    await fs.mkdir(opts.queryPropsMdOutputDir, {recursive: true});
+  const querySourcess = generateQueryGroupSources(queryGroupSpec, dbmd, srcGenOpts);
+  const typesOutputDirs = { 'TS': opts.tsOutputDir, 'Java': getJavaOutputDir(opts) };
 
-  // Generate TS query/result-type source files if specified.
-  if (opts.tsOutputDir)
+  for (const querySources of querySourcess)
   {
-    await fs.mkdir(opts.tsOutputDir, {recursive: true});
+    const qname = querySources.query.queryName;
 
-    console.log(`Writing TS source files to ${opts.tsOutputDir}.`);
+    await writeSqls(querySources.generatedSqlsByResultRepr, qname, opts.sqlOutputDir);
 
-    await generateQuerySources(
-      queryGroupSpec,
-      opts.dbmdFile,
-      {
-        sourceLanguage: 'TS',
-        resultTypesOutputDir: opts.tsOutputDir,
-        sqlSpecOutputDir: opts.sqlSpecOutputDir,
-        queryPropertiesOutputDir: opts.queryPropsMdOutputDir,
-        sqlOutputDir: opts.sqlOutputDir,
-        typesHeaderFile: opts.tsTypesHeaderFile,
-        sqlResourcePathPrefix: opts.sqlResourcePath,
-      }
-    );
+    if (querySources.generatedResultTypes)
+      await writeResultTypes(querySources.generatedResultTypes, typesOutputDirs);
+
+    if (opts.sqlSpecOutputDir)
+      await writeSqlSpecs(querySources.generatedSqlsByResultRepr, qname, opts.sqlSpecOutputDir);
+
+    if (opts.queryPropsMdOutputDir)
+      await writePropertiesMetadata(querySources.queryPropertiesMetadata, qname, opts.queryPropsMdOutputDir);
   }
 
-  // Generate Java sources if specified.
-  if (javaOutputDir)
-  {
-    await fs.mkdir(javaOutputDir, {recursive: true});
-
-    console.log(`Writing Java query source files to ${javaOutputDir}.`);
-
-    await generateQuerySources(
-      queryGroupSpec,
-      opts.dbmdFile,
-      {
-        sourceLanguage: 'Java',
-        resultTypesOutputDir: javaOutputDir,
-        sqlSpecOutputDir: opts.sqlSpecOutputDir,
-        queryPropertiesOutputDir: opts.queryPropsMdOutputDir,
-        sqlOutputDir: opts.sqlOutputDir,
-        javaOptions: {
-          javaPackage: opts.javaPackage ?? '',
-          emitRecords: opts.javaEmitRecords ?? true
-        },
-        typesHeaderFile: opts.tsTypesHeaderFile,
-        sqlResourcePathPrefix: opts.sqlResourcePath,
-      }
-    );
-  }
-}
-
-export async function generateQuerySources
-  (
-    querySpecs: QueryGroupSpec | string, // string should be a path to a json file or js module file
-    dbmdFile: string,
-    opts: SourceGenerationOptions
-  )
-  : Promise<void>
-{
-  try
-  {
-    await checkFilesAndDirectoriesExist(dbmdFile, opts);
-
-    const dbmd = await readDatabaseMetadata(dbmdFile);
-    const queryGroupSpec = await readQueryGroupSpec(querySpecs);
-    const defaultSchema = queryGroupSpec.defaultSchema;
-    const unqualNameSchemas = new Set(queryGroupSpec.generateUnqualifiedNamesForSchemas);
-    const propNameFn = propertyNameDefaultFunction(queryGroupSpec.propertyNameDefault, dbmd.caseSensitivity);
-
-    // generators
-    const sqlSpecGen = new SqlSpecGenerator(dbmd, defaultSchema, propNameFn);
-    const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, unqualNameSchemas);
-
-    for (const query of queryGroupSpec.querySpecs)
-    {
-      const sqlSpecsByRepr = sqlSpecGen.generateSqlSpecs(query);
-      const firstSqlSpec = firstValue(sqlSpecsByRepr);
-
-      if (opts.sqlSpecOutputDir)
-        await writeSqlSpecs(sqlSpecsByRepr, query.queryName, opts.sqlSpecOutputDir);
-
-      if (opts.queryPropertiesOutputDir)
-        await writePropertiesMetadata(firstSqlSpec, query.queryName, opts.queryPropertiesOutputDir);
-
-      const sqlPaths =
-        await writeSqls(sqlSpecsByRepr, query.queryName, sqlSrcGen, opts.sqlOutputDir);
-
-      if (query.generateResultTypes ?? true)
-        await writeResultTypes(firstSqlSpec, query.queryName, sqlPaths, getQueryParamNames(query), opts);
-    }
-  }
-  catch (e)
-  {
-    if (e instanceof SpecError) throw makeSpecLocationError(e);
-    else throw e;
-  }
-}
-
-async function readQueryGroupSpec(querySpecs: QueryGroupSpec | string): Promise<QueryGroupSpec>
-{
-  if (typeof querySpecs === 'string')
-  {
-    await requireFileExists(querySpecs, 'Query specifications file not found.');
-    return await readQueriesSpecFile(querySpecs);
-  }
-  else
-    return querySpecs;
-}
-
-async function readQueriesSpecFile(filePath: string): Promise<QueryGroupSpec>
-{
-  const fileExt = path.extname(filePath).toLowerCase();
-  if (fileExt === '.ts' || fileExt === '.js') // .ts only supported when running via ts-node or deno.
-  {
-    const modulePath = filePath.startsWith('./') ? cwd() + filePath.substring(1) : filePath;
-    const mod = await import(modulePath);
-    return mod.default;
-  }
-  else
-    throw new Error('Unrecognized file extension for query specs file.');
-}
-
-async function writeSqlSpecs
-  (
-    resultReprToSqlSpecMap: Map<ResultRepr,SqlSpec>,
-    queryName: string,
-    outputDir: string
-  )
-  : Promise<void>
-{
-  const multReprs = resultReprToSqlSpecMap.size > 1;
-
-  for (const [resultRepr, sqlSpec] of resultReprToSqlSpecMap.entries())
-  {
-    const modQueryName = queryName.replace(/ /g, '-').toLowerCase();
-    const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
-    const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
-    const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
-
-    await writeTextFile(sqlSpecPath, JSON.stringify(sqlSpec, null, 2) + "\n", { avoidWritingSameContents: true });
-  }
-}
-
-async function writePropertiesMetadata
-  (
-    sqlSpec: SqlSpec,
-    queryName: string,
-    outputDir: string
-  )
-  : Promise<void>
-{
-  const propsMd = makeQueryPropertiesMetadata(queryName, sqlSpec);
-  const fileName = queryName.replace(/ /g, '-').toLowerCase() + '-properties.json';
-  const propsMdPath = path.join(outputDir, fileName);
-
-  await writeTextFile(propsMdPath, JSON.stringify(propsMd, null, 2), { avoidWritingSameContents: true });
+  console.log(
+    `Wrote sources for ${querySourcess.length} queries to the following directories: \n` +
+    `  SQL sources => ${opts.sqlOutputDir}\n` +
+    '  Result type sources: \n' +
+    `${typesOutputDirs.Java ? `    Java => ${typesOutputDirs.Java}\n` : ''}` +
+    `${typesOutputDirs.TS ? `    TypeScript => ${typesOutputDirs.TS}\n` : ''}` +
+    (opts.sqlSpecOutputDir ? `  SQL Specs => ${opts.sqlSpecOutputDir}\n` : '') +
+    (opts.queryPropsMdOutputDir ? `  Query properties metadata => ${opts.queryPropsMdOutputDir}\n` : '')
+  );
 }
 
 async function writeSqls
   (
-    sqlSpecs: Map<ResultRepr,SqlSpec>,
+    sqlsByResultRepr: Map<ResultRepr, GeneratedSql>,
     queryName: string,
-    sqlSrcGen: SqlSourceGenerator,
     outputDir: string
   )
-  : Promise<QueryReprSqlPath[]>
+  : Promise<void>
 {
-  const resultReprToSqlMap = mapValues(sqlSpecs, sqlSpec => sqlSrcGen.makeSql(sqlSpec));
-  const multReprs = resultReprToSqlMap.size > 1;
-  const res: QueryReprSqlPath[] = [];
+  const multReprs = sqlsByResultRepr.size > 1;
 
-  for (const [resultRepr, sql] of resultReprToSqlMap.entries())
+  for (const [resultRepr, genSql] of sqlsByResultRepr.entries())
   {
     const modQueryName = queryName.replace(/ /g, '-').toLowerCase();
     const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
@@ -283,57 +156,118 @@ async function writeSqls
     const header = "-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]\n" +
       "-- " + resultRepr + " results representation for " + queryName + "\n";
 
-    await writeTextFile(sqlPath, header + sql + "\n", { avoidWritingSameContents: true });
+    await writeTextFile(sqlPath, header + genSql.sqlText + '\n', { avoidWritingSameContents: true });
+  }
+}
 
-    res.push({ queryName, resultRepr, sqlPath });
+async function writeResultTypes
+  (
+    resultTypes: GeneratedResultTypes,
+    outputDirs: { [l in SourceLanguage]: Nullable<string> }
+  )
+  : Promise<void>
+{
+  for (const [srcLang, resTypesSrc] of resultTypes.sourceCodeByLanguage.entries())
+  {
+    const outputDir = outputDirs[srcLang];
+    if (!outputDir) throw new Error(`Expected output directory for language ${srcLang}.`);
+    const outputFile = path.join(outputDir, resTypesSrc.compilationUnitName);
+    await writeTextFile(outputFile, resTypesSrc.sourceCode, { avoidWritingSameContents: true });
+  }
+}
+
+async function writeSqlSpecs
+  (
+    sqlsByResultRepr: Map<ResultRepr, GeneratedSql>,
+    queryName: string,
+    outputDir: string
+  )
+  : Promise<void>
+{
+  const multReprs = sqlsByResultRepr.size > 1;
+
+  for (const [resultRepr, genSql] of sqlsByResultRepr.entries())
+  {
+    const modQueryName = queryName.replace(/ /g, '-').toLowerCase();
+    const reprDescn = resultRepr.toLowerCase().replace(/_/g, ' ');
+    const sqlSpecFileName = multReprs ? `${modQueryName}(${reprDescn}).json` : `${modQueryName}.json`;
+    const sqlSpecPath = path.join(outputDir, sqlSpecFileName);
+
+    await writeTextFile(
+      sqlSpecPath,
+      JSON.stringify(genSql.sqlSpec, null, 2) + '\n',
+      { avoidWritingSameContents: true }
+    );
+  }
+}
+
+async function writePropertiesMetadata
+  (
+    propsMd: QueryPropertiesMetadata,
+    queryName: string,
+    outputDir: string
+  )
+  : Promise<void>
+{
+  const fileName = queryName.replace(/ /g, '-').toLowerCase() + '-properties.json';
+  const propsMdPath = path.join(outputDir, fileName);
+
+  await writeTextFile(
+    propsMdPath,
+    JSON.stringify(propsMd, null, 2),
+    { avoidWritingSameContents: true }
+  );
+}
+
+async function createOutputDirs(opts: QueryGenerationOptions): Promise<void>
+{
+  await fs.mkdir(opts.sqlOutputDir, { recursive: true });
+
+  if (opts.sqlSpecOutputDir)
+    await fs.mkdir(opts.sqlSpecOutputDir, { recursive: true });
+
+  if (opts.queryPropsMdOutputDir)
+    await fs.mkdir(opts.queryPropsMdOutputDir, { recursive: true });
+
+  if (opts.tsOutputDir)
+    await fs.mkdir(opts.tsOutputDir, { recursive: true });
+
+  const javaOutputDir = getJavaOutputDir(opts);
+  if (javaOutputDir)
+    await fs.mkdir(javaOutputDir, { recursive: true });
+}
+
+function resultTypeLanguages(opts: QueryGenerationOptions): SourceLanguage[]
+{
+  return <SourceLanguage[]>
+    (opts.javaBaseOutputDir ? ['Java'] : [])
+    .concat(opts.tsOutputDir ? ['TS'] : []);
+}
+
+async function readTypesHeaderFiles(opts: QueryGenerationOptions): Promise<Map<SourceLanguage,string>>
+{
+  const res = new Map();
+
+  const tsHeaderFile = opts.tsTypesHeaderFile;
+  if (tsHeaderFile)
+  {
+    requireFileExists(tsHeaderFile, 'The TypeScript result types header file was not found.');
+    res.set('TS', await readTextFile(tsHeaderFile));
+  }
+
+  const javaHeaderFile = opts.javaTypesHeaderFile;
+  if (javaHeaderFile)
+  {
+    requireFileExists(javaHeaderFile, 'The Java result types header file was not found.');
+    res.set('Java', await readTextFile(javaHeaderFile));
   }
 
   return res;
 }
 
-async function writeResultTypes
-  (
-    sqlSpec: SqlSpec,
-    queryName: string,
-    sqlPaths: QueryReprSqlPath[],
-    params: string[],
-    opts: SourceGenerationOptions
-  )
-  : Promise<void>
+function getJavaOutputDir(opts: QueryGenerationOptions): Nullable<string>
 {
-  const generated = makeQueryResultTypesSource(sqlSpec, queryName, sqlPaths, params, opts);
-
-  const fileName = `${generated.compilationUnitName}.${opts.sourceLanguage.toLowerCase()}`;
-  const outputFile = path.join(opts.resultTypesOutputDir, fileName);
-
-  await writeTextFile(outputFile, generated.resultTypesSourceCode, { avoidWritingSameContents: true });
-}
-
-async function checkFilesAndDirectoriesExist
-  (
-    dbmdFile: string,
-    opts: SourceGenerationOptions
-  )
-{
-  await requireFileExists(dbmdFile, 'The database metadata file was not found.');
-  await requireDirExists(opts.resultTypesOutputDir, 'The result types source output directory was not found.');
-  await requireDirExists(opts.sqlOutputDir, 'The SQL output directory was not found.');
-  if (opts.sqlSpecOutputDir)
-    await requireDirExists(opts.sqlSpecOutputDir, 'The SQL specifications output directory was not found.');
-  if (opts.queryPropertiesOutputDir)
-    await requireDirExists(opts.queryPropertiesOutputDir, 'The query properties output directory was not found.');
-  if (opts?.typesHeaderFile)
-    await requireFileExists(opts.typesHeaderFile, 'The types header file was not found.');
-}
-
-function makeSpecLocationError(e: SpecError): Error
-{
-  return new Error(
-    "Error in query specification.\n" +
-    "-----------------------------\n" +
-    "In query: " + e.specLocation.queryName + "\n" +
-    (e.specLocation.queryPart ? "At part: " + e.specLocation.queryPart + "\n" : '') +
-    "Problem: " + e.problem + "\n" +
-    "-----------------------------\n"
-  );
+  return opts.javaBaseOutputDir
+    ? `${opts.javaBaseOutputDir}/${replaceAll(opts.javaPackage ?? '', '.', '/')}`
+    : null;
 }

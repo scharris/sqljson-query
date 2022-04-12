@@ -1,29 +1,18 @@
 import { ResultTypeSpec, TableFieldResultTypeProperty } from './result-type-generation';
+import { Nullable } from './util/mod';
 
 export type SourceLanguage = 'TS' | 'Java';
 
-export type CustomPropertyTypeFn =
-  (prop: TableFieldResultTypeProperty, resultType: ResultTypeSpec) => string | null;
+export type CustomPropertyTypeFn = // TODO: Modify all callers to pass src language as third argument.
+  (prop: TableFieldResultTypeProperty,
+   resultType: ResultTypeSpec,
+   srcLanguage?: SourceLanguage) => string | null;
 
-export interface CommonSourceGenerationOptions
+export interface SourceGenerationOptions
 {
-  sourceLanguage?: SourceLanguage;
-  resultTypesOutputDir: string;
-  sqlOutputDir: string;
-  sqlSpecOutputDir?: string;
-  queryPropertiesOutputDir?: string;
-  sqlResourcePathPrefix?: string;
-  typesHeaderFile?: string;
-  customPropertyTypeFn?: CustomPropertyTypeFn;
+  readonly resultTypeLanguages: SourceLanguage[];
+  readonly typesHeaders?: Nullable<Map<SourceLanguage,string>>;
+  readonly customPropertyTypeFn?: Nullable<CustomPropertyTypeFn>;
+  readonly javaPackage?: Nullable<string>;
+  readonly javaEmitRecords?: Nullable<boolean>;
 }
-
-export type SourceGenerationOptions =
-  { sourceLanguage: 'TS' } & CommonSourceGenerationOptions |
-  { sourceLanguage: 'Java', javaOptions?: JavaSourceGenerationOptions } & CommonSourceGenerationOptions
-
-export interface JavaSourceGenerationOptions
-{
-  javaPackage?: string;
-  emitRecords?: boolean;
-}
-export type ResultTypesSourceGenerationOptions = Omit<SourceGenerationOptions, 'resultTypesOutputDir'|'sqlOutputDir'>;

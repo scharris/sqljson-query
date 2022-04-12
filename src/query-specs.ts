@@ -1,11 +1,12 @@
 import { caseNormalizeName, Nullable, relIdDescn } from './util/mod';
 import { DatabaseMetadata, makeRelId, RelId, RelMetadata } from './dbmd';
+import { SourceLanguage } from './source-generation-options';
 
 export interface QueryGroupSpec
 {
   defaultSchema?: Nullable<string>;
   propertyNameDefault?: Nullable<PropertyNameDefault>;
-  generateUnqualifiedNamesForSchemas: string[];
+  generateUnqualifiedNamesForSchemas?: string[];
   querySpecs: QuerySpec[];
 }
 
@@ -19,8 +20,10 @@ export interface QuerySpec
   generateSource?: Nullable<boolean>;
   orderBy?: Nullable<string>;
   forUpdate?: Nullable<boolean>;
-  typesFileHeader?: Nullable<string>;
+  typesFileHeader?: Nullable<QueryTypesFileHeader>;
 }
+
+export type QueryTypesFileHeader = string | { [l in SourceLanguage]: string };
 
 export interface TableJsonSpec
 {
