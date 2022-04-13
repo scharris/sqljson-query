@@ -3,7 +3,7 @@ import { Nullable } from './util/mod';
 
 export type SourceLanguage = 'TS' | 'Java';
 
-export type CustomPropertyTypeFn = // TODO: Modify all callers to pass src language as third argument.
+export type CustomPropertyTypeFn =
   (prop: TableFieldResultTypeProperty,
    resultType: ResultTypeSpec,
    srcLanguage?: SourceLanguage) => string | null;

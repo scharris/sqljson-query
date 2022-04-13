@@ -145,7 +145,7 @@ function tableFieldType
   if (tfp.specifiedSourceCodeFieldType != null)
     return specifiedSourceCodeFieldType(tfp.specifiedSourceCodeFieldType);
 
-  const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType);
+  const customizedType = opts.customPropertyTypeFn && opts.customPropertyTypeFn(tfp, inResType, 'Java');
   if (customizedType)
     return customizedType;
 
