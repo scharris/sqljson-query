@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.7.15",
+  "version": "1.7.16",
   "description": "Command line tool to generate SQL/JSON queries and Typescript types for query results.",
   "keywords": [
     "SQL",
@@ -15,7 +15,7 @@
     "url": "https://github.com/scharris/sqljson-query.git"
   },
   "main": "./lib/mod.js",
-  "exports": "./lib/mod.js",
+  "browser": "./lib/lib.js",
   "bin": {
     "gen-dbmd": "./lib/dbmd/generation/gen-dbmd.js",
     "gen-relsmd": "./lib/dbmd/generation/gen-relsmd.js"
