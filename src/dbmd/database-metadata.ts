@@ -161,7 +161,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     return soughtFk;
   }
 
-  private getForeignKeysFromTo
+  getForeignKeysFromTo
     (
       childRelId: Nullable<RelId>,
       parentRelId: Nullable<RelId>,
@@ -242,7 +242,7 @@ function makeDerivedData
   return new DerivedDatabaseMetadata(relMDsByRelId, fksByParentRelId, fksByChildRelId);
 }
 
-function getPrimaryKeyFields
+export function getPrimaryKeyFields
   (
     relMd: RelMetadata
   )
@@ -289,7 +289,7 @@ export function foreignKeyFieldNames(fk: ForeignKey): string[]
   return fkFieldNames;
 }
 
-function relIdKey(relId: RelId): string
+export function relIdKey(relId: RelId): string
 {
   return relId.schema ? `${relId.schema}.${relId.name}` : relId.name;
 }
