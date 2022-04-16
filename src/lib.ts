@@ -18,6 +18,7 @@ import { SourceGenerationOptions, SourceLanguage } from './source-generation-opt
 export * from './source-generation-options';
 export * from './query-specs';
 export * from './result-type-generation';
+export * from './dbmd/database-metadata';
 
 export interface QuerySources
 {
