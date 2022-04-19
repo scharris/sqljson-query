@@ -80,11 +80,10 @@ const StoredDatabaseMetadataDef =
     foreignKeys: z.array(ForeignKeyDef),
   }).strict();
 
-type StoredDatabaseMetadata = z.infer<typeof StoredDatabaseMetadataDef>;
+export type StoredDatabaseMetadata = z.infer<typeof StoredDatabaseMetadataDef>;
 
 export class DatabaseMetadata implements StoredDatabaseMetadata
 {
-  readonly schemaName?: Nullable<string>;
   readonly relationMetadatas: RelMetadata[];
   readonly foreignKeys: ForeignKey[];
   readonly caseSensitivity: CaseSensitivity;
