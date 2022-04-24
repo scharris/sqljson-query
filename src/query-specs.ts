@@ -5,6 +5,7 @@ import { SourceLanguage } from './source-generation-options';
 export interface QueryGroupSpec
 {
   defaultSchema?: Nullable<string>;
+  description?: Nullable<string>;
   propertyNameDefault?: Nullable<PropertyNameDefault>;
   generateUnqualifiedNamesForSchemas?: string[];
   querySpecs: QuerySpec[];
@@ -13,6 +14,7 @@ export interface QueryGroupSpec
 export interface QuerySpec
 {
   queryName: string;
+  description?: Nullable<string>;
   tableJson: TableJsonSpec;
   resultRepresentations?: Nullable<ResultRepr[]>;
   additionalObjectPropertyColumns?: Nullable<AdditionalObjectPropertyColumn[]>;

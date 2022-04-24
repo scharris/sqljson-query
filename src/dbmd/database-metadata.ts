@@ -5,7 +5,6 @@ import {
   relIdDescn,
   splitSchemaAndRelationNames,
   exactUnquotedName,
-  readTextFile,
   Nullable,
 } from '../util/mod';
 
@@ -322,9 +321,8 @@ export function makeRelId
   return { schema, name };
 }
 
-export async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
+export function parseStoredDatabaseMetadata(s: string): StoredDatabaseMetadata
 {
-  const obj = JSON.parse(await readTextFile(dbmdFile));
-  const dbmdStoredProps = StoredDatabaseMetadataDef.parse(obj);
-  return new DatabaseMetadata(dbmdStoredProps);
+  const obj = JSON.parse(s);
+  return StoredDatabaseMetadataDef.parse(obj);
 }

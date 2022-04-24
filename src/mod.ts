@@ -3,11 +3,11 @@ import { promises as fs } from 'fs';
 import {
   requireFileExists, writeTextFile, parseArgs, parseBoolOption, replaceAll, readTextFile, Nullable
 } from './util/mod';
-import { readDatabaseMetadata } from './dbmd';
+// import { readDatabaseMetadata } from './dbmd'; TODO
 import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
 import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
 import { QueryPropertiesMetadata } from './query-properties-metadata-generation';
-import { GeneratedResultTypes, GeneratedSql, generateQueryGroupSources } from './lib';
+import { DatabaseMetadata, GeneratedResultTypes, GeneratedSql, generateQueryGroupSources, parseStoredDatabaseMetadata } from './lib';
 
 export * from './lib';
 export * from './dbmd/relations-md-source-generator';
@@ -217,6 +217,13 @@ async function writePropertiesMetadata
     JSON.stringify(propsMd, null, 2),
     { avoidWritingSameContents: true }
   );
+}
+
+async function readDatabaseMetadata(dbmdFile: string): Promise<DatabaseMetadata>
+{
+  const jsonText = await readTextFile(dbmdFile);
+  const dbmdStoredProps = parseStoredDatabaseMetadata(jsonText);
+  return new DatabaseMetadata(dbmdStoredProps);
 }
 
 async function createOutputDirs(opts: QueryGenerationOptions): Promise<void>
