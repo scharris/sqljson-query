@@ -1,6 +1,6 @@
-import {
-  propertyNameDefaultFunction, mapValues, firstValue, mapEntries, Nullable, makeMap,
-} from './util/mod';
+import { propertyNameDefaultFunction } from './util/property-names';
+import { mapValues, firstValue, mapEntries, makeMap } from './util/collections';
+import { Nullable } from './util/nullable';
 import {
   getQueryParamNames, QueryGroupSpec, QuerySpec, QueryTypesFileHeader, ResultRepr
 } from './query-specs';
@@ -12,7 +12,7 @@ import { SqlSpecGenerator } from './sql-generation/sql-spec-generator';
 import { SqlSpec } from './sql-generation/sql-specs';
 import { getSqlDialect } from './sql-generation';
 import { QueryPropertiesMetadata, makeQueryPropertiesMetadata } from './query-properties-metadata-generation';
-import { DatabaseMetadata } from './dbmd';
+import { DatabaseMetadata } from './dbmd/database-metadata';
 import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
 
 export * from './source-generation-options';

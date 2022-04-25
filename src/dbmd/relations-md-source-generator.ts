@@ -1,5 +1,6 @@
 import * as path from 'path';
-import { makeArrayValuesMap, indentLines, missingCase, readTextFile, writeTextFile, Nullable } from '../util/mod';
+import { makeArrayValuesMap, indentLines, missingCase, Nullable } from '../util/mod';
+import { writeTextFile, readTextFile } from '../util/files';
 import { CaseSensitivity, DatabaseMetadata, RelMetadata } from './database-metadata';
 import { SourceLanguage } from '../source-generation-options';
 

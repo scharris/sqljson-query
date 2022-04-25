@@ -1,13 +1,15 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import {
-  requireFileExists, writeTextFile, parseArgs, parseBoolOption, replaceAll, readTextFile, Nullable
-} from './util/mod';
-// import { readDatabaseMetadata } from './dbmd'; TODO
+import { requireFileExists, writeTextFile, readTextFile } from './util/files';
+import { parseArgs, parseBoolOption } from './util/args';
+import { Nullable, replaceAll} from './util/mod';
 import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
 import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
 import { QueryPropertiesMetadata } from './query-properties-metadata-generation';
-import { DatabaseMetadata, GeneratedResultTypes, GeneratedSql, generateQueryGroupSources, parseStoredDatabaseMetadata } from './lib';
+import {
+  DatabaseMetadata, GeneratedResultTypes, GeneratedSql, generateQueryGroupSources,
+  parseStoredDatabaseMetadata
+} from './lib';
 
 export * from './lib';
 export * from './dbmd/relations-md-source-generator';

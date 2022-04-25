@@ -2,14 +2,7 @@ import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { Client } from 'pg';
 import { getDbClient } from './db/db-client-pg';
-import {
-  makeTempDir,
-  makeDir,
-  readDirSync,
-  readTextFileSync,
-  writeTextFile,
-  rm
-} from '../util/mod';
+import { writeTextFile, readTextFileSync, makeDir, readDirSync, makeTempDir, rm } from '../util/files';
 import { generateQueries, generateQueryGroupSources } from '../mod';
 import { DatabaseMetadata } from '../dbmd';
 import { QueryGroupSpec, QuerySpec } from '../query-specs';

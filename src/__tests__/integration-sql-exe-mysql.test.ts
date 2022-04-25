@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { getDbConnection } from './db/db-connection-mysql';
-import { propertyNameDefaultFunction, readTextFileSync } from '../util/mod';
+import { propertyNameDefaultFunction } from '../util/mod';
+import { readTextFileSync } from '../util/files';
 import { QuerySpec } from '../mod';
 import { DatabaseMetadata } from '../dbmd';
 import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';

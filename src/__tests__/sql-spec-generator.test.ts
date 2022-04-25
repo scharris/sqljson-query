@@ -1,7 +1,8 @@
 import * as path from 'path';
 import { QuerySpec } from '../query-specs';
 import { DatabaseMetadata } from '../dbmd';
-import { propertyNameDefaultFunction, readTextFileSync } from '../util/mod';
+import { propertyNameDefaultFunction } from '../util/mod';
+import { readTextFileSync } from '../util/files';
 import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
 import { ChildCollectionSelectEntry, InlineParentSelectEntry, ParentReferenceSelectEntry } from '../sql-generation/sql-specs';
 
