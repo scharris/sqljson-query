@@ -5,8 +5,8 @@ ignoreSchemasQuery as (
 relationMetadatasQuery as (
   select
     coalesce(json_agg(json_build_object(
-      'relationId', json_build_object('schema', t.schemaname, 'name', t.tablename),
-      'relationType', 'Table',
+      'relationId', json_build_object('schema', r.schemaname, 'name', r.name),
+      'relationType', r.type,
       'fields', (
         select
           coalesce(json_agg(json_build_object(
@@ -24,8 +24,8 @@ relationMetadatasQuery as (
                   select constraint_name
                   from information_schema.table_constraints tc
                   where tc.constraint_type = 'PRIMARY KEY' and
-                    tc.table_schema = t.schemaname and
-                    tc.table_name = t.tablename
+                    tc.table_schema = r.schemaname and
+                    tc.table_name = r.name
                 )
             ),
             'length', col.character_maximum_length,
@@ -34,13 +34,19 @@ relationMetadatasQuery as (
             'fractionalDigits', col.numeric_scale
           ) order by col.ordinal_position), '[]'::json)
         from information_schema.columns col
-        where col.table_schema = t.schemaname and col.table_name = t.tablename
+        where col.table_schema = r.schemaname and col.table_name = r.name
       ) -- fields property
     )), '[]'::json) json
-  from pg_tables t
-  where t.schemaname not in (select * from ignoreSchemasQuery)
-    and t.schemaname || '.' || t.tablename ~ :relIncludePat
-    and t.schemaname || '.' || t.tablename !~ :relExcludePat
+  from (
+    select t.schemaname, t.tablename name, 'Table' type
+    from pg_tables t
+    union all
+    select v.schemaname, v.viewname name, 'View' type
+    from pg_views v
+  ) r
+  where r.schemaname not in (select * from ignoreSchemasQuery)
+    and r.schemaname || '.' || r.name ~ :relIncludePat
+    and r.schemaname || '.' || r.name !~ :relExcludePat
 ),
 foreignKeysQuery as (
   select coalesce(json_agg(fk.obj), '[]'::json) json

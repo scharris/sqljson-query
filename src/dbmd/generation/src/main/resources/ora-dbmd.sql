@@ -27,18 +27,25 @@ fieldMetadatas as (
   group by tc.table_name
 ),
 tableMetadatas as (
-    select
-      treat(coalesce(json_arrayagg(
-        json_object(
-          'relationId' value json_object('schema' value user, 'name' value t.table_name),
-          'relationType' value 'Table',
-          'fields' value (select fmds from fieldMetadatas where table_name = t.table_name)
-          returning clob
-        )
+  select
+    treat(coalesce(json_arrayagg(
+      json_object(
+        'relationId' value json_object('schema' value user, 'name' value r.name),
+        'relationType' value r.type,
+        'fields' value (select fmds from fieldMetadatas where table_name = r.name)
         returning clob
-      ), to_clob('[]')) as json) tableMds
+      )
+      returning clob
+    ), to_clob('[]')) as json) tableMds
+  from (
+    select t.table_name name, 'Table' type
     from user_tables t
     where regexp_like(t.table_name, :relIncludePat) and not regexp_like(t.table_name, :relExcludePat)
+    union all
+    select v.view_name, 'View' type
+    from user_views v
+    where regexp_like(v.view_name, :relIncludePat) and not regexp_like(v.view_name, :relExcludePat)
+  ) r
 ),
 foreignKeys as (
 -- foreign keys
