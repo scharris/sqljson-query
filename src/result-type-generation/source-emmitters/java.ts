@@ -156,16 +156,21 @@ function tableFieldType
     case 'number':
     case 'numeric':
     case 'decimal':
-    case 'bigint':
     case 'int':
     case 'integer':
-    case 'int4':
+    case 'bigint':
     case 'smallint':
     case 'int8':
+    case 'int4':
+    case 'int2':
+    case 'serial':
+    case 'smallserial':
+    case 'bigserial':
       return generalNumericTableFieldPropertyType(tfp);
     case 'float':
     case 'real':
     case 'double':
+    case 'double precision':
       return floatingNumericTableFieldPropertyType(tfp);
     case 'varchar':
     case 'varchar2':
