@@ -156,6 +156,7 @@ function tableFieldType
     case 'timestamp':
     case 'timestamp with time zone':
     case 'timestamptz':
+    case 'uuid':
       return textTableFieldPropertyType(tfp);
     case 'bit':
     case 'boolean':
