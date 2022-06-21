@@ -1,6 +1,7 @@
 with
 fieldMetadatas as (
   select
+    tc.owner,
     tc.table_name,
     json_arrayagg(
       json_object(
@@ -10,9 +11,12 @@ fieldMetadatas as (
         'primaryKeyPartNumber' value
           (
             select col.position
-            from user_cons_columns col
-            join user_constraints con on con.constraint_name = col.constraint_name
-            where con.constraint_type = 'P' and con.table_name = tc.table_name and col.column_name = tc.column_name
+            from all_cons_columns col
+            join all_constraints con on con.constraint_name = col.constraint_name
+            where
+              con.constraint_type = 'P' and
+              con.owner = tc.owner and con.table_name = tc.table_name and
+              col.column_name = tc.column_name
           ),
         'length' value tc.data_length,
         'precision' value tc.data_precision,
@@ -22,29 +26,29 @@ fieldMetadatas as (
       )
       returning clob
     ) fmds
-  from user_tab_columns tc
-  where regexp_like(tc.table_name, :relIncludePat) and not regexp_like(tc.table_name, :relExcludePat)
-  group by tc.table_name
+  from all_tab_columns tc
+  where regexp_like(tc.owner||'.'||tc.table_name, :relIncludePat) and not regexp_like(tc.owner||'.'||tc.table_name, :relExcludePat)
+  group by tc.owner, tc.table_name
 ),
 tableMetadatas as (
   select
     treat(coalesce(json_arrayagg(
       json_object(
-        'relationId' value json_object('schema' value user, 'name' value r.name),
+        'relationId' value json_object('schema' value r.owner, 'name' value r.name),
         'relationType' value r.type,
-        'fields' value (select fmds from fieldMetadatas where table_name = r.name)
+        'fields' value (select fmds from fieldMetadatas where  owner = r.owner and table_name = r.name)
         returning clob
       )
       returning clob
     ), to_clob('[]')) as json) tableMds
   from (
-    select t.table_name name, 'Table' type
-    from user_tables t
-    where regexp_like(t.table_name, :relIncludePat) and not regexp_like(t.table_name, :relExcludePat)
+    select t.owner, t.table_name name, 'Table' type
+    from all_tables t
+    where regexp_like(t.owner||'.'||t.table_name, :relIncludePat) and not regexp_like(t.owner||'.'||t.table_name, :relExcludePat)
     union all
-    select v.view_name, 'View' type
-    from user_views v
-    where regexp_like(v.view_name, :relIncludePat) and not regexp_like(v.view_name, :relExcludePat)
+    select v.owner, v.view_name, 'View' type
+    from all_views v
+    where regexp_like(v.owner||'.'||v.view_name, :relIncludePat) and not regexp_like(v.owner||'.'||v.view_name, :relExcludePat)
   ) r
 ),
 foreignKeys as (
@@ -54,8 +58,8 @@ foreignKeys as (
     select
       json_object(
         'constraintName' value fkcon.constraint_name,
-        'foreignKeyRelationId' value json_object('schema' value user, 'name' value fkcon.table_name),
-        'primaryKeyRelationId' value json_object('schema' value user, 'name' value pkcon.table_name),
+        'foreignKeyRelationId' value json_object('schema' value fkcon.owner, 'name' value fkcon.table_name),
+        'primaryKeyRelationId' value json_object('schema' value pkcon.owner, 'name' value pkcon.table_name),
         'foreignKeyComponents' value
           json_arrayagg(
             json_object(
@@ -66,18 +70,19 @@ foreignKeys as (
           )
         returning clob
       ) obj
-    from user_constraints fkcon
-    join user_constraints pkcon
-      on fkcon.r_constraint_name = pkcon.constraint_name
-    join user_cons_columns fkcol
-      on fkcol.constraint_name = fkcon.constraint_name
-    join user_cons_columns pkcol
-      on pkcol.constraint_name = fkcon.r_constraint_name
+    from all_constraints fkcon
+    join all_constraints pkcon
+      on fkcon.r_constraint_name = pkcon.constraint_name and fkcon.r_owner = pkcon.owner
+    join all_cons_columns fkcol
+      on fkcol.constraint_name = fkcon.constraint_name and fkcol.owner = fkcon.owner
+    join all_cons_columns pkcol
+      on pkcol.constraint_name = fkcon.r_constraint_name and pkcol.owner = fkcon.r_owner
       and pkcol.position = fkcol.position
-    where fkcon.constraint_type = 'R'
-      and regexp_like(fkcon.table_name, :relIncludePat) and (not regexp_like(fkcon.table_name, :relExcludePat))
-      and regexp_like(pkcon.table_name, :relIncludePat) and (not regexp_like(pkcon.table_name, :relExcludePat))
-    group by fkcon.constraint_name, fkcon.table_name, pkcon.table_name
+   where
+      fkcon.constraint_type = 'R' and
+      regexp_like(fkcon.owner||'.'||fkcon.table_name, :relIncludePat) and (not regexp_like(fkcon.owner||'.'||fkcon.table_name, :relExcludePat)) and
+      regexp_like(pkcon.owner||'.'||pkcon.table_name, :relIncludePat) and (not regexp_like(pkcon.owner||'.'||pkcon.table_name, :relExcludePat))
+    group by fkcon.constraint_name, fkcon.owner, fkcon.table_name, pkcon.owner, pkcon.table_name
   ) fk
 )
 -- main query
