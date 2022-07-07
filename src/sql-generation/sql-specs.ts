@@ -216,9 +216,9 @@ export class SqlParts
     if (otherParts.resultTypeName) throw new Error('Cannot add sql parts containing resultTypeName.');
   }
 
-  createAliasFor(dbObjectName: string): string
+  createTableAlias(relName: string): string
   {
-    const alias = makeNameNotInSet(lowerCaseInitials(dbObjectName, '_'), this.aliases);
+    const alias = makeNameNotInSet(lowerCaseInitials(relName, '_') + '_', this.aliases);
     this.aliases.add(alias);
     return alias;
   }

@@ -5,8 +5,8 @@ type DbmsType = 'PG' | 'ORA' | 'MYSQL' | 'ISO';
 
 const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
 
-const sqlKeywordsLowercase = new Set([
-  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over'
+export const sqlKeywordsLowercase = new Set([
+  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over', 'is'
 ]);
 
 export interface SqlDialect

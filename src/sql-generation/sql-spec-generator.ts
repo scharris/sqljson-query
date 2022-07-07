@@ -73,7 +73,7 @@ export class SqlSpecGenerator
 
     const relId = identifyTable(tj.table, this.defaultSchema, this.dbmd, specLoc);
 
-    const alias = sqlb.createAliasFor(relId.name);
+    const alias = sqlb.createTableAlias(relId.name);
 
     sqlb.addFromEntry({ entryType: 'table', table: { ...relId }, alias });
 
@@ -376,7 +376,7 @@ export class SqlSpecGenerator
     for (const parentSpec of getReferencedParentSpecs(tj))
     {
       if ( parentSpec.hasOwnProperty('alias') )
-        throw new SpecError(specLoc, 'Refrenced parent table cannot specify an alias.');
+        throw new SpecError(specLoc, 'Referenced parent table cannot specify an alias.');
 
       const parLoc = addLocPart(specLoc, `parent table '${parentSpec.table}' via "${parentSpec.referenceName}"`);
       const parentPkCond = this.getParentPrimaryKeyCondition(parentSpec, relId, alias, parLoc);
