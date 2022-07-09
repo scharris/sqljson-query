@@ -146,7 +146,7 @@ test('table field property names should default according to the provided naming
   );
 });
 
-test('additional columns extracted from json row objects for JSON_OBJECT_ROWS query are included properly', () => {
+test('additional object property columns from a JSON_OBJECT_ROWS query are included properly', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const querySpec: QuerySpec = {
     queryName: 'test query',
@@ -168,6 +168,24 @@ test('additional columns extracted from json row objects for JSON_OBJECT_ROWS qu
   );
 });
 
+test('specified additional object property columns must exist in JSON_OBJECT_ROWS query', () => {
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const querySpec: QuerySpec = {
+    queryName: 'test query',
+    resultRepresentations: ['JSON_OBJECT_ROWS'],
+    additionalObjectPropertyColumns: ['id', 'nameX'],
+    tableJson: {
+      table: 'drug',
+      fieldExpressions: [
+        'id',
+        'name',
+        'compound_id',
+      ]
+    }
+  };
+
+  expect(() => sqlSpecGen.generateSqlSpecs(querySpec)).toThrowError(/not found.*nameX/i);
+});
 
 test('wrapped child collections and their row object properties are included properly', () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);

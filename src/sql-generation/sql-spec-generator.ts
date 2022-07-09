@@ -4,8 +4,9 @@ import {
 import { DatabaseMetadata, Field, ForeignKey, foreignKeyFieldNames, RelId } from '../dbmd';
 import {
   QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
-  CustomMatchCondition, ParentSpec, getInlineParentSpecs, getReferencedParentSpecs, identifyTable,
-  validateCustomMatchCondition, verifyTableFieldExpressionsValid, AdditionalObjectPropertyColumn, InlineParentSpec
+  CustomMatchCondition, ParentSpec, InlineParentSpec, AdditionalObjectPropertyColumn,
+  getInlineParentSpecs, getReferencedParentSpecs, identifyTable, validateCustomMatchCondition,
+  verifyTableFieldExpressionsValid,
 } from '../query-specs';
 import {
   SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
@@ -133,8 +134,17 @@ export class SqlSpecGenerator
     )
     : SqlSpec
   {
+    const baseSql = this.baseSql(tjs, pkCond, orderBy, specLoc);
+
+    // Additional property column names must exist as projected column names in the base sql.
+    const propCols = additionalObjectPropertyColumns.map(c => typeof(c) == 'string' ? c : c.property);
+    const projectedPropNames = new Set(getPropertySelectEntries(baseSql).map(prop => prop.projectedName));
+    const invalidPropCols = propCols.filter(pc => !projectedPropNames.has(pc));
+    if (invalidPropCols.length > 0)
+      throw new SpecError(specLoc, `Extracted property column(s) not found: ${invalidPropCols.join(', ')}.`);
+
     return {
-      ...this.baseSql(tjs, pkCond, orderBy, specLoc),
+      ...baseSql,
       objectWrapProperties: true,
       additionalObjectPropertyColumns
     };

@@ -267,6 +267,17 @@ function verifyFieldsExistInRelMd
     );
 }
 
+function verifyPropertyColumnsExist
+  (
+    propertyNames: string[],
+    specLoc: SpecLocation
+  )
+{
+  // TODO
+}
+
+
+
 function getRelMetadata
   (
     table: string, // as from input, possibly qualified
