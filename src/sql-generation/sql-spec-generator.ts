@@ -61,7 +61,7 @@ export class SqlSpecGenerator
 
   private baseSql
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       parentChildCond: Nullable<ParentPrimaryKeyCondition | ChildForeignKeyCondition>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation,
@@ -71,9 +71,9 @@ export class SqlSpecGenerator
   {
     const sqlb = new SqlParts();
 
-    const relId = identifyTable(tj.table, this.defaultSchema, this.dbmd, specLoc);
+    const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, specLoc);
 
-    const alias = sqlb.createTableAlias(relId.name);
+    const alias = tjs.alias || sqlb.createTableAlias(relId.name);
 
     sqlb.addFromEntry({ entryType: 'table', table: { ...relId }, alias });
 
@@ -87,30 +87,30 @@ export class SqlSpecGenerator
     if (exportPkFieldsHidden)
       sqlb.addSelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
 
-    sqlb.addSelectEntries(this.tableFieldExpressionSelectEntries(tj, alias, specLoc));
+    sqlb.addSelectEntries(this.tableFieldExpressionSelectEntries(tjs, alias, specLoc));
 
-    sqlb.addParts(this.inlineParentsSqlParts(tj, relId, alias, sqlb.getAliases(), specLoc));
+    sqlb.addParts(this.inlineParentsSqlParts(tjs, relId, alias, sqlb.getAliases(), specLoc));
 
-    sqlb.addParts(this.referencedParentsSqlParts(tj, relId, alias, specLoc));
+    sqlb.addParts(this.referencedParentsSqlParts(tjs, relId, alias, specLoc));
 
-    sqlb.addSelectEntries(this.childCollectionSelectEntries(tj, relId, alias, specLoc));
+    sqlb.addSelectEntries(this.childCollectionSelectEntries(tjs, relId, alias, specLoc));
 
     if (parentChildCond)
       sqlb.addWhereEntry({...parentChildCond, fromAlias: alias });
 
-    if (tj.recordCondition)
+    if (tjs.recordCondition)
       sqlb.addWhereEntry({
         condType: 'general',
-        condSql: tj.recordCondition.sql,
-        tableAliasPlaceholderInCondSql: tj.recordCondition.withTableAliasAs,
+        condSql: tjs.recordCondition.sql,
+        tableAliasPlaceholderInCondSql: tjs.recordCondition.withTableAliasAs,
         tableAlias: alias
       });
 
     if (orderBy != null)
       sqlb.setOrderBy({ orderBy, tableAlias: alias });
 
-    if (tj.resultTypeName)
-      sqlb.setResultTypeName(tj.resultTypeName);
+    if (tjs.resultTypeName)
+      sqlb.setResultTypeName(tjs.resultTypeName);
 
     const sqlSpec = sqlb.toSqlSpec();
 
@@ -125,7 +125,7 @@ export class SqlSpecGenerator
   /// any number of result rows.
   private jsonObjectRowsSql
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       additionalObjectPropertyColumns: AdditionalObjectPropertyColumn[],
       pkCond: Nullable<ParentPrimaryKeyCondition>,
       orderBy: Nullable<string>,
@@ -134,7 +134,7 @@ export class SqlSpecGenerator
     : SqlSpec
   {
     return {
-      ...this.baseSql(tj, pkCond, orderBy, specLoc),
+      ...this.baseSql(tjs, pkCond, orderBy, specLoc),
       objectWrapProperties: true,
       additionalObjectPropertyColumns
     };
@@ -145,7 +145,7 @@ export class SqlSpecGenerator
   /// the table whose output specification is passed.
   private jsonArrayRowSql
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       childFkCond: Nullable<ChildForeignKeyCondition>,
       unwrap: boolean,
       orderBy: Nullable<string>,
@@ -153,7 +153,7 @@ export class SqlSpecGenerator
     )
     : SqlSpec
   {
-    const baseSql = this.baseSql(tj, childFkCond, orderBy, specLoc);
+    const baseSql = this.baseSql(tjs, childFkCond, orderBy, specLoc);
 
     if (unwrap && getPropertySelectEntries(baseSql).length != 1)
       throw new SpecError(specLoc, 'Unwrapped collections cannot have multiple properties.');
@@ -162,7 +162,7 @@ export class SqlSpecGenerator
       ...baseSql,
       aggregateToArray: true,
       objectWrapProperties: !unwrap,
-      fromEntriesLeadingComment: `base query for table '${tj.table}'`,
+      fromEntriesLeadingComment: `base query for table '${tjs.table}'`,
     };
   }
 
@@ -183,21 +183,21 @@ export class SqlSpecGenerator
 
   private tableFieldExpressionSelectEntries
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       tableAlias: string,
       specLoc: SpecLocation
     )
     : SelectEntry[]
   {
-    verifyTableFieldExpressionsValid(tj, this.defaultSchema, this.dbmd, specLoc);
+    verifyTableFieldExpressionsValid(tjs, this.defaultSchema, this.dbmd, specLoc);
 
-    if (!tj.fieldExpressions)
+    if (!tjs.fieldExpressions)
       return [];
 
-    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(tj.table, specLoc);
+    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(tjs.table, specLoc);
 
-    return tj.fieldExpressions.map((tfe, ix) => {
-      const feLoc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tj.table}`);
+    return tjs.fieldExpressions.map((tfe, ix) => {
+      const feLoc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tjs.table}`);
       const projectedName = this.jsonPropertyName(tfe, feLoc);
 
       if (typeof tfe === 'string' || tfe.field != null)
@@ -205,7 +205,7 @@ export class SqlSpecGenerator
         const fieldName = typeof tfe === 'string' ? tfe : tfe.field;
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
-          throw new SpecError(specLoc, `No metadata found for field ${tj.table}.${fieldName}.`);
+          throw new SpecError(specLoc, `No metadata found for field ${tjs.table}.${fieldName}.`);
 
         return {
           entryType: 'se-field',
@@ -236,7 +236,7 @@ export class SqlSpecGenerator
 
   private inlineParentsSqlParts
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       relId: RelId,
       alias: string,
       aliasesInScope: Set<string>,
@@ -246,7 +246,7 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts(aliasesInScope);
 
-    for (const parent of getInlineParentSpecs(tj))
+    for (const parent of getInlineParentSpecs(tjs))
     {
       const ipLoc = addLocPart(specLoc, `parent table '${parent.table}'`);
 
@@ -269,8 +269,8 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts();
 
-    const parentAlias = parentSpec.alias || makeNameNotInSet('q', avoidAliases);
-    sqlParts.addAlias(parentAlias);
+    const subqueryAlias = parentSpec.subqueryAlias || makeNameNotInSet('q', avoidAliases);
+    sqlParts.addAlias(subqueryAlias);
 
     const parentPropsSql = this.baseSql(parentSpec, null, null, specLoc, 'export-pk-fields-hidden');
 
@@ -289,13 +289,13 @@ export class SqlSpecGenerator
     sqlParts.addFromEntry({
       entryType: 'query',
       query: parentPropsSql,
-      alias: parentAlias,
+      alias: subqueryAlias,
       join: {
         joinType: 'LEFT',
         parentChildCondition: {
           condType: 'pcc-on-fk',
           fromAlias: childAlias,
-          parentAlias,
+          parentAlias: subqueryAlias,
           matchedFields,
           matchMustExist
         },
@@ -310,7 +310,7 @@ export class SqlSpecGenerator
       sqlParts.addSelectEntry({
         entryType: 'se-inline-parent-prop',
         projectedName: parentPropSelectEntry.projectedName,
-        parentAlias,
+        parentAlias: subqueryAlias,
         parentTable: parentRelId,
         comment: ix === 0 ? `field(s) inlined from parent table '${parentSpec.table}'` : null,
         displayOrder: parentPropSelectEntry.displayOrder,
@@ -364,7 +364,7 @@ export class SqlSpecGenerator
 
   private referencedParentsSqlParts
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       relId: RelId,
       alias: string,
       specLoc: SpecLocation
@@ -373,11 +373,8 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts();
 
-    for (const parentSpec of getReferencedParentSpecs(tj))
+    for (const parentSpec of getReferencedParentSpecs(tjs))
     {
-      if ( parentSpec.hasOwnProperty('alias') )
-        throw new SpecError(specLoc, 'Referenced parent table cannot specify an alias.');
-
       const parLoc = addLocPart(specLoc, `parent table '${parentSpec.table}' via "${parentSpec.referenceName}"`);
       const parentPkCond = this.getParentPrimaryKeyCondition(parentSpec, relId, alias, parLoc);
 
@@ -397,17 +394,17 @@ export class SqlSpecGenerator
 
   private childCollectionSelectEntries
     (
-      tj: TableJsonSpec,
+      tjs: TableJsonSpec,
       parentRelId: RelId,
       parentAlias: string,
       specLoc: SpecLocation
     )
     : ChildCollectionSelectEntry[]
   {
-    if (!tj.childTables)
+    if (!tjs.childTables)
       return [];
 
-    return tj.childTables.map(childSpec => {
+    return tjs.childTables.map(childSpec => {
       const childLoc = addLocPart(specLoc, `collection '${childSpec.collectionName}' of "${childSpec.table}" records`);
 
       const childRelId = identifyTable(childSpec.table, this.defaultSchema, this.dbmd, childLoc);

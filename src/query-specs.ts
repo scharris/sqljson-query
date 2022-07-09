@@ -35,6 +35,7 @@ export interface TableJsonSpec
   childTables?: Nullable<ChildSpec[]>;
   recordCondition?: Nullable<RecordCondition>;
   resultTypeName?: Nullable<string>;
+  alias?: Nullable<string>;
 }
 
 export type TableFieldExpr = TableField | TableExpr;
@@ -64,7 +65,6 @@ export interface ParentSpec extends TableJsonSpec
   referenceName?: Nullable<string>;
   customMatchCondition?: Nullable<CustomMatchCondition>;
   viaForeignKeyFields?: Nullable<string[]>;
-  alias?: Nullable<string>;
 }
 
 export interface ReferencedParentSpec extends ParentSpec
@@ -76,6 +76,7 @@ export interface ReferencedParentSpec extends ParentSpec
 export interface InlineParentSpec extends ParentSpec
 {
   referenceName: undefined;
+  subqueryAlias?: Nullable<string>; // alias for the FROM clause subquery, for use in record conditions
 }
 
 export interface ChildSpec extends TableJsonSpec

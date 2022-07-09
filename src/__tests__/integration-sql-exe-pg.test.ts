@@ -115,6 +115,31 @@ test('record condition properly restricts results for top level table', async ()
   dbClient.end();
 });
 
+test('custom alias is usable in record condition', async () => {
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
+  const querySpec: QuerySpec =
+    {
+      queryName: 'test query',
+      tableJson: {
+        table: 'drug',
+        alias: 'customAlias',
+        fieldExpressions: ['id', 'name'],
+        recordCondition: {sql: 'customAlias.id = 1'}
+      },
+    };
+
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
+  const dbClient: Client = await getDbClient();
+  const res = await dbClient.query(sql);
+  expect(res.rows.length).toBe(1);
+  const json = res.rows[0].json as any;
+  expect(json.id).toBe(1);
+  expect(json.name).toEqual('Test Drug 1');
+  dbClient.end();
+});
+
 test('table field property names specified by jsonProperty', async () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
