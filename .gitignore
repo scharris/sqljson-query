@@ -8,3 +8,5 @@ lib
 *.tgz
 pack/
 .vscode/settings.json
+.direnv
+
