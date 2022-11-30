@@ -10,7 +10,7 @@
         {
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
-              nodejs-16_x
+              nodejs-18_x
               nodePackages.typescript
               openjdk17
               maven
