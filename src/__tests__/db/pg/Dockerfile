@@ -1,4 +1,4 @@
-FROM postgres:14
+FROM postgres:15
 
 COPY sql/create-schema.sql /docker-entrypoint-initdb.d/01-schema.sql
 COPY sql/create-schema-objects.sql /docker-entrypoint-initdb.d/02-schema-objects.sql
