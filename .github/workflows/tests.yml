@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['14.x', '16.x']
+        node-version: ['16.x', '18.x']
     name: Node ${{ matrix.node-version }} / ${{ matrix.db-type }}
     services:
       postgres:
-        image: postgres:13
+        image: postgres:15
         env:
           POSTGRES_DB: drugs
           POSTGRES_USER: drugs
