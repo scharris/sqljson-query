@@ -16,11 +16,12 @@ export interface DbmdGenerationOptions
   excludeRegex?: string | null;
   generatorPomFile?: string | null;
   dbmdOutputDir: string;
+  dbmdOutputFileName?: string | null;
 }
 
 export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
 {
-  const dbmdFile = path.join(opts.dbmdOutputDir, 'dbmd.json');
+  const dbmdFile = path.join(opts.dbmdOutputDir, opts.dbmdOutputFileName ?? 'dbmd.json');
   const include = opts.includeRegex || '.*';
   const exclude = opts.excludeRegex || '^$';
 

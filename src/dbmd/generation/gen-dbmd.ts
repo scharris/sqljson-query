@@ -10,6 +10,7 @@ const requiredParams = [
 const optionNames = [
   'include',   // table include pattern regular expression, defaulting to '.*'
   'exclude',   // table exclude pattern regular expression, defaulting to '^$'
+  'outputFileName'
 ];
 
 const parsedArgs = parseArgs(process.argv, requiredParams, optionNames, 0);
@@ -27,6 +28,7 @@ else
     includeRegex: parsedArgs['include'],
     excludeRegex: parsedArgs['exclude'],
     dbmdOutputDir: parsedArgs['outputDir'],
+    dbmdOutputFileName: parsedArgs['outputFileName'],
   };
 
   if (opts.dbType === 'ora' && (opts.includeRegex || opts.excludeRegex))
