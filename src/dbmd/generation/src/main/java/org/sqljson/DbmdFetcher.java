@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Base64;
 
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.SqlStatements;
@@ -25,11 +26,13 @@ public class DbmdFetcher
       "Expected arguments: [options] <jdbc-props-file> <database-type> <output-file>\n" +
       "  jdbc-props-file: JDBC properties file, with properties jdbc.driverClassName, jdbc.url, " +
       "jdbc.username, jdbc.password.\n" +
-      "  database-type: database type, one of 'pg', 'ora', 'mysql'\n" +
+      "  database-type: database type, one of 'pg', 'mysql', 'h2', 'ora'\n" +
       "  output-file: File to which to write query result json value.\n" +
       "  [Options]\n" +
-      "     --include <table/view-name regex>: Regular expression for names of tables/views to be included, default to '.*'.\n" +
-      "     --exclude <table/view-name regex>: Regular expression for names of tables/views to be excluded, default '^$'.\n";
+      "     --include-regex <table/view-name regex>: Regular expression for names of tables/views to be included.\n" +
+      "     --exclude-regex <table/view-name regex>: Regular expression for names of tables/views to be excluded.\n" +
+      "     --include-regex-base64 <table/view-name regex>: Regular expression for names of tables/views to be included, base-64 encoded.\n" +
+      "     --exclude-regex-base64 <table/view-name regex>: Regular expression for names of tables/views to be excluded, base-64 encoded.\n";
   }
 
   public static Jdbi createJdbi(Path propsFile)
@@ -100,8 +103,14 @@ public class DbmdFetcher
 
     List<String> remArgs = new ArrayList<>(Arrays.asList(args));
 
-    String includeRegex = Args.pluckStringOption(remArgs, "--include-regex").orElse(".*");
-    String excludeRegex = Args.pluckStringOption(remArgs, "--exclude-regex").orElse("^$");
+    String includeRegex =
+      Args.pluckStringOption(remArgs, "--include-regex").orElseGet(() ->
+        base64Decode(Args.pluckStringOption(remArgs, "--include-regex-base64").orElse("Lio=")) // .*
+      );
+    String excludeRegex =
+      Args.pluckStringOption(remArgs, "--exclude-regex").orElseGet(() ->
+        base64Decode(Args.pluckStringOption(remArgs, "--exclude-regex-base64").orElse("XiQ=")) // ^$
+      );
 
     if ( remArgs.size() != 3 )
     {
@@ -146,5 +155,11 @@ public class DbmdFetcher
       log.error(t.getMessage());
       System.exit(1);
     }
+  }
+
+  private static String base64Decode(String encodedString)
+  {
+    byte[] decodedBytes = Base64.getDecoder().decode(encodedString);
+    return new String(decodedBytes);
   }
 }

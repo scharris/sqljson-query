@@ -1,27 +1,25 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>org.sqljson</groupId>
   <artifactId>dbmd-fetcher</artifactId>
   <version>1.0</version>
   <packaging>jar</packaging>
-
   <name>dbmd-fetcher</name>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.release>11</java.release>
-    <jdbi.version>3.21.0</jdbi.version>
-    <slf4j.version>1.7.32</slf4j.version>
-    <ora.jdbc.version>21.1.0.0</ora.jdbc.version>
-    <pg.jdbc.version>42.4.3</pg.jdbc.version>
+    <jdbi.version>3.36.0</jdbi.version>
+    <slf4j.version>2.0.6</slf4j.version>
+    <pg.jdbc.version>42.5.1</pg.jdbc.version>
+    <mysql.jdbc.version>8.0.32</mysql.jdbc.version>
+    <h2.version>2.1.214</h2.version>
+    <ora.jdbc.version>21.8.0.0</ora.jdbc.version>
     <dbmd.file>${project.basedir}/dbmd.json</dbmd.file>
-    <dbmd.include.regex>.*</dbmd.include.regex>
-    <dbmd.exclude.regex>^(SYS[0-9]|DR[$])</dbmd.exclude.regex>
+    <include.regex.base64>Lio=</include.regex.base64>    <!-- .* -->
+    <exclude.regex.base64>XihTWVNbMC05XXxEUlskXSk=</exclude.regex.base64>    <!-- ^(SYS[0-9]|DR[$]) -->
   </properties>
-
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -33,7 +31,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.jdbi</groupId>
@@ -49,13 +46,6 @@
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc11 -->
-    <dependency>
-      <groupId>com.oracle.database.jdbc</groupId>
-      <artifactId>ojdbc11-production</artifactId>
-      <version>${ora.jdbc.version}</version>
-      <type>pom</type>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
     <dependency>
       <groupId>org.postgresql</groupId>
@@ -66,10 +56,22 @@
     <dependency>
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.28</version>
+      <version>${mysql.jdbc.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc11 -->
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc11-production</artifactId>
+      <version>${ora.jdbc.version}</version>
+      <type>pom</type>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <!-- Java compiler -->
@@ -104,10 +106,10 @@
             <argument>${jdbc.props}</argument>
             <argument>${db}</argument>
             <argument>${dbmd.file}</argument>
-            <argument>--include-regex</argument>
-            <argument>${dbmd.include.regex}</argument>
-            <argument>--exclude-regex</argument>
-            <argument>${dbmd.exclude.regex}</argument>
+            <argument>--include-regex-base64</argument>
+            <argument>${include.regex.base64}</argument>
+            <argument>--exclude-regex-base64</argument>
+            <argument>${exclude.regex.base64}</argument>
           </arguments>
         </configuration>
       </plugin>
@@ -137,7 +139,47 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Enforcer plugin for requiring range of Maven versions in support of versions plugin below. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>3.8.0</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>17</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Maven versions plugin to assist with managing versions of plugins, dependencies etc in this pom file.
+             mvn versions:display-plugin-updates
+             mvn versions:display-dependency-updates
+        -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>versions-maven-plugin</artifactId>
+        <version>2.10.0</version>
+        <configuration>
+          <generateBackupPoms>false</generateBackupPoms>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-help-plugin</artifactId>
+        <version>3.2.0</version>
+      </plugin>
     </plugins>
   </build>
-
 </project>

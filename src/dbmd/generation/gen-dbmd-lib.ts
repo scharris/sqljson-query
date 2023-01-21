@@ -17,6 +17,7 @@ export interface DbmdGenerationOptions
   generatorPomFile?: string | null;
   dbmdOutputDir: string;
   dbmdOutputFileName?: string | null;
+  preferJdbc?: boolean | null
 }
 
 export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
@@ -32,18 +33,14 @@ export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
   console.log(`Including table/view pattern: '${include}'.`)
   console.log(`Excluding table/view pattern: '${exclude}'.`)
 
-  switch (opts.dbType)
+  if (opts.dbType == 'pg' && !opts.preferJdbc)
+    await queryViaPgClient(opts.connPropsFile, include, exclude, dbmdFile);
+  else if (opts.dbType == 'mysql' && !opts.preferJdbc)
+    await queryViaMySQLClient(opts.connPropsFile, include, exclude, dbmdFile);
+  else
   {
-    case 'pg':
-      await queryViaPgClient(opts.connPropsFile, include, exclude, dbmdFile);
-      break;
-    case 'mysql':
-      await queryViaMySQLClient(opts.connPropsFile, include, exclude, dbmdFile);
-      break;
-    case 'ora':
-      const pomFile = path.join(__dirname, 'pom.xml');
-      queryViaMaven(pomFile, opts.connPropsFile, opts.dbType, dbmdFile);
-      break;
+    const pomFile = path.join(__dirname, 'pom.xml');
+    queryViaMaven(pomFile, opts.connPropsFile, include, exclude, opts.dbType, dbmdFile);
   }
 
   await generateRelationsMetadata({ dbmdFile, tsOutputDir: opts.dbmdOutputDir });
@@ -128,6 +125,8 @@ function queryViaMaven
   (
     generatorPomFile: string,
     jdbcPropsFile: string,
+    includePattern: string,
+    excludePattern: string,
     dbType: string,
     outputFile: string,
   )
@@ -137,6 +136,8 @@ function queryViaMaven
     ['-f', generatorPomFile,
       'compile', 'exec:java',
       `-Djdbc.props=${jdbcPropsFile}`,
+      `-Dinclude.regex.base64=${base64Encode(includePattern)}`,
+      `-Dexclude.regex.base64=${base64Encode(excludePattern)}`,
       `-Ddb=${dbType}`,
       `-Ddbmd.file=${outputFile}`],
     { cwd: process.cwd(), env: process.env, encoding: 'utf8' }
@@ -147,4 +148,10 @@ function queryViaMaven
     console.error('Maven command to generate database metadata failed:\n', mvnProc);
     throw new Error('Database metadata generation failed.');
   }
+}
+
+function base64Encode(s: string): string
+{
+  const buff = Buffer.from(s, 'utf-8');
+  return buff.toString('base64');
 }

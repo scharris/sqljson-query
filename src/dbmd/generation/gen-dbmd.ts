@@ -10,7 +10,8 @@ const requiredParams = [
 const optionNames = [
   'include',   // table include pattern regular expression, defaulting to '.*'
   'exclude',   // table exclude pattern regular expression, defaulting to '^$'
-  'outputFileName'
+  'outputFileName',
+  'preferJdbc'
 ];
 
 const parsedArgs = parseArgs(process.argv, requiredParams, optionNames, 0);
@@ -29,13 +30,8 @@ else
     excludeRegex: parsedArgs['exclude'],
     dbmdOutputDir: parsedArgs['outputDir'],
     dbmdOutputFileName: parsedArgs['outputFileName'],
+    preferJdbc: parsedArgs['preferJdbc'],
   };
-
-  if (opts.dbType === 'ora' && (opts.includeRegex || opts.excludeRegex))
-  {
-    console.error("Options 'include' and 'exclude' are not supported for Oracle databases.");
-    process.exit(1);
-  }
 
   generateDatabaseMetadata(opts)
   .then(() => { console.log("Database metadata generation completed."); })
