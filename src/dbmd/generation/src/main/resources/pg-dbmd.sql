@@ -38,10 +38,10 @@ relationMetadatasQuery as (
       ) -- fields property
     )), '[]'::json) json
   from (
-    select t.schemaname, t.tablename name, 'Table' type
+    select t.schemaname, t.tablename name, 'table' type
     from pg_tables t
     union all
-    select v.schemaname, v.viewname name, 'View' type
+    select v.schemaname, v.viewname name, 'view' type
     from pg_views v
   ) r
   where r.schemaname not in (select * from ignoreSchemasQuery)

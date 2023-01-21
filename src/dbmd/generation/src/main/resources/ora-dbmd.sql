@@ -42,11 +42,11 @@ tableMetadatas as (
       returning clob
     ), to_clob('[]')) as json) tableMds
   from (
-    select t.owner, t.table_name name, 'Table' type
+    select t.owner, t.table_name name, 'table' type
     from all_tables t
     where regexp_like(t.owner||'.'||t.table_name, :relIncludePat) and not regexp_like(t.owner||'.'||t.table_name, :relExcludePat)
     union all
-    select v.owner, v.view_name, 'View' type
+    select v.owner, v.view_name, 'view' type
     from all_views v
     where regexp_like(v.owner||'.'||v.view_name, :relIncludePat) and not regexp_like(v.owner||'.'||v.view_name, :relExcludePat)
   ) r

@@ -6,7 +6,7 @@ relationMetadatasQuery as (
   select
     cast(coalesce(json_arrayagg(json_object(
       'relationId', json_object('schema', t.table_schema, 'name', t.table_name),
-      'relationType', case t.table_type when 'BASE TABLE' then 'Table' when 'VIEW' then 'View' else t.table_type end,
+      'relationType', case t.table_type when 'BASE TABLE' then 'table' when 'VIEW' then 'view' else t.table_type end,
       'fields', (
         select
           cast(coalesce(json_arrayagg(json_object(
