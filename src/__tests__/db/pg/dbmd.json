@@ -8,7 +8,7 @@
         "schema": "drugs",
         "name": "authority"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -67,7 +67,7 @@
         "schema": "drugs",
         "name": "analyst"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -96,7 +96,7 @@
         "schema": "drugs",
         "name": "compound"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -215,7 +215,7 @@
         "schema": "drugs",
         "name": "advisory_type"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -254,7 +254,7 @@
         "schema": "drugs",
         "name": "drug"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -383,7 +383,7 @@
         "schema": "drugs",
         "name": "drug_reference"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "drug_id",
@@ -422,7 +422,7 @@
         "schema": "drugs",
         "name": "reference"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -451,7 +451,7 @@
         "schema": "drugs",
         "name": "advisory"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -500,7 +500,7 @@
         "schema": "drugs",
         "name": "functional_category"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",
@@ -549,7 +549,7 @@
         "schema": "drugs",
         "name": "drug_functional_category"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "drug_id",
@@ -598,7 +598,7 @@
         "schema": "drugs",
         "name": "brand"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "drug_id",
@@ -647,7 +647,7 @@
         "schema": "drugs",
         "name": "manufacturer"
       },
-      "relationType": "Table",
+      "relationType": "table",
       "fields": [
         {
           "name": "id",

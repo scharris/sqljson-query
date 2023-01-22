@@ -44,7 +44,7 @@ relationMetadatasQuery as (
     select
       t.table_schema schemaname,
       t.table_name name,
-      case t.table_type when 'BASE TABLE' then 'Table' when 'VIEW' then 'View' else t.table_type end type
+      case t.table_type when 'BASE TABLE' then 'table' when 'VIEW' then 'view' else t.table_type end type
     from information_schema.tables t
   ) r
   where r.schemaname not in (select * from ignoreSchemasQuery)

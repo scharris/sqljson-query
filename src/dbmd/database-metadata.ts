@@ -19,9 +19,9 @@ export type CaseSensitivity = z.infer<typeof CaseSensitivityDef>;
 
 const RelTypeDef =
   z.union([
-    z.literal('Table'),
-    z.literal('View'),
-    z.literal('Unknown')
+    z.literal('table'),
+    z.literal('view'),
+    z.literal('unknown')
   ]);
 export type RelType = z.infer<typeof RelTypeDef>;
 
