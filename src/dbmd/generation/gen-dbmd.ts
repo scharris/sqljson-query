@@ -4,7 +4,7 @@ import { DbmdGenerationOptions, generateDatabaseMetadata } from './gen-dbmd-lib'
 
 const requiredParams = [
   'connProps', // connection properties file
-  'db',        // database type: pg | mysql | ora ...
+  'db',        // database type: pg | mysql | ora | h2
   'outputDir', // database metadata output directory
 ]
 const optionNames = [
