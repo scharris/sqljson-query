@@ -1,5 +1,8 @@
 # NOTES
 
+Sqlite support (WIP)
+  Use functions json_object(), json_group_array().
+
 ## Dev workflow
 
 Build and run tests:

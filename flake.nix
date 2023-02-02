@@ -15,6 +15,8 @@
               openjdk17
               maven
               graphviz-nox
+              sqlite
+              rlwrap
             ];
           };
         }

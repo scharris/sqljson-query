@@ -21,9 +21,15 @@ export default function makeSource
   const sqlPathMembers = sqlResources.size == 0 ? '' :
     '  // The types defined in this file correspond to results of the following generated SQL queries.\n' +
     indentLines(sqlFileReferences(sqlResources), 2) + '\n\n';
+
   const sqlParamMembers = queryParamNames.length == 0 ? '' :
     "  // query parameters\n" +
     indentLines(queryParamDefinitions(queryParamNames), 2) + '\n\n';
+
+  const resType = resultTypeSpecs[0]?.resultTypeName;
+  const topResultTypeRef = resType ?
+    indentLines(`public static final Class<${resType}> resultClass = ${resType}.class;`, 2) + '\n\n'
+    : '';
 
   const compilationUnitNameNoExt = makeCompilationUnitNameNoExt(queryName);
 
@@ -38,6 +44,7 @@ export default function makeSource
         sqlPathMembers +
         sqlParamMembers +
         "  // Below are types representing the result data for the generated query, with top-level result type first.\n\n" +
+        topResultTypeRef +
         indentLines(resultTypeDeclarations(resultTypeSpecs, opts), 2) + '\n' +
       '}\n'
   };

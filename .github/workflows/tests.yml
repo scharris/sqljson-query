@@ -40,7 +40,7 @@ jobs:
           options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Checkout project repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Initialize PostgreSQL testing database
         run: |
           cd "$GITHUB_WORKSPACE"/src/__tests__/db/pg
@@ -55,7 +55,7 @@ jobs:
           mysql --host=127.0.0.1 --port=3306 --user=drugs --password=drugs --database=drugs < sql/create-schema-objects.sql
           mysql --host=127.0.0.1 --port=3306 --user=drugs --password=drugs --database=drugs < sql/create-test-data.sql
       - name: Setup node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install global npm dependencies
@@ -65,7 +65,7 @@ jobs:
       - name: Build project
         run: npm run build
       - name: Set up JDK 17 for Java tests
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'adopt'
