@@ -1,4 +1,4 @@
-package org.sqljson;
+package sjq;
 
 import java.util.List;
 import java.util.Optional;

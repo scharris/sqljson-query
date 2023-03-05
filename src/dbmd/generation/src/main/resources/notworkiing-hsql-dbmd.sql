@@ -1,7 +1,4 @@
 with
-ignoreSchemasQuery as (
-  select 'INFORMATION_SCHEMA' schema_name
-),
 relationMetadatasQuery as (
   select
     coalesce(json_arrayagg(json_object(
@@ -16,6 +13,7 @@ relationMetadatasQuery as (
               when 'BINARY LARGE OBJECT' then 'BLOB'
               else col.data_type end,
             'nullable' value case col.is_nullable when 'NO' then false when 'YES' then true end,
+        /* TODO: Strangely, including this section causes some 'r' fields not to be found above.
             'primaryKeyPartNumber' value (
               select kcu.ordinal_position
               from information_schema.key_column_usage kcu
@@ -31,15 +29,16 @@ relationMetadatasQuery as (
                     tc.table_name = r.name
                 )
             ),
+         */
             'length' value col.character_maximum_length,
             'precision' value col.numeric_precision,
             'precisionRadix' value col.numeric_precision_radix,
             'fractionalDigits' value col.numeric_scale
-          ) order by col.ordinal_position), '[]' format json)
+          ) order by col.ordinal_position), '[]')
         from information_schema.columns col
         where col.table_schema = r.schemaname and col.table_name = r.name
-      ) -- fields property
-    )), '[]' format json) json
+      ) format json -- fields property
+    )), '[]') json
   from (
     select
       t.table_schema schemaname,
@@ -47,35 +46,44 @@ relationMetadatasQuery as (
       case t.table_type when 'BASE TABLE' then 'table' when 'VIEW' then 'view' else t.table_type end type
     from information_schema.tables t
   ) r
-  where r.schemaname not in (select * from ignoreSchemasQuery)
+  where r.schemaname <> 'INFORMATION_SCHEMA'
     and regexp_like(r.schemaname || '.' || r.name, :relIncludePat)
     and not regexp_like(r.schemaname || '.' || r.name,  :relExcludePat)
 ),
 foreignKeysQuery as (
-  select coalesce(json_arrayagg(fk.obj), '[]' format json) json
+  select coalesce(json_arrayagg(
+    json_object(
+      'constraintName' value fk.constr_name, -- TODO: fk.constr_name not found, though it should be (?)
+      'foreignKeyRelationId' value
+        json_object(
+          'schema' value fk.child_schema,
+          'name' value fk.child_table
+        ),
+      'primaryKeyRelationId' value
+        json_object(
+          'schema' value fk.parent_schema,
+          'name' value fk.parent_table
+        ),
+      'foreignKeyComponents' value
+        json_arrayagg(
+          json_object(
+            'foreignKeyFieldName' value fk.fk_field_name,
+            'primaryKeyFieldName' value fk.pk_field_name
+          )
+          order by fk.ordinal_position
+        )
+    )
+  ), '[]') json
   from (
     select
-      json_object(
-        'constraintName' value child_tc.constraint_name,
-        'foreignKeyRelationId' value
-          json_object(
-            'schema' value child_tc.table_schema,
-            'name' value child_tc.table_name
-          ),
-        'primaryKeyRelationId' value
-          json_object(
-            'schema' value parent_tc.table_schema,
-            'name' value parent_tc.table_name
-          ),
-        'foreignKeyComponents' value
-          json_arrayagg(
-            json_object(
-              'foreignKeyFieldName' value child_fk_comp.column_name,
-              'primaryKeyFieldName' value parent_pk_comp.column_name
-            )
-            order by child_fk_comp.ordinal_position
-          )
-      ) obj
+      child_tc.constraint_name constr_name,
+      child_tc.table_schema child_schema,
+      child_tc.table_name child_table,
+      parent_tc.table_schema parent_schema,
+      parent_tc.table_name parent_table,
+      child_fk_comp.column_name fk_field_name,
+      parent_pk_comp.column_name pk_field_name,
+      child_fk_comp.ordinal_position ordinal_position
     from information_schema.table_constraints child_tc
     -- To-one join for parent's pk constraint schema and name.
     join information_schema.referential_constraints child_rc
@@ -95,25 +103,29 @@ foreignKeysQuery as (
       and child_rc.unique_constraint_name = parent_pk_comp.constraint_name
       and child_fk_comp.position_in_unique_constraint = parent_pk_comp.ordinal_position
     where child_tc.constraint_type = 'FOREIGN KEY'
-      and child_fk_comp.table_schema not in (select * from ignoreSchemasQuery)
+      and child_fk_comp.table_schema <> 'INFORMATION_SCHEMA'
       and regexp_like(child_tc.table_schema || '.' || child_tc.table_name, :relIncludePat)
       and not regexp_like(child_tc.table_schema || '.' || child_tc.table_name, :relExcludePat)
       and regexp_like(parent_tc.table_schema || '.' || parent_tc.table_name, :relIncludePat)
       and not regexp_like(parent_tc.table_schema || '.' || parent_tc.table_name, :relExcludePat)
-    group by
-      child_tc.table_schema,
-      child_tc.table_name,
-      parent_tc.table_name,
-      parent_tc.table_schema,
-      child_tc.constraint_name
   ) fk
+  group by
+    fk.child_schema,
+    fk.child_table,
+    fk.parent_schema,
+    fk.parent_table,
+    fk.constr_name
 )
 -- main query
 select json_object(
-  'dbmsName' value 'H2',
-  'dbmsVersion' value
-    (select setting_value from information_schema.settings where setting_name = 'info.VERSION'),
+  'dbmsName' value 'HSQLDB',
+  'dbmsVersion' value (
+      select character_value
+      from information_schema.sql_implementation_info
+      where implementation_info_name = 'DBMS VERSION'
+  ),
   'caseSensitivity' value 'INSENSITIVE_STORED_UPPER',
-  'relationMetadatas' value (select json from relationMetadatasQuery),
-  'foreignKeys' value (select json from foreignKeysQuery)
+  'relationMetadatas' value (select json from relationMetadatasQuery) format json,
+  'foreignKeys' value (select json from foreignKeysQuery) format json
 ) json
+from (values(1))

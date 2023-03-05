@@ -9,12 +9,13 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <java.release>11</java.release>
+    <java.release>17</java.release>
     <jdbi.version>3.36.0</jdbi.version>
+    <jackson.version>2.14.1</jackson.version>
     <slf4j.version>2.0.6</slf4j.version>
     <pg.jdbc.version>42.5.1</pg.jdbc.version>
     <mysql.jdbc.version>8.0.32</mysql.jdbc.version>
-    <h2.version>2.1.214</h2.version>
+    <hsql.version>2.7.1</hsql.version>
     <ora.jdbc.version>21.8.0.0</ora.jdbc.version>
     <dbmd.file>${project.basedir}/dbmd.json</dbmd.file>
     <include.regex.base64>Lio=</include.regex.base64>    <!-- .* -->
@@ -35,6 +36,11 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -58,11 +64,11 @@
       <artifactId>mysql-connector-java</artifactId>
       <version>${mysql.jdbc.version}</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
+    <!-- https://mvnrepository.com/artifact/org.hsqldb/hsqldb -->
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
+      <groupId>org.hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+      <version>${hsql.version}</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc11 -->
     <dependency>
@@ -70,6 +76,12 @@
       <artifactId>ojdbc11-production</artifactId>
       <version>${ora.jdbc.version}</version>
       <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>23.0.0</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
   <build>
@@ -87,7 +99,7 @@
       </plugin>
       <!-- The execution below to generated database metadata is not tied to any phase.
         Run it via:
-          mvn compile exec:java -Djdbc.props=<path> -Ddb=<ora|pg>
+          mvn compile exec:java -Djdbc.props=<path> -Ddb=<ora|pg> -Ddbmd.file=<path>
       -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -101,7 +113,7 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>org.sqljson.DbmdFetcher</mainClass>
+          <mainClass>sjq.DbmdFetcher</mainClass>
           <arguments>
             <argument>${jdbc.props}</argument>
             <argument>${db}</argument>
@@ -129,7 +141,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <archive>
                 <manifest>
-                  <mainClass>org.sqljson.DbmdFetcher</mainClass>
+                  <mainClass>sjq.DbmdFetcher</mainClass>
                 </manifest>
               </archive>
               <descriptorRefs>
