@@ -1,6 +1,7 @@
-import { Nullable } from '../../util/nullable';
-import { indentLines, unDoubleQuote } from '../../util/strings';
-import { SqlDialect } from './sql-dialect';
+import {Nullable} from '../../util/nullable';
+import {indentLines, unDoubleQuote} from '../../util/strings';
+import {SqlDialect} from './sql-dialect';
+import {SelectEntry} from "../sql-specs";
 
 const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
 
@@ -17,11 +18,13 @@ export class MySQLDialect implements SqlDialect
 
   getRowObjectExpression
     (
-      columnNames: string[],
+      selectEntries: SelectEntry[],
       srcAlias: string
     )
     : string
   {
+    const columnNames = selectEntries.map(e => e.projectedName);
+
     const objectFieldDecls =
       columnNames
       .map(colName => `'${colName}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
@@ -36,7 +39,7 @@ export class MySQLDialect implements SqlDialect
 
   getAggregatedRowObjectsExpression
     (
-      columnNames: string[],
+      selectEntries: SelectEntry[],
       orderBy: Nullable<string>,
       srcAlias: string
     )
@@ -47,19 +50,21 @@ export class MySQLDialect implements SqlDialect
 
     return (
       'cast(coalesce(json_arrayagg(' +
-        this.getRowObjectExpression(columnNames, srcAlias) +
+        this.getRowObjectExpression(selectEntries, srcAlias) +
       `), json_type('[]')) as json)`
     );
   }
 
   getAggregatedColumnValuesExpression
     (
-      columnName: string,
+      selectEntry: SelectEntry,
       orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
   {
+    const columnName = selectEntry.projectedName;
+
     if (orderBy != null )
       throw new Error(`Error for column ${columnName}: MySQL dialect does not support ordering in aggregate functions currently.`);
 

@@ -855,7 +855,7 @@ const drugsQuery6: QuerySpec = {
                   fieldExpressions: [ 'publication' ]
                }
             ],
-            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg / ora.
+            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg,hsql,ora.
          }
          // <-- (Added)
       ]
@@ -990,7 +990,7 @@ const drugsQuery7: QuerySpec = {
                   fieldExpressions: [ 'publication' ]
                }
             ],
-            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg / ora.
+            // orderBy: 'priority asc' // Omit orderBy if using MySQL database - OK for pg,hsql,ora.
          }
       ]
    }

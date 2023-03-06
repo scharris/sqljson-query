@@ -1,8 +1,8 @@
-import { Field, ForeignKeyComponent, RelId } from "../dbmd";
-import { AdditionalObjectPropertyColumn } from "../query-specs";
-import { sorted } from "../util/collections";
-import { Nullable } from "../util/mod";
-import { lowerCaseInitials, makeNameNotInSet } from "../util/strings";
+import {Field, ForeignKeyComponent, RelId} from "../dbmd";
+import {AdditionalObjectPropertyColumn} from "../query-specs";
+import {sorted} from "../util/collections";
+import {Nullable} from "../util/mod";
+import {lowerCaseInitials, makeNameNotInSet} from "../util/strings";
 
 export interface SqlSpec
 {
@@ -45,7 +45,7 @@ export interface ExpressionSelectEntry
   readonly tableAliasPlaceholderInExpr?: Nullable<string>; // default is '$$'
   readonly tableAlias: string;
   readonly displayOrder?: Nullable<number>;
-  readonly sourceCodeFieldType: Nullable<string | { [srcLang: string]: string }>;
+  readonly sourceCodeFieldType: string | { [srcLang: string]: string };
 }
 
 export interface InlineParentSelectEntry
@@ -54,6 +54,7 @@ export interface InlineParentSelectEntry
   readonly projectedName: string;
   readonly parentAlias: string;
   readonly parentTable: RelId;
+  readonly parentSelectEntry: SelectEntry,
   readonly comment?: Nullable<string>;
   readonly displayOrder?: Nullable<number>;
 }

@@ -1,11 +1,11 @@
-import { z } from 'zod';
+import {z} from 'zod';
 import {
   computeIfAbsent,
-  setsEqual,
-  relIdDescn,
-  splitSchemaAndRelationNames,
   exactUnquotedName,
   Nullable,
+  relIdDescn,
+  setsEqual,
+  splitSchemaAndRelationNames,
 } from '../util/mod';
 
 const CaseSensitivityDef =
@@ -28,20 +28,22 @@ export type RelType = z.infer<typeof RelTypeDef>;
 const RelIdDef =
   z.object({
     schema: z.string().nullable().optional(),
-    name: z.string().nonempty()
+    name: z.string()
   }).strict();
 export type RelId = z.infer<typeof RelIdDef>;
 
 const FieldDef =
   z.object({
-    name: z.string().nonempty(),
-    databaseType: z.string().nonempty(),
+    name: z.string(),
+    databaseType: z.string(),
+    jdbcTypeCode: z.number().nullable().optional(),
     nullable: z.boolean().nullable().optional(),
     primaryKeyPartNumber: z.number().nullable().optional(),
     length: z.number().nullable().optional(),
     precision: z.number().nullable().optional(),
     precisionRadix: z.number().nullable().optional(),
     fractionalDigits: z.number().nullable().optional(),
+    comment: z.string().nullable().optional()
   }).strict();
 export type Field = z.infer<typeof FieldDef>;
 
@@ -50,6 +52,7 @@ const RelMetadataDef =
     relationId: RelIdDef,
     relationType: RelTypeDef,
     fields: z.array(FieldDef),
+    comment: z.string().nullable().optional()
   }).strict();
 export type RelMetadata = z.infer<typeof RelMetadataDef>;
 
@@ -72,8 +75,10 @@ export type ForeignKey = z.infer<typeof ForeignKeyDef>;
 
 const StoredDatabaseMetadataDef =
   z.object({
-    dbmsName: z.string().nonempty(),
-    dbmsVersion: z.string().nonempty(),
+    dbmsName: z.string(),
+    dbmsVersion: z.string(),
+    majorVersion: z.number().nullable().optional(),
+    minorVersion: z.number().nullable().optional(),
     caseSensitivity: CaseSensitivityDef,
     relationMetadatas: z.array(RelMetadataDef),
     foreignKeys: z.array(ForeignKeyDef),
@@ -88,6 +93,8 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
   readonly caseSensitivity: CaseSensitivity;
   readonly dbmsName: string;
   readonly dbmsVersion: string;
+  readonly majorVersion?: number | null;
+  readonly minorVersion?: number | null;
 
   // derived data
   private derivedData: DerivedDatabaseMetadata;
@@ -144,7 +151,7 @@ export class DatabaseMetadata implements StoredDatabaseMetadata
     {
       if ( normdFkFieldNames == null || foreignKeyFieldNamesSetEquals(fk, normdFkFieldNames) )
       {
-        if (soughtFk != null) // already found an fk satisfying requirements?
+        if (soughtFk != null) // already found some fk satisfying requirements?
           throw new Error(
             `Multiple foreign key constraints exist from table ${relIdDescn(fromRelId)} to table ${relIdDescn(toRelId)}` +
             (fieldNames != null ?

@@ -1,4 +1,6 @@
 .*
+*.jar
+*.tgz
 jest.config.json
 NOTES
 *.md

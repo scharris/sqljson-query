@@ -1,51 +1,51 @@
 {
-  "dbmsName" : "PostgreSQL",
-  "dbmsVersion" : "15.2 (Debian 15.2-1.pgdg110+1)",
-  "majorVersion" : 15,
-  "minorVersion" : 2,
-  "caseSensitivity" : "INSENSITIVE_STORED_LOWER",
+  "dbmsName" : "HSQL Database Engine",
+  "dbmsVersion" : "2.7.1",
+  "majorVersion" : 2,
+  "minorVersion" : 7,
+  "caseSensitivity" : "INSENSITIVE_STORED_UPPER",
   "relationMetadatas" : [ {
     "relationId" : {
-      "name" : "advisory",
-      "schema" : "drugs"
+      "name" : "ADVISORY",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "drug_id",
-      "databaseType" : "int4",
+      "name" : "DRUG_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "advisory_type_id",
-      "databaseType" : "int4",
+      "name" : "ADVISORY_TYPE_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "text",
-      "databaseType" : "varchar",
+      "name" : "TEXT",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -58,24 +58,24 @@
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "advisory_type",
-      "schema" : "drugs"
+      "name" : "ADVISORY_TYPE",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "name",
-      "databaseType" : "varchar",
+      "name" : "NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -85,38 +85,38 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "authority_id",
-      "databaseType" : "int4",
+      "name" : "AUTHORITY_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "analyst",
-      "schema" : "drugs"
+      "name" : "ANALYST",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "short_name",
-      "databaseType" : "varchar",
+      "name" : "SHORT_NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -129,24 +129,24 @@
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "authority",
-      "schema" : "drugs"
+      "name" : "AUTHORITY",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "name",
-      "databaseType" : "varchar",
+      "name" : "NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -156,8 +156,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "url",
-      "databaseType" : "varchar",
+      "name" : "URL",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -167,8 +167,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "description",
-      "databaseType" : "varchar",
+      "name" : "DESCRIPTION",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -178,38 +178,38 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "weight",
-      "databaseType" : "int4",
+      "name" : "WEIGHT",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "brand",
-      "schema" : "drugs"
+      "name" : "BRAND",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "drug_id",
-      "databaseType" : "int4",
+      "name" : "DRUG_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "brand_name",
-      "databaseType" : "varchar",
+      "name" : "BRAND_NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : 2,
@@ -219,8 +219,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "language_code",
-      "databaseType" : "varchar",
+      "name" : "LANGUAGE_CODE",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -230,38 +230,38 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "manufacturer_id",
-      "databaseType" : "int4",
+      "name" : "MANUFACTURER_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "compound",
-      "schema" : "drugs"
+      "name" : "COMPOUND",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "display_name",
-      "databaseType" : "varchar",
+      "name" : "DISPLAY_NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -271,8 +271,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "nctr_isis_id",
-      "databaseType" : "varchar",
+      "name" : "NCTR_ISIS_ID",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -282,8 +282,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "smiles",
-      "databaseType" : "varchar",
+      "name" : "SMILES",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -293,8 +293,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "canonical_smiles",
-      "databaseType" : "varchar",
+      "name" : "CANONICAL_SMILES",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -304,8 +304,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "cas",
-      "databaseType" : "varchar",
+      "name" : "CAS",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -315,8 +315,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "mol_formula",
-      "databaseType" : "varchar",
+      "name" : "MOL_FORMULA",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -326,20 +326,20 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "mol_weight",
-      "databaseType" : "numeric",
+      "name" : "MOL_WEIGHT",
+      "databaseType" : "NUMERIC",
       "jdbcTypeCode" : 2,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 0,
+      "precision" : 128,
       "precisionRadix" : 10,
-      "fractionalDigits" : null,
+      "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "entered",
-      "databaseType" : "timestamptz",
-      "jdbcTypeCode" : 93,
+      "name" : "ENTERED",
+      "databaseType" : "TIMESTAMP WITH TIME ZONE",
+      "jdbcTypeCode" : 2014,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
@@ -348,49 +348,49 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "entered_by",
-      "databaseType" : "int4",
+      "name" : "ENTERED_BY",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "approved_by",
-      "databaseType" : "int4",
+      "name" : "APPROVED_BY",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "name",
-      "databaseType" : "varchar",
+      "name" : "NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -400,19 +400,19 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "compound_id",
-      "databaseType" : "int4",
+      "name" : "COMPOUND_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "mesh_id",
-      "databaseType" : "varchar",
+      "name" : "MESH_ID",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -422,8 +422,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "drugbank_id",
-      "databaseType" : "varchar",
+      "name" : "DRUGBANK_ID",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -433,19 +433,19 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "cid",
-      "databaseType" : "int4",
+      "name" : "CID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "category_code",
-      "databaseType" : "varchar",
+      "name" : "CATEGORY_CODE",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -455,8 +455,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "descr",
-      "databaseType" : "varchar",
+      "name" : "DESCR",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -466,8 +466,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "therapeutic_indications",
-      "databaseType" : "varchar",
+      "name" : "THERAPEUTIC_INDICATIONS",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -477,9 +477,9 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "registered",
-      "databaseType" : "timestamptz",
-      "jdbcTypeCode" : 93,
+      "name" : "REGISTERED",
+      "databaseType" : "TIMESTAMP WITH TIME ZONE",
+      "jdbcTypeCode" : 2014,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
@@ -488,19 +488,19 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "registered_by",
-      "databaseType" : "int4",
+      "name" : "REGISTERED_BY",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "market_entry_date",
-      "databaseType" : "date",
+      "name" : "MARKET_ENTRY_DATE",
+      "databaseType" : "DATE",
       "jdbcTypeCode" : 91,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -513,117 +513,117 @@
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "drug_functional_category",
-      "schema" : "drugs"
+      "name" : "DRUG_FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "drug_id",
-      "databaseType" : "int4",
+      "name" : "DRUG_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "functional_category_id",
-      "databaseType" : "int4",
+      "name" : "FUNCTIONAL_CATEGORY_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 2,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "authority_id",
-      "databaseType" : "int4",
+      "name" : "AUTHORITY_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 3,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "seq",
-      "databaseType" : "int4",
+      "name" : "SEQ",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "drug_reference",
-      "schema" : "drugs"
+      "name" : "DRUG_REFERENCE",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "drug_id",
-      "databaseType" : "int4",
+      "name" : "DRUG_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "reference_id",
-      "databaseType" : "int4",
+      "name" : "REFERENCE_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 2,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "priority",
-      "databaseType" : "int4",
+      "name" : "PRIORITY",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "functional_category",
-      "schema" : "drugs"
+      "name" : "FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "name",
-      "databaseType" : "varchar",
+      "name" : "NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -633,8 +633,8 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "description",
-      "databaseType" : "varchar",
+      "name" : "DESCRIPTION",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
@@ -644,38 +644,38 @@
       "fractionalDigits" : null,
       "comment" : null
     }, {
-      "name" : "parent_functional_category_id",
-      "databaseType" : "int4",
+      "name" : "PARENT_FUNCTIONAL_CATEGORY_ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : true,
       "primaryKeyPartNumber" : null,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     } ],
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "manufacturer",
-      "schema" : "drugs"
+      "name" : "MANUFACTURER",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "name",
-      "databaseType" : "varchar",
+      "name" : "NAME",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -688,24 +688,24 @@
     "comment" : null
   }, {
     "relationId" : {
-      "name" : "reference",
-      "schema" : "drugs"
+      "name" : "REFERENCE",
+      "schema" : "DRUGS"
     },
     "relationType" : "table",
     "fields" : [ {
-      "name" : "id",
-      "databaseType" : "int4",
+      "name" : "ID",
+      "databaseType" : "INTEGER",
       "jdbcTypeCode" : 4,
       "nullable" : false,
       "primaryKeyPartNumber" : 1,
       "length" : null,
-      "precision" : 10,
-      "precisionRadix" : 10,
+      "precision" : 32,
+      "precisionRadix" : 2,
       "fractionalDigits" : 0,
       "comment" : null
     }, {
-      "name" : "publication",
-      "databaseType" : "varchar",
+      "name" : "PUBLICATION",
+      "databaseType" : "VARCHAR",
       "jdbcTypeCode" : 12,
       "nullable" : false,
       "primaryKeyPartNumber" : null,
@@ -718,214 +718,214 @@
     "comment" : null
   } ],
   "foreignKeys" : [ {
-    "constraintName" : "advisory_advisory_type_fk",
+    "constraintName" : "ADVISORY_ADVISORY_TYPE_FK",
     "foreignKeyRelationId" : {
-      "name" : "advisory",
-      "schema" : "drugs"
+      "name" : "ADVISORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "advisory_type",
-      "schema" : "drugs"
+      "name" : "ADVISORY_TYPE",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "advisory_type_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "ADVISORY_TYPE_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "advisory_drug_fk",
+    "constraintName" : "ADVISORY_DRUG_FK",
     "foreignKeyRelationId" : {
-      "name" : "advisory",
-      "schema" : "drugs"
+      "name" : "ADVISORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "drug_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "DRUG_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "advisory_type_authority_fk",
+    "constraintName" : "ADVISORY_TYPE_AUTHORITY_FK",
     "foreignKeyRelationId" : {
-      "name" : "advisory_type",
-      "schema" : "drugs"
+      "name" : "ADVISORY_TYPE",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "authority",
-      "schema" : "drugs"
+      "name" : "AUTHORITY",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "authority_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "AUTHORITY_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "brand_drug_fk",
+    "constraintName" : "BRAND_DRUG_FK",
     "foreignKeyRelationId" : {
-      "name" : "brand",
-      "schema" : "drugs"
+      "name" : "BRAND",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "drug_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "DRUG_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "brand_manufacturer_fk",
+    "constraintName" : "BRAND_MANUFACTURER_FK",
     "foreignKeyRelationId" : {
-      "name" : "brand",
-      "schema" : "drugs"
+      "name" : "BRAND",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "manufacturer",
-      "schema" : "drugs"
+      "name" : "MANUFACTURER",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "manufacturer_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "MANUFACTURER_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "compound_approvedby_analyst_fk",
+    "constraintName" : "COMPOUND_ENTEREDBY_ANALYST_FK",
     "foreignKeyRelationId" : {
-      "name" : "compound",
-      "schema" : "drugs"
+      "name" : "COMPOUND",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "analyst",
-      "schema" : "drugs"
+      "name" : "ANALYST",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "approved_by",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "ENTERED_BY",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "compound_enteredby_analyst_fk",
+    "constraintName" : "COMPOUND_APPROVEDBY_ANALYST_FK",
     "foreignKeyRelationId" : {
-      "name" : "compound",
-      "schema" : "drugs"
+      "name" : "COMPOUND",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "analyst",
-      "schema" : "drugs"
+      "name" : "ANALYST",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "entered_by",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "APPROVED_BY",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_analyst_fk",
+    "constraintName" : "DRUG_ANALYST_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "analyst",
-      "schema" : "drugs"
+      "name" : "ANALYST",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "registered_by",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "REGISTERED_BY",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_compound_fk",
+    "constraintName" : "DRUG_COMPOUND_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "compound",
-      "schema" : "drugs"
+      "name" : "COMPOUND",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "compound_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "COMPOUND_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drugfuncat_authority_fk",
+    "constraintName" : "DRUGFUNCAT_AUTHORITY_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug_functional_category",
-      "schema" : "drugs"
+      "name" : "DRUG_FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "authority",
-      "schema" : "drugs"
+      "name" : "AUTHORITY",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "authority_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "AUTHORITY_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_category_drug_fk",
+    "constraintName" : "DRUG_CATEGORY_DRUG_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug_functional_category",
-      "schema" : "drugs"
+      "name" : "DRUG_FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "drug_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "DRUG_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_funcat_funcat_fk",
+    "constraintName" : "DRUG_FUNCAT_FUNCAT_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug_functional_category",
-      "schema" : "drugs"
+      "name" : "DRUG_FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "functional_category",
-      "schema" : "drugs"
+      "name" : "FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "functional_category_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "FUNCTIONAL_CATEGORY_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_reference_drug_fk",
+    "constraintName" : "DRUG_REFERENCE_DRUG_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug_reference",
-      "schema" : "drugs"
+      "name" : "DRUG_REFERENCE",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "drug",
-      "schema" : "drugs"
+      "name" : "DRUG",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "drug_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "DRUG_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "drug_reference_reference_fk",
+    "constraintName" : "DRUG_REFERENCE_REFERENCE_FK",
     "foreignKeyRelationId" : {
-      "name" : "drug_reference",
-      "schema" : "drugs"
+      "name" : "DRUG_REFERENCE",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "reference",
-      "schema" : "drugs"
+      "name" : "REFERENCE",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "reference_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "REFERENCE_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   }, {
-    "constraintName" : "funcat_funcat_fk",
+    "constraintName" : "FUNCAT_FUNCAT_FK",
     "foreignKeyRelationId" : {
-      "name" : "functional_category",
-      "schema" : "drugs"
+      "name" : "FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "primaryKeyRelationId" : {
-      "name" : "functional_category",
-      "schema" : "drugs"
+      "name" : "FUNCTIONAL_CATEGORY",
+      "schema" : "DRUGS"
     },
     "foreignKeyComponents" : [ {
-      "foreignKeyFieldName" : "parent_functional_category_id",
-      "primaryKeyFieldName" : "id"
+      "foreignKeyFieldName" : "PARENT_FUNCTIONAL_CATEGORY_ID",
+      "primaryKeyFieldName" : "ID"
     } ]
   } ]
 }

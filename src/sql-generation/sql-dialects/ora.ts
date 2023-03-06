@@ -1,6 +1,7 @@
-import { Nullable } from '../../util/nullable';
-import { indentLines } from '../../util/strings';
-import { SqlDialect } from './sql-dialect';
+import {Nullable} from '../../util/nullable';
+import {indentLines} from '../../util/strings';
+import {SqlDialect} from './sql-dialect';
+import {SelectEntry} from "../sql-specs";
 
 const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
 
@@ -15,8 +16,15 @@ export class OracleDialect implements SqlDialect
 
   constructor(readonly indentSpaces: number) {}
 
-  getRowObjectExpression(columnNames: string[], srcAlias: string): string
+  getRowObjectExpression
+    (
+      selectEntries: SelectEntry[],
+      srcAlias: string
+    )
+    : string
   {
+    const columnNames = selectEntries.map(e => e.projectedName);
+
     const objectFieldDecls =
       columnNames
       .map(colName => `'${colName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
@@ -31,7 +39,7 @@ export class OracleDialect implements SqlDialect
 
   getAggregatedRowObjectsExpression
     (
-      columnNames: string[],
+      selectEntries: SelectEntry[],
       orderBy: Nullable<string>,
       srcAlias: string
     )
@@ -39,7 +47,7 @@ export class OracleDialect implements SqlDialect
   {
     return (
       'treat(coalesce(json_arrayagg(' +
-        this.getRowObjectExpression(columnNames, srcAlias) +
+        this.getRowObjectExpression(selectEntries, srcAlias) +
         (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
         ` returning clob), to_clob('[]')) as json)`
     );
@@ -47,12 +55,14 @@ export class OracleDialect implements SqlDialect
 
   getAggregatedColumnValuesExpression
     (
-      columnName: string,
+      selectEntry: SelectEntry,
       orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
   {
+    const columnName = selectEntry.projectedName;
+
     return (
       `treat(coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
         (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +

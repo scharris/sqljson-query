@@ -2,14 +2,18 @@ package sjq.models;
 
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import org.jetbrains.annotations.Nullable;
 
-@JsonPropertyOrder({"dbmsName", "dbmsVersion", "caseSensitivity", "relationMetadatas", "foreignKeys"})
+@JsonPropertyOrder({
+  "dbmsName", "dbmsVersion", "majorVersion", "minorVersion", "caseSensitivity",
+  "relationMetadatas", "foreignKeys"
+})
 public record StoredDatabaseMetadata
   (
     String dbmsName,
     String dbmsVersion,
-    int majorVersion,
-    int minorVersion,
+    @Nullable  Integer majorVersion,
+    @Nullable Integer minorVersion,
     CaseSensitivity caseSensitivity,
     List<RelMetadata> relationMetadatas,
     List<ForeignKey> foreignKeys

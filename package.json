@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.8.7",
+  "version": "1.9",
   "description": "Command line tool to generate SQL/JSON SQL queries and result types for Typescript or Java.",
   "keywords": [
     "SQL",
@@ -30,7 +30,7 @@
     "rm-test-dbs": "docker rm -vf drugs-mysql drugs-pg",
     "start-test-dbs": "npm run start-pg && npm run start-mysql",
     "typecheck": "tsc --noEmit # (compile without emitting outputs)",
-    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/generation/**/*.* src/dbmd/generation/src/ lib/dbmd/",
+    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/generation/pom.xml src/dbmd/generation/src/**/*.* src/dbmd/generation/gen-*  lib/dbmd/",
     "test": "jest",
     "clean": "rimraf lib pack",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot"

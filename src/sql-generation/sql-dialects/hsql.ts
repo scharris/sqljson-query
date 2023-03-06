@@ -1,6 +1,7 @@
-import { Nullable } from '../../util/nullable';
-import { indentLines } from '../../util/strings';
-import { SqlDialect } from './sql-dialect';
+import {Nullable} from '../../util/nullable';
+import {indentLines} from '../../util/strings';
+import {SqlDialect} from './sql-dialect';
+import {SelectEntry} from "../sql-specs";
 
 const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
 
@@ -8,18 +9,26 @@ const sqlKeywordsLowercase = new Set([
   'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over', 'is'
 ]);
 
-export class H2Dialect implements SqlDialect
+export class HSQLDialect implements SqlDialect
 {
   readonly uppercaseNameRegex = /^[A-Z_]+$/;
   readonly quotedStringRegex = /^".*"$/;
 
   constructor(readonly indentSpaces: number) {}
 
-  getRowObjectExpression(columnNames: string[], srcAlias: string): string
+  getRowObjectExpression
+    (
+      selectEntries: SelectEntry[],
+      srcAlias: string
+    )
+    : string
   {
     const objectFieldDecls =
-      columnNames
-      .map(colName => `'${colName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      selectEntries
+      .map(se=>
+        `'${se.projectedName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(se.projectedName)}` +
+        (needsFormatJsonQualifier(se) ? " format json" : "")
+      )
       .join(',\n');
 
     return (
@@ -31,7 +40,7 @@ export class H2Dialect implements SqlDialect
 
   getAggregatedRowObjectsExpression
     (
-      columnNames: string[],
+      selectEntries: SelectEntry[],
       orderBy: Nullable<string>,
       srcAlias: string
     )
@@ -39,24 +48,26 @@ export class H2Dialect implements SqlDialect
   {
     return (
       'coalesce(json_arrayagg(' +
-        this.getRowObjectExpression(columnNames, srcAlias) +
+        this.getRowObjectExpression(selectEntries, srcAlias) +
         (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
-        `), '[]' format json)`
+        `), '[]')`
     );
   }
 
   getAggregatedColumnValuesExpression
     (
-      columnName: string,
+      selectEntry: SelectEntry,
       orderBy: Nullable<string>,
       srcAlias: string
     )
     : string
   {
+    const columnName = selectEntry.projectedName;
+
     return (
       `coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
         (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
-        `), '[]' format json)`
+        `), '[]')`
     );
   }
 
@@ -80,3 +91,20 @@ export class H2Dialect implements SqlDialect
     return nameExact;
   }
 }
+
+function needsFormatJsonQualifier(selectEntry: SelectEntry): boolean
+{
+  switch (selectEntry.entryType)
+  {
+    case "se-parent-ref":
+    case "se-child-coll":
+      return true;
+    case "se-field":
+    case "se-expr":
+    case "se-hidden-pkf":
+      return false;
+    case "se-inline-parent-prop":
+      return needsFormatJsonQualifier(selectEntry.parentSelectEntry);
+  }
+}
+

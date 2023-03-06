@@ -1,16 +1,33 @@
+import {caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn} from '../util/mod';
+import {DatabaseMetadata, Field, ForeignKey, foreignKeyFieldNames, RelId} from '../dbmd';
 import {
-  caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn
-} from '../util/mod';
-import { DatabaseMetadata, Field, ForeignKey, foreignKeyFieldNames, RelId } from '../dbmd';
-import {
-  QuerySpec, TableJsonSpec, ResultRepr, SpecLocation, addLocPart, SpecError, TableFieldExpr, ChildSpec,
-  CustomMatchCondition, ParentSpec, InlineParentSpec, AdditionalObjectPropertyColumn,
-  getInlineParentSpecs, getReferencedParentSpecs, identifyTable, validateCustomMatchCondition,
+  AdditionalObjectPropertyColumn,
+  addLocPart,
+  ChildSpec,
+  CustomMatchCondition,
+  getInlineParentSpecs,
+  getReferencedParentSpecs,
+  identifyTable,
+  InlineParentSpec,
+  ParentSpec,
+  QuerySpec,
+  ResultRepr,
+  SpecError,
+  SpecLocation,
+  TableFieldExpr,
+  TableJsonSpec,
+  validateCustomMatchCondition,
   verifyTableFieldExpressionsValid,
 } from '../query-specs';
 import {
-  SqlSpec, SqlParts, SelectEntry, ChildCollectionSelectEntry, ChildForeignKeyCondition,
-  ParentPrimaryKeyCondition, HiddenPrimaryKeySelectEntry, getPropertySelectEntries,
+  ChildCollectionSelectEntry,
+  ChildForeignKeyCondition,
+  getPropertySelectEntries,
+  HiddenPrimaryKeySelectEntry,
+  ParentPrimaryKeyCondition,
+  SelectEntry,
+  SqlParts,
+  SqlSpec,
 } from './sql-specs';
 
 export class SqlSpecGenerator
@@ -315,15 +332,16 @@ export class SqlSpecGenerator
 
     const parentRelId = identifyTable(parentSpec.table, this.defaultSchema, this.dbmd, specLoc);
 
-    for (const [ix, parentPropSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
+    for (const [ix, parentSelectEntry] of getPropertySelectEntries(parentPropsSql).entries())
     {
       sqlParts.addSelectEntry({
         entryType: 'se-inline-parent-prop',
-        projectedName: parentPropSelectEntry.projectedName,
+        projectedName: parentSelectEntry.projectedName,
         parentAlias: subqueryAlias,
         parentTable: parentRelId,
+        parentSelectEntry: parentSelectEntry,
         comment: ix === 0 ? `field(s) inlined from parent table '${parentSpec.table}'` : null,
-        displayOrder: parentPropSelectEntry.displayOrder,
+        displayOrder: parentSelectEntry.displayOrder,
       });
     }
 

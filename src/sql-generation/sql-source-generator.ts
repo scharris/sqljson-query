@@ -1,12 +1,19 @@
-import { indentLines, replaceAll } from "../util/strings";
-import { mapSet, isNonEmpty, sorted } from "../util/collections";
-import { exactUnquotedName } from "../util/database-names";
-import { CaseSensitivity, RelId } from "../dbmd";
-import { FromEntry, getPropertySelectEntries, OrderBy, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry }
-  from "./sql-specs";
-import { SqlDialect } from "./sql-dialects";
-import { AdditionalObjectPropertyColumn } from "../query-specs";
-import { Nullable } from "../util/mod";
+import {indentLines, replaceAll} from "../util/strings";
+import {isNonEmpty, mapSet, sorted} from "../util/collections";
+import {exactUnquotedName} from "../util/database-names";
+import {CaseSensitivity, RelId} from "../dbmd";
+import {
+  FromEntry,
+  getPropertySelectEntries,
+  OrderBy,
+  ParentChildCondition,
+  SelectEntry,
+  SqlSpec,
+  WhereEntry
+} from "./sql-specs";
+import {SqlDialect} from "./sql-dialects";
+import {AdditionalObjectPropertyColumn} from "../query-specs";
+import {Nullable} from "../util/mod";
 
 export class SqlSourceGenerator
 {
@@ -35,17 +42,17 @@ export class SqlSourceGenerator
     }
     else // at least one of aggregation and object wrapping of properties will be done
     {
-      const propertyNames = getPropertySelectEntries(spec).map(e => e.projectedName);
+      const propSelectEntries = getPropertySelectEntries(spec);
       const baseTable = baseTableDescn(spec); // only used for comments
 
       if (!spec.aggregateToArray) // no aggregation but do object wrapping
       {
         const additionalCols = spec.additionalObjectPropertyColumns ?? [];
-        return this.jsonRowObjectsSql(baseSql, propertyNames, additionalCols, spec.orderBy, baseTable);
+        return this.jsonRowObjectsSql(baseSql, propSelectEntries, additionalCols, spec.orderBy, baseTable);
       }
       else // aggregation and maybe object wrapping
       {
-        return this.aggregateSql(baseSql, propertyNames, wrapPropsInObj, spec.orderBy, baseTable);
+        return this.aggregateSql(baseSql, propSelectEntries, wrapPropsInObj, spec.orderBy, baseTable);
       }
     }
   }
@@ -90,7 +97,7 @@ export class SqlSourceGenerator
   private jsonRowObjectsSql
     (
       baseSql: string,
-      propertyNames: string[],
+      selectEntries: SelectEntry[],
       additionalColumns: AdditionalObjectPropertyColumn[],
       orderBy: Nullable<OrderBy>,
       baseTableDesc: Nullable<string>, // for comments
@@ -101,7 +108,7 @@ export class SqlSourceGenerator
       'select\n' +
         this.indent(
           (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
-          this.sqlDialect.getRowObjectExpression(propertyNames, 'q') + ' json' +
+          this.sqlDialect.getRowObjectExpression(selectEntries, 'q') + ' json' +
           (isNonEmpty(additionalColumns)
             ? `,\n${additionalColumns.map(c => this.additionalPropertyColumnSql(c)).join(',\n')}`
             : '')
@@ -126,11 +133,10 @@ export class SqlSourceGenerator
     return `${propNameExpr} as ${alias}`;
   }
 
-
   private aggregateSql
     (
       sql: string,
-      propertyNames: string[],
+      selectEntries: SelectEntry[],
       wrapProps: boolean,
       orderBy: Nullable<OrderBy>,
       baseTableDesc: Nullable<string>, // for comments
@@ -143,8 +149,8 @@ export class SqlSourceGenerator
         this.indent(
           (this.genComments ? `-- aggregated ${wrapProps? 'rows' : 'values'} from table '${baseTableDesc}'\n`: '') +
           (wrapProps
-            ? this.sqlDialect.getAggregatedRowObjectsExpression(propertyNames, ordby, 'q')
-            : this.sqlDialect.getAggregatedColumnValuesExpression(propertyNames[0], ordby, 'q')) + ' json\n'
+            ? this.sqlDialect.getAggregatedRowObjectsExpression(selectEntries, ordby, 'q')
+            : this.sqlDialect.getAggregatedColumnValuesExpression(selectEntries[0], ordby, 'q')) + ' json\n'
         ) +
       'from (\n' +
         nlterm(this.indent(

@@ -11,7 +11,7 @@ public record Field
   (
     String name,
     String databaseType,
-    int jdbcTypeCode,
+    @Nullable Integer jdbcTypeCode,
     @Nullable Boolean nullable,
     @Nullable Integer primaryKeyPartNumber,
     @Nullable Integer length,

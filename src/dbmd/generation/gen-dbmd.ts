@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { parseArgs } from './utils';
-import { DbmdGenerationOptions, generateDatabaseMetadata } from './gen-dbmd-lib';
+import {parseArgs} from './utils';
+import {DbmdGenerationOptions, generateDatabaseMetadata} from './gen-dbmd-lib';
 
 const requiredParams = [
   'connProps', // connection properties file
-  'db',        // database type: pg | mysql | ora | h2
+  'db',        // database type: pg | mysql | hsql | ora
   'outputDir', // database metadata output directory
 ]
 const optionNames = [

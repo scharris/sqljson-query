@@ -69,11 +69,11 @@ public class DbmdFetcher
     String includeRegex =
       Args.pluckStringOption(remArgs, "--include-regex").orElseGet(() ->
         base64Decode(Args.pluckStringOption(remArgs, "--include-regex-base64").orElse("Lio=")) // .*
-      );
+      ).trim();
     String excludeRegex =
       Args.pluckStringOption(remArgs, "--exclude-regex").orElseGet(() ->
         base64Decode(Args.pluckStringOption(remArgs, "--exclude-regex-base64").orElse("XiQ=")) // ^$
-      );
+      ).trim();
 
     boolean useJdbcMetadata = remArgs.remove("--use-jdbc-md");
 
@@ -106,8 +106,8 @@ public class DbmdFetcher
     log.info("Generating database metadata.");
     log.info("JDBC connection properties: " + jdbcPropsFile);
     log.info("Database type: " + dbType);
-    log.info("Relations include pattern: " + includeRegex);
-    log.info("Relations exclude pattern: " + excludeRegex);
+    log.info("Relations include pattern: '" + includeRegex + "'");
+    log.info("Relations exclude pattern: '" + excludeRegex + "'");
     log.info("Output file: " + outputFile);
 
     try

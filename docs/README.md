@@ -382,7 +382,7 @@ Then generate the database metadata:
 
 ```console
   # in query-gen/
-  npx gen-dbmd --connProps <conn-props> --db <pg|mysql|ora> --outputDir <dir>
+  npx gen-dbmd --connProps <conn-props> --db <pg|mysql|hsql|ora> --outputDir <dir>
 ```
 
 where `conn-props` is the connection properties file created above, and the second argument represents

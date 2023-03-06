@@ -25,20 +25,23 @@ export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
   const dbmdFile = path.join(opts.dbmdOutputDir, opts.dbmdOutputFileName ?? 'dbmd.json');
   const include = opts.includeRegex || '.*';
   const exclude = opts.excludeRegex || '^$';
+  const preferJdbc = !!opts.preferJdbc;
 
   try { await fs.stat(opts.connPropsFile); }
   catch { throw new Error(`Connection properties file was not found at '${opts.connPropsFile}'.`); }
 
   console.log(`Generating database metadata to file ${dbmdFile}.`);
-  console.log(`Including table/view pattern: '${include}'.`)
-  console.log(`Excluding table/view pattern: '${exclude}'.`)
+  console.log(`Including table/view pattern: '${include}'.`);
+  console.log(`Excluding table/view pattern: '${exclude}'.`);
+  console.log(`Prefer jdbc: ${preferJdbc}.`);
 
-  if (opts.dbType == 'pg' && !opts.preferJdbc)
+  if (opts.dbType == 'pg' && !preferJdbc)
     await queryViaPgClient(opts.connPropsFile, include, exclude, dbmdFile);
-  else if (opts.dbType == 'mysql' && !opts.preferJdbc)
+  else if (opts.dbType == 'mysql' && !preferJdbc)
     await queryViaMySQLClient(opts.connPropsFile, include, exclude, dbmdFile);
   else
   {
+    console.log("Generating database metadata via JDBC.");
     const pomFile = path.join(__dirname, 'pom.xml');
     queryViaMaven(pomFile, opts.connPropsFile, include, exclude, opts.dbType, dbmdFile);
   }
