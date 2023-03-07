@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-import path from 'path';
-import { parseArgs } from './utils';
-import { generateRelationsMetadata } from './gen-relsmd-lib';
+import {parseArgs} from './utils';
+import {generateRelationsMetadata} from './gen-relsmd-lib';
 
 const optionNames = [
   'dbmd',        // database metadata json file path
   'tsDir',       'tsOutputDir',
+  'tsFileName',
   'javaBaseDir', 'javaOutputBaseDir',
   'javaPackage',
+  'javaClass',
 ];
 
 const parsedArgs = parseArgs(process.argv, [], optionNames, 0);
@@ -19,13 +20,13 @@ if ( typeof parsedArgs === 'string' ) // arg parsing error
 }
 else
 {
-  const internalDbmdDir = path.join(__dirname, '..', 'dbmd');
-
   const opts = {
-    dbmdFile: parsedArgs['dbmd'] || path.join(internalDbmdDir, 'dbmd.json'),
+    dbmdFile: parsedArgs['dbmd'] || 'dbmd.json',
     tsOutputDir: parsedArgs['tsDir'] ?? parsedArgs['tsOutputDir'],
+    tsFileName: parsedArgs['tsFileName'],
     javaOutputBaseDir: parsedArgs['javaBaseDir'] ?? parsedArgs['javaOutputBaseDir'],
     javaPackage: parsedArgs['javaPackage'],
+    javaClassName: parsedArgs['javaClass'],
   };
 
   generateRelationsMetadata(opts)

@@ -1,13 +1,14 @@
 import * as path from 'path';
-import { makeArrayValuesMap, indentLines, missingCase, Nullable } from '../util/mod';
-import { writeTextFile, readTextFile } from '../util/files';
-import { CaseSensitivity, DatabaseMetadata, RelMetadata } from './database-metadata';
-import { SourceLanguage } from '../source-generation-options';
+import {indentLines, makeArrayValuesMap, missingCase, Nullable} from '../util/mod';
+import {readTextFile, writeTextFile} from '../util/files';
+import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata';
+import {SourceLanguage} from '../source-generation-options';
 
 export async function generateRelationsMetadataSource
   (
     dbmdFile: string,
     sourceOutputDir: string,
+    outputFileNameNoExt: string,
     srcLang: SourceLanguage,
     javaPackage: Nullable<string> = undefined,
     preferLowercaseNames: boolean = true
@@ -21,7 +22,7 @@ export async function generateRelationsMetadataSource
   {
     case 'TS':
     {
-      const outputFile = path.join(sourceOutputDir, 'relations-metadata.ts');
+      const outputFile = path.join(sourceOutputDir, `${outputFileNameNoExt}.ts`);
       return await writeTextFile(
         outputFile,
         autogenWarning + "\n\n" + relationsTSModuleSource(dbmd, preferLowercaseNames),
@@ -30,11 +31,11 @@ export async function generateRelationsMetadataSource
     }
     case 'Java':
     {
-      const relsMdOutputFile = path.join(sourceOutputDir, 'RelationsMetadata.java');
+      const relsMdOutputFile = path.join(sourceOutputDir, `${outputFileNameNoExt}.java`);
       const header = autogenWarning + '\n' + (javaPackage ? `package ${javaPackage};\n\n` : '');
       return await writeTextFile(
         relsMdOutputFile,
-        header + "\n\n" + relationsJavaSource(dbmd, preferLowercaseNames),
+        header + "\n\n" + relationsJavaSource(dbmd, outputFileNameNoExt, preferLowercaseNames),
         { avoidWritingSameContents: true }
       );
     }
@@ -73,7 +74,13 @@ function relationsTSModuleSource(dbmd: DatabaseMetadata, preferLowercaseNames: b
   return parts.join('');
 }
 
-function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boolean): string
+function relationsJavaSource
+  (
+    dbmd: DatabaseMetadata,
+    outputFileNameNoExt: string,
+    preferLowercaseNames: boolean
+  )
+  : string
 {
   const parts: string[] = [];
 
@@ -85,7 +92,7 @@ function relationsJavaSource(dbmd: DatabaseMetadata, preferLowercaseNames: boole
 
   parts.push('import org.checkerframework.checker.nullness.qual.Nullable;\n');
 
-  parts.push('public class RelationsMetadata');
+  parts.push(`public class ${outputFileNameNoExt}`);
   parts.push('{');
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
