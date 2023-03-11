@@ -139,8 +139,8 @@ export class SqlSpecGenerator
   }
 
   /// Make query SQL having JSON object result values at the top level of the
-  /// result set. The query returns a JSON value in a single column and with
-  /// any number of result rows.
+  /// result set. The query returns a JSON value in a single column for each
+  /// of any number of result rows.
   private jsonObjectRowsSql
     (
       tjs: TableJsonSpec,

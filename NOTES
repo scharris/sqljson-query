@@ -1,5 +1,10 @@
 # NOTES
 
+Query Simplification
+  sql-source-generator.ts
+    Try replacing jsonRowObjectsSql
+
+
 Sqlite support (WIP)
   Use functions json_object(), json_group_array().
 
@@ -7,7 +12,7 @@ Sqlite support (WIP)
 
 Build and run tests:
 
-```console
+```sh
 npm run build
 npm run start-test-dbs
 npm test

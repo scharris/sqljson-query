@@ -1,13 +1,16 @@
 import * as path from 'path';
-import { promises as fs } from 'fs';
-import { requireFileExists, writeTextFile, readTextFile } from './util/files';
-import { parseArgs, parseBoolOption } from './util/args';
-import { Nullable, replaceAll} from './util/mod';
-import { QueryGroupSpec, ResultRepr, SpecError } from './query-specs';
-import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
-import { QueryPropertiesMetadata } from './query-properties-metadata-generation';
+import {promises as fs} from 'fs';
+import {readTextFile, requireFileExists, writeTextFile} from './util/files';
+import {parseArgs, parseBoolOption} from './util/args';
+import {Nullable, replaceAll} from './util/mod';
+import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
+import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
+import {QueryPropertiesMetadata} from './query-properties-metadata-generation';
 import {
-  DatabaseMetadata, GeneratedResultTypes, GeneratedSql, generateQueryGroupSources,
+  DatabaseMetadata,
+  GeneratedResultTypes,
+  GeneratedSql,
+  generateQueryGroupSources,
   parseStoredDatabaseMetadata
 } from './lib';
 

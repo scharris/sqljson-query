@@ -2,18 +2,9 @@ import {indentLines, replaceAll} from "../util/strings";
 import {isNonEmpty, mapSet, sorted} from "../util/collections";
 import {exactUnquotedName} from "../util/database-names";
 import {CaseSensitivity, RelId} from "../dbmd";
-import {
-  FromEntry,
-  getPropertySelectEntries,
-  OrderBy,
-  ParentChildCondition,
-  SelectEntry,
-  SqlSpec,
-  WhereEntry
-} from "./sql-specs";
+import {FromEntry, getPropertySelectEntries, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry} from "./sql-specs";
 import {SqlDialect} from "./sql-dialects";
 import {AdditionalObjectPropertyColumn} from "../query-specs";
-import {Nullable} from "../util/mod";
 
 export class SqlSourceGenerator
 {
@@ -32,29 +23,14 @@ export class SqlSourceGenerator
 
   makeSql(spec: SqlSpec): string
   {
-    const baseSql = this.baseSql(spec);
-
     const wrapPropsInObj = spec.objectWrapProperties ?? false;
 
     if (!spec.aggregateToArray && !wrapPropsInObj) // no aggregation nor object wrapping
-    {
-      return baseSql;
-    }
+      return this.baseSql(spec);
+    else if (!spec.aggregateToArray) // no aggregation but do object wrapping
+      return this.jsonRowObjectsSql(spec);
     else // at least one of aggregation and object wrapping of properties will be done
-    {
-      const propSelectEntries = getPropertySelectEntries(spec);
-      const baseTable = baseTableDescn(spec); // only used for comments
-
-      if (!spec.aggregateToArray) // no aggregation but do object wrapping
-      {
-        const additionalCols = spec.additionalObjectPropertyColumns ?? [];
-        return this.jsonRowObjectsSql(baseSql, propSelectEntries, additionalCols, spec.orderBy, baseTable);
-      }
-      else // aggregation and maybe object wrapping
-      {
-        return this.aggregateSql(baseSql, propSelectEntries, wrapPropsInObj, spec.orderBy, baseTable);
-      }
-    }
+      return this.aggregateSql(spec);
   }
 
   private baseSql(spec: SqlSpec)
@@ -96,26 +72,31 @@ export class SqlSourceGenerator
 
   private jsonRowObjectsSql
     (
-      baseSql: string,
-      selectEntries: SelectEntry[],
-      additionalColumns: AdditionalObjectPropertyColumn[],
-      orderBy: Nullable<OrderBy>,
-      baseTableDesc: Nullable<string>, // for comments
+      sqlSpec: SqlSpec
     )
     : string
   {
+    const additionalCols = sqlSpec.additionalObjectPropertyColumns ?? [];
+    const propSelectEntries = getPropertySelectEntries(sqlSpec);
+    const baseTableDesc = baseTableDescn(sqlSpec); // only used for comments
+    const orderBy = sqlSpec.orderBy;
+
+    const baseSql = this.baseSql(sqlSpec);
+
     return (
       'select\n' +
+        // TODO: Build select entries based on base tables as in baseSql.
         this.indent(
           (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
-          this.sqlDialect.getRowObjectExpression(selectEntries, 'q') + ' json' +
-          (isNonEmpty(additionalColumns)
-            ? `,\n${additionalColumns.map(c => this.additionalPropertyColumnSql(c)).join(',\n')}`
+          this.sqlDialect.getRowObjectExpression(propSelectEntries, 'q') + ' json' +
+          (isNonEmpty(additionalCols)
+            ? `,\n${additionalCols.map(c => this.additionalPropertyColumnSql(c)).join(',\n')}`
             : '')
         ) + '\n' +
       'from (\n' +
         nlterm(this.indent(
           (baseTableDesc ? `-- base query for table '${baseTableDesc}'\n` : '') +
+          // TODO: Include base tables here as in baseSql().
           baseSql
         )) +
       ') q' +
@@ -133,29 +114,26 @@ export class SqlSourceGenerator
     return `${propNameExpr} as ${alias}`;
   }
 
-  private aggregateSql
-    (
-      sql: string,
-      selectEntries: SelectEntry[],
-      wrapProps: boolean,
-      orderBy: Nullable<OrderBy>,
-      baseTableDesc: Nullable<string>, // for comments
-    )
-    : string
+  private aggregateSql(spec: SqlSpec): string
   {
-    const ordby = orderBy?.orderBy;
+    const propSelectEntries = getPropertySelectEntries(spec);
+    const baseTableDesc = baseTableDescn(spec); // only used for comments
+    const baseSql = this.baseSql(spec);
+    const wrapProps = spec.objectWrapProperties ?? false;
+
+    const ordby = spec.orderBy?.orderBy;
     return (
       'select\n' +
         this.indent(
           (this.genComments ? `-- aggregated ${wrapProps? 'rows' : 'values'} from table '${baseTableDesc}'\n`: '') +
           (wrapProps
-            ? this.sqlDialect.getAggregatedRowObjectsExpression(selectEntries, ordby, 'q')
-            : this.sqlDialect.getAggregatedColumnValuesExpression(selectEntries[0], ordby, 'q')) + ' json\n'
+            ? this.sqlDialect.getAggregatedRowObjectsExpression(propSelectEntries, ordby, 'q')
+            : this.sqlDialect.getAggregatedColumnValuesExpression(propSelectEntries[0], ordby, 'q')) + ' json\n'
         ) +
       'from (\n' +
         nlterm(this.indent(
           (this.genComments ? `-- base query for table '${baseTableDesc}'\n` : '') +
-          sql
+          baseSql
         )) +
       ') q'
     );
