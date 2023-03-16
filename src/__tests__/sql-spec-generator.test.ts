@@ -1,10 +1,14 @@
 import * as path from 'path';
-import { QuerySpec } from '../query-specs';
-import { DatabaseMetadata } from '../dbmd';
-import { propertyNameDefaultFunction } from '../util/mod';
-import { readTextFileSync } from '../util/files';
-import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
-import { ChildCollectionSelectEntry, InlineParentSelectEntry, ParentReferenceSelectEntry } from '../sql-generation/sql-specs';
+import {QuerySpec} from '../query-specs';
+import {DatabaseMetadata} from '../dbmd';
+import {propertyNameDefaultFunction} from '../util/mod';
+import {readTextFileSync} from '../util/files';
+import {SqlSpecGenerator} from '../sql-generation/sql-spec-generator';
+import {
+  ChildCollectionSelectEntry,
+  InlineParentSelectEntry,
+  ParentReferenceSelectEntry
+} from '../sql-generation/sql-specs';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -151,19 +155,18 @@ test('additional object property columns from a JSON_OBJECT_ROWS query are inclu
   const querySpec: QuerySpec = {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],
-    additionalObjectPropertyColumns: ['id', 'name'],
+    additionalOutputColumns: ['id', 'name'],
     tableJson: {
       table: 'drug',
       fieldExpressions: [
-        'id',
-        'name',
         'compound_id',
       ]
     }
   };
 
   const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
-  expect(sqlSpec.additionalObjectPropertyColumns).toEqual(
+  // @ts-ignore
+  expect(sqlSpec.additionalOutputSelectEntries.map(se => se.field.name)).toEqual(
     ['id', 'name']
   );
 });
@@ -173,7 +176,7 @@ test('specified additional object property columns must exist in JSON_OBJECT_ROW
   const querySpec: QuerySpec = {
     queryName: 'test query',
     resultRepresentations: ['JSON_OBJECT_ROWS'],
-    additionalObjectPropertyColumns: ['id', 'nameX'],
+    additionalOutputColumns: ['id', 'nameX'],
     tableJson: {
       table: 'drug',
       fieldExpressions: [

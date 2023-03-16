@@ -1,6 +1,6 @@
-import { CaseSensitivity } from '../dbmd/database-metadata';
-import { PropertyNameDefault } from '../query-specs';
-import { lowerCamelCase, snakeCase, upperCamelCase } from './strings';
+import {CaseSensitivity} from '../dbmd/database-metadata';
+import {PropertyNameDefault} from '../query-specs';
+import {lowerCamelCase, snakeCase, upperCamelCase} from './strings';
 
 export function propertyNameDefaultFunction
   (

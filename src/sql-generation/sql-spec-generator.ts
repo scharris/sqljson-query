@@ -1,7 +1,7 @@
-import {caseNormalizeName, exactUnquotedName, makeMap, makeNameNotInSet, Nullable, relIdDescn} from '../util/mod';
+import {caseNormalizeName, exactUnquotedName, makeMap, Nullable, relIdDescn} from '../util/mod';
 import {DatabaseMetadata, Field, ForeignKey, foreignKeyFieldNames, RelId} from '../dbmd';
 import {
-  AdditionalObjectPropertyColumn,
+  AdditionalOutputColumn,
   addLocPart,
   ChildSpec,
   CustomMatchCondition,
@@ -22,10 +22,12 @@ import {
 import {
   ChildCollectionSelectEntry,
   ChildForeignKeyCondition,
+  createTableAlias,
+  ExpressionSelectEntry,
+  FieldSelectEntry,
   getPropertySelectEntries,
   HiddenPrimaryKeySelectEntry,
   ParentPrimaryKeyCondition,
-  SelectEntry,
   SqlParts,
   SqlSpec,
 } from './sql-specs';
@@ -68,8 +70,8 @@ export class SqlSpecGenerator
         const baseSql = this.baseSql(query.tableJson, null, query.orderBy, specLoc);
         return query.forUpdate ? { ...baseSql, forUpdate: true }: baseSql;
       case 'JSON_OBJECT_ROWS':
-        const additionalCols = query.additionalObjectPropertyColumns ?? [];
-        return this.jsonObjectRowsSql(query.tableJson, additionalCols, null, query.orderBy, specLoc);
+        const addCols = query.additionalOutputColumns ?? [];
+        return this.jsonObjectRowsSql(query.tableJson, addCols, null, query.orderBy, specLoc);
       case 'JSON_ARRAY_ROW':
         return this.jsonArrayRowSql(query.tableJson, null, false, query.orderBy, specLoc);
       default:
@@ -83,7 +85,7 @@ export class SqlSpecGenerator
       parentChildCond: Nullable<ParentPrimaryKeyCondition | ChildForeignKeyCondition>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation,
-      exportPkFieldsHidden?: 'export-pk-fields-hidden',
+      exportPkFieldsHidden?: 'export-pk-fields-hidden'
     )
     : SqlSpec
   {
@@ -105,7 +107,7 @@ export class SqlSpecGenerator
     if (exportPkFieldsHidden)
       sqlb.addSelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
 
-    sqlb.addSelectEntries(this.tableFieldExpressionSelectEntries(tjs, alias, specLoc));
+    sqlb.addSelectEntries(this.tableFieldExpressionSelectEntries(tjs.fieldExpressions, tjs.table, alias, specLoc));
 
     sqlb.addParts(this.inlineParentsSqlParts(tjs, relId, alias, sqlb.getAliases(), specLoc));
 
@@ -144,7 +146,7 @@ export class SqlSpecGenerator
   private jsonObjectRowsSql
     (
       tjs: TableJsonSpec,
-      additionalObjectPropertyColumns: AdditionalObjectPropertyColumn[],
+      addOutputColumns: AdditionalOutputColumn[],
       pkCond: Nullable<ParentPrimaryKeyCondition>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation
@@ -153,18 +155,13 @@ export class SqlSpecGenerator
   {
     const baseSql = this.baseSql(tjs, pkCond, orderBy, specLoc);
 
-    // Additional property column names must exist as projected column names in the base sql.
-    const propCols = additionalObjectPropertyColumns.map(c => typeof(c) == 'string' ? c : c.property);
-    const projectedPropNames = new Set(getPropertySelectEntries(baseSql).map(prop => prop.projectedName));
-    const invalidPropCols = propCols.filter(pc => !projectedPropNames.has(pc));
-    if (invalidPropCols.length > 0)
-      throw new SpecError(specLoc, `Extracted property column(s) not found: ${invalidPropCols.join(', ')}.`);
+    verifyTableFieldExpressionsValid(addOutputColumns, tjs.table, this.defaultSchema, this.dbmd, specLoc);
 
-    return {
-      ...baseSql,
-      objectWrapProperties: true,
-      additionalObjectPropertyColumns
-    };
+    const alias = baseSql.fromEntries[0].alias;
+    const additionalOutputSelectEntries =
+      this.tableFieldExpressionSelectEntries(addOutputColumns, tjs.table, alias, specLoc);
+
+    return { ...baseSql, objectWrapProperties: true, additionalOutputSelectEntries };
   }
 
   /// Make query SQL having a single row and column result, with the result value
@@ -180,7 +177,7 @@ export class SqlSpecGenerator
     )
     : SqlSpec
   {
-    const baseSql = this.baseSql(tjs, childFkCond, orderBy, specLoc);
+    const baseSql = this.baseSql(tjs, childFkCond, null, specLoc);
 
     if (unwrap && getPropertySelectEntries(baseSql).length != 1)
       throw new SpecError(specLoc, 'Unwrapped collections cannot have multiple properties.');
@@ -188,8 +185,8 @@ export class SqlSpecGenerator
     return {
       ...baseSql,
       aggregateToArray: true,
-      objectWrapProperties: !unwrap,
-      fromEntriesLeadingComment: `base query for table '${tjs.table}'`,
+      aggregateOrderBy: orderBy,
+      objectWrapProperties: !unwrap
     };
   }
 
@@ -210,21 +207,22 @@ export class SqlSpecGenerator
 
   private tableFieldExpressionSelectEntries
     (
-      tjs: TableJsonSpec,
+      fieldExpressions: Nullable<(string | TableFieldExpr)[]>,
+      table: string,
       tableAlias: string,
       specLoc: SpecLocation
     )
-    : SelectEntry[]
+    : (FieldSelectEntry | ExpressionSelectEntry)[]
   {
-    verifyTableFieldExpressionsValid(tjs, this.defaultSchema, this.dbmd, specLoc);
+    verifyTableFieldExpressionsValid(fieldExpressions, table, this.defaultSchema, this.dbmd, specLoc);
 
-    if (!tjs.fieldExpressions)
+    if (!fieldExpressions)
       return [];
 
-    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(tjs.table, specLoc);
+    const dbFieldsByName: Map<string,Field> = this.getTableFieldsByName(table, specLoc);
 
-    return tjs.fieldExpressions.map((tfe, ix) => {
-      const feLoc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${tjs.table}`);
+    return fieldExpressions.map((tfe, ix) => {
+      const feLoc = addLocPart(specLoc, `fieldExpressions entry #${ix+1} of table ${table}`);
       const projectedName = this.jsonPropertyName(tfe, feLoc);
 
       if (typeof tfe === 'string' || tfe.field != null)
@@ -232,7 +230,7 @@ export class SqlSpecGenerator
         const fieldName = typeof tfe === 'string' ? tfe : tfe.field;
         const dbField = dbFieldsByName.get(caseNormalizeName(fieldName, this.dbmd.caseSensitivity));
         if (dbField == undefined)
-          throw new SpecError(specLoc, `No metadata found for field ${tjs.table}.${fieldName}.`);
+          throw new SpecError(specLoc, `No metadata found for field ${table}.${fieldName}.`);
 
         return {
           entryType: 'se-field',
@@ -273,17 +271,16 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts(aliasesInScope);
 
-    for (const parent of getInlineParentSpecs(tjs))
+    for (const parSpec of getInlineParentSpecs(tjs))
     {
-      const ipLoc = addLocPart(specLoc, `parent table '${parent.table}'`);
+      const ipLoc = addLocPart(specLoc, `parent table '${parSpec.table}'`);
 
-      sqlParts.addParts(this.inlineParentSqlParts(parent, relId, alias, sqlParts.getAliases(), ipLoc));
+      sqlParts.addParts(this.inlineParentSqlParts(parSpec, relId, alias, sqlParts.getAliases(), ipLoc));
     }
 
     return sqlParts;
   }
 
-  // Return sql parts for the *including* (child) table's SQL query which are contributed by the inline parent table.
   private inlineParentSqlParts
     (
       parentSpec: InlineParentSpec,
@@ -296,8 +293,8 @@ export class SqlSpecGenerator
   {
     const sqlParts = new SqlParts();
 
-    const subqueryAlias = parentSpec.subqueryAlias || makeNameNotInSet('q', avoidAliases);
-    sqlParts.addAlias(subqueryAlias);
+    const fromEntryAlias = parentSpec.fromEntryAlias || createTableAlias(parentSpec.table, avoidAliases);
+    sqlParts.addAlias(fromEntryAlias);
 
     const parentPropsSql = this.baseSql(parentSpec, null, null, specLoc, 'export-pk-fields-hidden');
 
@@ -316,13 +313,13 @@ export class SqlSpecGenerator
     sqlParts.addFromEntry({
       entryType: 'query',
       query: parentPropsSql,
-      alias: subqueryAlias,
+      alias: fromEntryAlias,
       join: {
         joinType: 'LEFT',
         parentChildCondition: {
           condType: 'pcc-on-fk',
           fromAlias: childAlias,
-          parentAlias: subqueryAlias,
+          parentAlias: fromEntryAlias,
           matchedFields,
           matchMustExist
         },
@@ -337,7 +334,7 @@ export class SqlSpecGenerator
       sqlParts.addSelectEntry({
         entryType: 'se-inline-parent-prop',
         projectedName: parentSelectEntry.projectedName,
-        parentAlias: subqueryAlias,
+        parentAlias: fromEntryAlias,
         parentTable: parentRelId,
         parentSelectEntry: parentSelectEntry,
         comment: ix === 0 ? `field(s) inlined from parent table '${parentSpec.table}'` : null,
@@ -596,6 +593,7 @@ export class SqlSpecGenerator
   {
     return exactUnquotedName(name, this.dbmd.caseSensitivity);
   }
+
 } // QuerySQLSpecGenerator
 
 

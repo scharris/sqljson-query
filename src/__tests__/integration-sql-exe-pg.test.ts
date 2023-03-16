@@ -2,12 +2,12 @@ import * as path from 'path';
 import {Client} from 'pg';
 import {getDbClient} from './db/db-client-pg';
 import {propertyNameDefaultFunction} from '../util/mod';
-import { readTextFileSync } from '../util/files';
+import {readTextFileSync} from '../util/files';
 import {QuerySpec} from '../mod';
 import {DatabaseMetadata} from '../dbmd';
-import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
-import { SqlSourceGenerator } from '../sql-generation/sql-source-generator';
-import { getSqlDialect } from '../sql-generation';
+import {SqlSpecGenerator} from '../sql-generation/sql-spec-generator';
+import {SqlSourceGenerator} from '../sql-generation/sql-source-generator';
+import {getSqlDialect} from '../sql-generation';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));
@@ -474,7 +474,7 @@ test('unwrapped child collection with element type containing more than one prop
   );
 });
 
-test('order-by specification determines ordering in a child table collection', async () => {
+test('order-by specification determines ordering in a child table collection (desc)', async () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
   const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
 
@@ -487,9 +487,10 @@ test('order-by specification determines ordering in a child table collection', a
           {
             collectionName: 'compoundsEntered',
             table: 'compound',
+            alias: 'cmp',
             fieldExpressions: ['id', 'display_name'],
             foreignKeyFields: ['entered_by'],
-            orderBy: '$$.id desc'
+            orderBy: 'cmp.id desc'
           }
         ],
         recordCondition: {sql: '$$.id = 1'}
@@ -506,6 +507,42 @@ test('order-by specification determines ordering in a child table collection', a
   );
   dbClient.end();
 });
+
+test('order-by specification determines ordering in a child table collection (asc)', async () => {
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const sqlSrcGen = new SqlSourceGenerator(getSqlDialect(dbmd, 2), dbmd.caseSensitivity, new Set());
+
+  const querySpec: QuerySpec =
+    {
+      queryName: 'test query',
+      tableJson: {
+        table: 'analyst',
+        childTables: [
+          {
+            collectionName: 'compoundsEntered',
+            table: 'compound',
+            alias: 'cmp',
+            fieldExpressions: ['id', 'display_name'],
+            foreignKeyFields: ['entered_by'],
+            orderBy: 'cmp.id'
+          }
+        ],
+        recordCondition: {sql: '$$.id = 1'}
+      }
+    };
+
+  const sql = sqlSrcGen.makeSql(sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!) || '';
+  const dbClient: Client = await getDbClient();
+  const res = await dbClient.query(sql);
+  expect(res.rows.length).toBe(1);
+  const json = res.rows[0].json as any;
+  expect(json.compoundsEntered.map((ce: any) => `${ce.id}|${ce.displayName}`)).toEqual(
+    ['2|Test Compound 2', '4|Test Compound 4']
+  );
+  dbClient.end();
+});
+
+
 
 test('referenced parent table', async () => {
   const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);

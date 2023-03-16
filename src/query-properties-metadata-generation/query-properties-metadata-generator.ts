@@ -1,7 +1,11 @@
 import {
-  getBaseTable, getPropertySelectEntries, QueryFromEntry, SelectEntry, SqlSpec
+  getBaseTable,
+  getPropertySelectEntries,
+  QueryFromEntry,
+  SelectEntry,
+  SqlSpec
 } from "../sql-generation/sql-specs";
-import { ParentStep, QueryPropertyMetadata, QueryPropertiesMetadata } from "./query-properties-metadata";
+import {ParentStep, QueryPropertiesMetadata, QueryPropertyMetadata} from "./query-properties-metadata";
 
 export function makeQueryPropertiesMetadata
   (

@@ -1,6 +1,6 @@
-import { caseNormalizeName, Nullable, relIdDescn } from './util/mod';
-import { DatabaseMetadata, makeRelId, RelId, RelMetadata } from './dbmd';
-import { SourceLanguage } from './source-generation-options';
+import {caseNormalizeName, Nullable, relIdDescn} from './util/mod';
+import {DatabaseMetadata, makeRelId, RelId, RelMetadata} from './dbmd';
+import {SourceLanguage} from './source-generation-options';
 
 export interface QueryGroupSpec
 {
@@ -17,13 +17,16 @@ export interface QuerySpec
   description?: Nullable<string>;
   tableJson: TableJsonSpec;
   resultRepresentations?: Nullable<ResultRepr[]>;
-  additionalObjectPropertyColumns?: Nullable<AdditionalObjectPropertyColumn[]>;
+  additionalOutputColumns?: Nullable<AdditionalOutputColumn[]>; // for JSON_OBJECT_ROWS only
   generateResultTypes?: Nullable<boolean>;
   generateSource?: Nullable<boolean>;
   orderBy?: Nullable<string>;
   forUpdate?: Nullable<boolean>;
   typesFileHeader?: Nullable<QueryTypesFileHeader>;
 }
+
+// Additional output columns for top-level JSON_OBJECT_ROWS queries (added after the "json" column).
+export type AdditionalOutputColumn = string | TableFieldExpr;
 
 export type QueryTypesFileHeader = string | { [l in SourceLanguage]: string };
 
@@ -76,7 +79,7 @@ export interface ReferencedParentSpec extends ParentSpec
 export interface InlineParentSpec extends ParentSpec
 {
   referenceName: undefined;
-  subqueryAlias?: Nullable<string>; // alias for the FROM clause subquery, for use in record conditions
+  fromEntryAlias?: Nullable<string>; // alias for the FROM entry in the child's query for the parent, for record conditions
 }
 
 export interface ChildSpec extends TableJsonSpec
@@ -93,7 +96,7 @@ export interface ChildSpec extends TableJsonSpec
 export interface CustomMatchCondition
 {
   equatedFields: FieldPair[];
-  // By default a custom match condition for a parent will cause a nullable parent reference or nullable inline
+  // By default, a custom match condition for a parent will cause a nullable parent reference or nullable inline
   // fields from the parent. This option allows asserting that a matching parent record always exists for this
   // join condition, so the parent reference or inline fields can be non-nullable if other factors don't
   // prevent it (such as a parent record condition, or an inlined field being nullable in the parent itself).
@@ -116,9 +119,6 @@ export interface RecordCondition
 export type PropertyNameDefault = 'AS_IN_DB' | 'CAMELCASE' | 'UPPER_CAMELCASE' | 'INIT_CAPS_SNAKE_CASE';
 
 export type ResultRepr = "MULTI_COLUMN_ROWS" | "JSON_OBJECT_ROWS" | "JSON_ARRAY_ROW";
-
-export type AdditionalObjectPropertyColumn = string | { property: string; as: string };
-
 
 export function getInlineParentSpecs(tableSpec: TableJsonSpec): InlineParentSpec[]
 {
@@ -193,17 +193,18 @@ export function identifyTable
 
 export function verifyTableFieldExpressionsValid
   (
-    tableSpec: TableJsonSpec,
+    fieldExpressions: Nullable<(string | TableFieldExpr)[]>,
+    table: string,
     defaultSchema: Nullable<string>,
     dbmd: DatabaseMetadata,
     specLoc: SpecLocation
   )
 {
-  if (!tableSpec.fieldExpressions)
+  if (!fieldExpressions)
     return;
 
   const simpleSelectFields : string[] = [];
-  for ( const [ix, fieldExpr] of tableSpec.fieldExpressions.entries() )
+  for ( const [ix, fieldExpr] of fieldExpressions.entries() )
   {
     if (typeof fieldExpr === 'string')
       simpleSelectFields.push(fieldExpr);
@@ -220,7 +221,7 @@ export function verifyTableFieldExpressionsValid
     }
   }
 
-  const relMd = getRelMetadata(tableSpec.table, defaultSchema, dbmd, specLoc);
+  const relMd = getRelMetadata(table, defaultSchema, dbmd, specLoc);
 
   verifyFieldsExistInRelMd(simpleSelectFields, relMd, dbmd, specLoc);
 }
@@ -266,17 +267,6 @@ function verifyFieldsExistInRelMd
       `Field(s) not found in table ${relIdDescn(relMd.relationId)}: ${missing.join(', ')}.`
     );
 }
-
-function verifyPropertyColumnsExist
-  (
-    propertyNames: string[],
-    specLoc: SpecLocation
-  )
-{
-  // TODO
-}
-
-
 
 function getRelMetadata
   (

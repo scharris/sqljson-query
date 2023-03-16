@@ -1,11 +1,18 @@
-import { RelId } from "../dbmd";
+import {RelId} from "../dbmd";
 import {
-  ChildCollectionSelectEntry, ExpressionSelectEntry, FieldSelectEntry, getBaseTable,
-  getPropertySelectEntries, InlineParentSelectEntry, ParentReferenceSelectEntry, QueryFromEntry,
-  SelectEntry, SqlSpec
+  ChildCollectionSelectEntry,
+  ExpressionSelectEntry,
+  FieldSelectEntry,
+  getBaseTable,
+  getPropertySelectEntries,
+  InlineParentSelectEntry,
+  ParentReferenceSelectEntry,
+  QueryFromEntry,
+  SelectEntry,
+  SqlSpec
 } from "../sql-generation/sql-specs";
-import { dedupedWithAssignedNames } from "./result-type-names-assignment";
-import { NamedResultTypeSpec, ResultTypeProperty, ResultTypeSpec } from "./result-type-specs";
+import {dedupedWithAssignedNames} from "./result-type-names-assignment";
+import {NamedResultTypeSpec, ResultTypeProperty, ResultTypeSpec} from "./result-type-specs";
 
 export function makeNamedResultTypeSpecs
   (

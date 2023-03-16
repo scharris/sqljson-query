@@ -1,13 +1,7 @@
 import {Nullable} from '../../util/nullable';
 import {indentLines} from '../../util/strings';
 import {SqlDialect} from './sql-dialect';
-import {SelectEntry} from "../sql-specs";
-
-const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
-
-const sqlKeywordsLowercase = new Set([
-  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over', 'is'
-]);
+import {generalSqlKeywordsLowercase, SelectEntry} from "../sql-specs";
 
 export class HSQLDialect implements SqlDialect
 {
@@ -19,15 +13,14 @@ export class HSQLDialect implements SqlDialect
   getRowObjectExpression
     (
       selectEntries: SelectEntry[],
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string
     )
     : string
   {
     const objectFieldDecls =
       selectEntries
-      .map(se=>
-        `'${se.projectedName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(se.projectedName)}` +
-        (needsFormatJsonQualifier(se) ? " format json" : "")
+      .map(se=> `'${se.projectedName}' value ${selectEntryValueSqlFn(se)}` +
+        (needsFormatJson(se) ? " format json" : "")
       )
       .join(',\n');
 
@@ -41,33 +34,30 @@ export class HSQLDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       selectEntries: SelectEntry[],
-      orderBy: Nullable<string>,
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string,
+      orderBy: Nullable<string>
     )
     : string
   {
     return (
       'coalesce(json_arrayagg(' +
-        this.getRowObjectExpression(selectEntries, srcAlias) +
-        (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
-        `), '[]')`
+        this.getRowObjectExpression(selectEntries, selectEntryValueSqlFn) +
+        (orderBy != null ? ` order by ${orderBy}` : '') +
+      `), '[]')`
     );
   }
 
   getAggregatedColumnValuesExpression
     (
-      selectEntry: SelectEntry,
-      orderBy: Nullable<string>,
-      srcAlias: string
+      valueExpression: string,
+      orderBy: Nullable<string>
     )
     : string
   {
-    const columnName = selectEntry.projectedName;
-
     return (
-      `coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
-        `), '[]')`
+      `coalesce(jsonb_agg(${valueExpression}` +
+        (orderBy != null ? ' order by ' + orderBy : '') +
+      '))'
     );
   }
 
@@ -77,7 +67,7 @@ export class HSQLDialect implements SqlDialect
       return name;
     if ( !simpleIdentifierRegex.test(name) ||
          !this.uppercaseNameRegex.test(name) ||
-         sqlKeywordsLowercase.has(name.toLowerCase()) )
+         generalSqlKeywordsLowercase.has(name.toLowerCase()) )
       return `"${name}"`;
     return name;
   }
@@ -86,13 +76,15 @@ export class HSQLDialect implements SqlDialect
   {
     if ( this.quotedStringRegex.test(nameExact) )
       return nameExact;
-    if ( !simpleIdentifierRegex.test(nameExact) || !this.uppercaseNameRegex.test(nameExact) )
+    if ( !simpleIdentifierRegex.test(nameExact) ||
+         !this.uppercaseNameRegex.test(nameExact) ||
+         avoidColumnNamesLowercase.has(nameExact.toLowerCase()) )
       return `"${nameExact}"`;
     return nameExact;
   }
 }
 
-function needsFormatJsonQualifier(selectEntry: SelectEntry): boolean
+function needsFormatJson(selectEntry: SelectEntry): boolean
 {
   switch (selectEntry.entryType)
   {
@@ -104,7 +96,88 @@ function needsFormatJsonQualifier(selectEntry: SelectEntry): boolean
     case "se-hidden-pkf":
       return false;
     case "se-inline-parent-prop":
-      return needsFormatJsonQualifier(selectEntry.parentSelectEntry);
+      return needsFormatJson(selectEntry.parentSelectEntry);
   }
 }
+
+const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
+
+const avoidColumnNamesLowercase = new Set([
+  'all',
+  'and',
+  'and',
+  'any',
+  'as',
+  'at',
+  'between',
+  'both',
+  'by',
+  'call',
+  'case',
+  'cast',
+  'coalesce',
+  'collation',
+  'convert',
+  'corresponding',
+  'create',
+  'cross',
+  'cube',
+  'current',
+  'current_path',
+  'default',
+  'distinct',
+  'do',
+  'drop',
+  'else',
+  'every',
+  'except',
+  'exists',
+  'fetch',
+  'for',
+  'from',
+  'full',
+  'grant',
+  'group',
+  'grouping',
+  'having',
+  'in',
+  'inner',
+  'intersect',
+  'into',
+  'is',
+  'join',
+  'leading',
+  'left',
+  'like',
+  'natural',
+  'normalize',
+  'not',
+  'nullif',
+  'on',
+  'or',
+  'order',
+  'outer',
+  'primary',
+  'references',
+  'right',
+  'rollup',
+  'row',
+  'select',
+  'set',
+  'some',
+  'sum',
+  'table',
+  'then',
+  'to',
+  'trailing',
+  'trigger',
+  'union',
+  'unique',
+  'user',
+  'using',
+  'values',
+  'when',
+  'where',
+  'with',
+]);
 

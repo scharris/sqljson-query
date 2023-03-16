@@ -1,10 +1,9 @@
 import {indentLines, replaceAll} from "../util/strings";
-import {isNonEmpty, mapSet, sorted} from "../util/collections";
+import {mapSet, nonEmpty, sorted} from "../util/collections";
 import {exactUnquotedName} from "../util/database-names";
 import {CaseSensitivity, RelId} from "../dbmd";
 import {FromEntry, getPropertySelectEntries, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry} from "./sql-specs";
 import {SqlDialect} from "./sql-dialects";
-import {AdditionalObjectPropertyColumn} from "../query-specs";
 
 export class SqlSourceGenerator
 {
@@ -23,29 +22,39 @@ export class SqlSourceGenerator
 
   makeSql(spec: SqlSpec): string
   {
-    const wrapPropsInObj = spec.objectWrapProperties ?? false;
-
-    if (!spec.aggregateToArray && !wrapPropsInObj) // no aggregation nor object wrapping
-      return this.baseSql(spec);
-    else if (!spec.aggregateToArray) // no aggregation but do object wrapping
-      return this.jsonRowObjectsSql(spec);
-    else // at least one of aggregation and object wrapping of properties will be done
-      return this.aggregateSql(spec);
-  }
-
-  private baseSql(spec: SqlSpec)
-  {
+    const propSelEntries = getPropertySelectEntries(spec);
+    const objWrap = spec.objectWrapProperties ?? false;
+    const arrayAgg = spec.aggregateToArray ?? false;
+    const addSelEntries = spec.additionalOutputSelectEntries ?? [];
     const selectComment = this.genComments && spec.selectEntriesLeadingComment ?
       `-- ${spec.selectEntriesLeadingComment}\n` : '';
-    const selectEntries = this.makeSelectEntriesSql(spec.selectEntries) + '\n';
+
+    const selEntryValFn = (se: SelectEntry) => this.selectEntrySql(se, true);
+
+    const selectEntries =
+      arrayAgg ?
+        (objWrap
+          ? this.sqlDialect.getAggregatedRowObjectsExpression(propSelEntries, selEntryValFn, spec.aggregateOrderBy)
+          : this.sqlDialect.getAggregatedColumnValuesExpression(this.selectEntrySql(propSelEntries[0], true), spec.aggregateOrderBy))+' json\n'
+      : objWrap ?
+          this.sqlDialect.getRowObjectExpression(propSelEntries, selEntryValFn)+' json' +
+          (nonEmpty(addSelEntries)
+            ? `,\n${addSelEntries.map(c => this.selectEntrySql(c)).join(',\n')}`
+            : ''
+          ) + "\n"
+      : this.selectEntriesSql(spec.selectEntries) + "\n";
+
     const fromComment = this.genComments && spec.fromEntriesLeadingComment ?
       `-- ${spec.fromEntriesLeadingComment}\n` : '';
+
     const fromEntries = spec.fromEntries.map(e => this.fromEntrySql(e)).join('\n') + '\n';
-    const whereClause = isNonEmpty(spec.whereEntries)
-      ? `where (\n${this.indent(spec.whereEntries.map(e => this.whereEntrySql(e)).join(' and\n'))}\n)\n`
+
+    const whereClause = nonEmpty(spec.whereEntries) ?
+      `where (\n${this.indent(spec.whereEntries.map(e => this.whereEntrySql(e)).join(' and\n'))}\n)\n`
       : '';
-    const orderByClause = spec.orderBy
-      ? 'order by ' + spec.orderBy.orderBy.replace(/\$\$/g, spec.orderBy.tableAlias) + '\n'
+
+    const orderByClause = spec.orderBy ?
+      'order by ' + spec.orderBy.orderBy.replace(/\$\$/g, spec.orderBy.tableAlias) + '\n'
       : '';
 
     return (
@@ -56,7 +65,7 @@ export class SqlSourceGenerator
     );
   }
 
-  private makeSelectEntriesSql(specSelectEntries: SelectEntry[]): string
+  private selectEntriesSql(specSelectEntries: SelectEntry[]): string
   {
     // Assign any missing displayOrders based on select entry position.
     const selectEntries: SelectEntry[] =
@@ -65,132 +74,90 @@ export class SqlSourceGenerator
         dislayOrder: entry.displayOrder ?? ix + 1
       }));
 
-    const sortedSelectEntries = sorted(selectEntries, (e1, e2) => (e1.displayOrder ?? 0) - (e2.displayOrder ?? 0));
+    const sortedSelectEntries =
+      sorted(
+        selectEntries,
+        (e1, e2) => (e1.displayOrder ?? 0) - (e2.displayOrder ?? 0)
+      );
 
-    return sortedSelectEntries.map(e => this.selectEntrySql(e)).join(',\n');
-  }
-
-  private jsonRowObjectsSql
-    (
-      sqlSpec: SqlSpec
-    )
-    : string
-  {
-    const additionalCols = sqlSpec.additionalObjectPropertyColumns ?? [];
-    const propSelectEntries = getPropertySelectEntries(sqlSpec);
-    const baseTableDesc = baseTableDescn(sqlSpec); // only used for comments
-    const orderBy = sqlSpec.orderBy;
-
-    const baseSql = this.baseSql(sqlSpec);
-
-    return (
-      'select\n' +
-        // TODO: Build select entries based on base tables as in baseSql.
-        this.indent(
-          (baseTableDesc ? `-- row object for table '${baseTableDesc}'\n` : '') +
-          this.sqlDialect.getRowObjectExpression(propSelectEntries, 'q') + ' json' +
-          (isNonEmpty(additionalCols)
-            ? `,\n${additionalCols.map(c => this.additionalPropertyColumnSql(c)).join(',\n')}`
-            : '')
-        ) + '\n' +
-      'from (\n' +
-        nlterm(this.indent(
-          (baseTableDesc ? `-- base query for table '${baseTableDesc}'\n` : '') +
-          // TODO: Include base tables here as in baseSql().
-          baseSql
-        )) +
-      ') q' +
-      (orderBy != null ? '\norder by ' + orderBy.orderBy.replace(/\$\$/g, 'q') : '')
+    return sortedSelectEntries.map(se =>
+      (this.genComments && se.comment ? `-- ${se.comment}\n` : '') +
+      this.selectEntrySql(se)).join(',\n'
     );
   }
 
-  private additionalPropertyColumnSql(c: AdditionalObjectPropertyColumn): string
+  private selectEntrySql(selectEntry: SelectEntry, valueOnly = false): string
   {
-    if (typeof(c) === 'string')
-      return this.sqlDialect.quoteColumnNameIfNeeded(c);
-
-    const propNameExpr = this.sqlDialect.quoteColumnNameIfNeeded(c.property);
-    const alias = this.sqlDialect.quoteColumnNameIfNeeded(c.as);
-    return `${propNameExpr} as ${alias}`;
-  }
-
-  private aggregateSql(spec: SqlSpec): string
-  {
-    const propSelectEntries = getPropertySelectEntries(spec);
-    const baseTableDesc = baseTableDescn(spec); // only used for comments
-    const baseSql = this.baseSql(spec);
-    const wrapProps = spec.objectWrapProperties ?? false;
-
-    const ordby = spec.orderBy?.orderBy;
-    return (
-      'select\n' +
-        this.indent(
-          (this.genComments ? `-- aggregated ${wrapProps? 'rows' : 'values'} from table '${baseTableDesc}'\n`: '') +
-          (wrapProps
-            ? this.sqlDialect.getAggregatedRowObjectsExpression(propSelectEntries, ordby, 'q')
-            : this.sqlDialect.getAggregatedColumnValuesExpression(propSelectEntries[0], ordby, 'q')) + ' json\n'
-        ) +
-      'from (\n' +
-        nlterm(this.indent(
-          (this.genComments ? `-- base query for table '${baseTableDesc}'\n` : '') +
-          baseSql
-        )) +
-      ') q'
-    );
-  }
-
-  private selectEntrySql(selectEntry: SelectEntry): string
-  {
-    const projectedName = this.maybeQuoteColumn(selectEntry.projectedName);
-    const isProjectedNameQuoted = projectedName !== selectEntry.projectedName;
-
     switch (selectEntry.entryType)
     {
       case 'se-field':
       {
-        const fieldName = this.maybeQuoteColumn(selectEntry.field.name);
+        const fieldName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.field.name);
+
+        const valueSql = `${selectEntry.tableAlias}.${fieldName}`;
+        if (valueOnly)
+          return valueSql;
+
+        const projectedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+        const isProjectedNameQuoted = projectedName !== selectEntry.projectedName;
         const sep = isProjectedNameQuoted ? ' ' : ' as ';
 
-        return `${selectEntry.tableAlias}.${fieldName}${sep}${projectedName}`;
+        return `${valueSql}${sep}${projectedName}`;
+      }
+      case 'se-hidden-pkf':
+      {
+        const fieldName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.pkFieldName);
+
+        const valueSql = `${selectEntry.tableAlias}.${fieldName}`;
+        if (valueOnly)
+          return valueSql;
+
+        const isFieldNameQuoted = fieldName !== selectEntry.pkFieldName;
+        const sep = isFieldNameQuoted ? ' ' : ' as ';
+        const exportedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+        return `${valueSql}${sep}${exportedName}`;
       }
       case 'se-expr':
       {
         const tableAliasPlaceholder = selectEntry.tableAliasPlaceholderInExpr || DEFAULT_ALIAS_PLACEHOLDER;
         const expr = replaceAll(selectEntry.expression, tableAliasPlaceholder, selectEntry.tableAlias);
+        if (valueOnly)
+          return expr;
+
+        const projectedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+        const isProjectedNameQuoted = projectedName !== selectEntry.projectedName;
         const sep = isProjectedNameQuoted ? ' ' : ' as ';
 
         return `${expr}${sep}${projectedName}`;
       }
       case 'se-inline-parent-prop':
       {
-        return (this.genComments && selectEntry.comment ? `-- ${selectEntry.comment}\n` : '') +
-          `${selectEntry.parentAlias}.${projectedName}`;
+        const projectedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+        return `${selectEntry.parentAlias}.${projectedName}`;
       }
       case 'se-parent-ref':
       {
         const parentRowObjSql = this.makeSql(selectEntry.parentRowObjectSql);
 
-        return (this.genComments && selectEntry.comment ? `-- ${selectEntry.comment}\n` : '') +
-          '(\n' +
-            this.indent(parentRowObjSql) + '\n' +
-          `) ${projectedName}`;
+        const valueSql = '(\n'+this.indent(parentRowObjSql)+')';
+        if (valueOnly)
+          return valueSql;
+
+        const projectedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+
+        return `${valueSql} ${projectedName}`;
       }
       case 'se-child-coll':
       {
         const collectionSql = this.makeSql(selectEntry.collectionSql);
 
-        return (this.genComments && selectEntry.comment ? `-- ${selectEntry.comment}\n` : '') +
-          '(\n' +
-            this.indent(collectionSql) + '\n' +
-          `) ${projectedName}`;
-      }
-      case 'se-hidden-pkf':
-      {
-        const fieldName = this.maybeQuoteColumn(selectEntry.pkFieldName);
-        const isFieldNameQuoted = fieldName !== selectEntry.pkFieldName;
-        const sep = isFieldNameQuoted ? ' ' : ' as ';
-        const exportedName = this.maybeQuoteColumn(selectEntry.projectedName);
-        return `${selectEntry.tableAlias}.${fieldName}${sep}${exportedName}`;
+        const valueSql = '(\n'+this.indent(collectionSql)+')';
+        if (valueOnly)
+          return valueSql;
+
+        const projectedName = this.sqlDialect.quoteColumnNameIfNeeded(selectEntry.projectedName);
+
+        return `${valueSql} ${projectedName}`;
       }
     }
   }
@@ -244,9 +211,9 @@ export class SqlSourceGenerator
       : [pcCond.parentAlias, pcCond.fromAlias];
 
     return pcCond.matchedFields.map(mf =>
-      `${childAlias}.${this.maybeQuoteColumn(mf.foreignKeyFieldName)}` +
+      `${childAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.foreignKeyFieldName)}` +
       ' = ' +
-      `${parentAlias}.${this.maybeQuoteColumn(mf.primaryKeyFieldName)}`
+      `${parentAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.primaryKeyFieldName)}`
     ).join(' and ');
   }
 
@@ -262,24 +229,6 @@ export class SqlSourceGenerator
   {
     return indentLines(s, this.sqlDialect.indentSpaces, true);
   }
-
-  private maybeQuoteColumn(colName: string)
-  {
-    return this.sqlDialect.quoteColumnNameIfNeeded(colName);
-  }
-}
-
-function baseTableDescn(sqlSpec: SqlSpec): string | null
-{
-  const firstFromEntry = sqlSpec.fromEntries[0];
-  if (firstFromEntry.entryType === 'table') return firstFromEntry.table.name;
-  return null;
-}
-
-// Newline terminate the given string if it doesn't end with a newline.
-function nlterm(s: string): string
-{
-  return !s.endsWith('\n') ? s + '\n' : s;
 }
 
 const DEFAULT_ALIAS_PLACEHOLDER = '$$';

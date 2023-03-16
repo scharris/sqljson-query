@@ -9,9 +9,13 @@ export function lowerCamelCase(name: string): string
 }
 export function lowerCaseInitials(name: string, sep: string): string
 {
+  const cleanedName =
+    name.replaceAll(/[._ ]/g,'_')
+    .replaceAll(/[^a-zA-Z0-9_]/g, "");
+
   const parts: string[] = [];
 
-  for ( const word of name.split(sep) )
+  for ( const word of cleanedName.split(sep) )
   {
     if (word.length > 0)
       parts.push(word.charAt(0).toLowerCase());
@@ -83,6 +87,25 @@ export function makeNameNotInSet
   {
     let i = 1;
     while ( existingNames.has(baseName + suffixSep + i) ) ++i;
+    return baseName + suffixSep + i;
+  }
+}
+
+export function makeNameNotInSets
+(
+  baseName: string,
+  avoidSets: Set<string>[],
+  suffixSep: string = ""
+)
+  : string
+{
+  const nameOk = (name: string) => !avoidSets.some(set => set.has(name));
+  if (nameOk(baseName))
+    return baseName;
+  else
+  {
+    let i = 1;
+    while (!nameOk(baseName + suffixSep + i)) ++i;
     return baseName + suffixSep + i;
   }
 }

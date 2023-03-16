@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="start test dbs" type="CompoundRunConfigurationType">
+    <toRun name="Start MySQL test db" type="docker-deploy" />
+    <toRun name="Start Postgres test db" type="docker-deploy" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,13 +1,7 @@
 import {Nullable} from '../../util/nullable';
 import {indentLines} from '../../util/strings';
 import {SqlDialect} from './sql-dialect';
-import {SelectEntry} from "../sql-specs";
-
-const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
-
-const sqlKeywordsLowercase = new Set([
-  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over', 'is'
-]);
+import {generalSqlKeywordsLowercase, SelectEntry} from "../sql-specs";
 
 export class OracleDialect implements SqlDialect
 {
@@ -19,15 +13,13 @@ export class OracleDialect implements SqlDialect
   getRowObjectExpression
     (
       selectEntries: SelectEntry[],
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string
     )
     : string
   {
-    const columnNames = selectEntries.map(e => e.projectedName);
-
     const objectFieldDecls =
-      columnNames
-      .map(colName => `'${colName}' value ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      selectEntries
+      .map(se => `'${se.projectedName}' value ${selectEntryValueSqlFn(se)}`)
       .join(',\n');
 
     return (
@@ -40,32 +32,29 @@ export class OracleDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       selectEntries: SelectEntry[],
-      orderBy: Nullable<string>,
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string,
+      orderBy: Nullable<string>
     )
     : string
   {
     return (
       'treat(coalesce(json_arrayagg(' +
-        this.getRowObjectExpression(selectEntries, srcAlias) +
-        (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
+        this.getRowObjectExpression(selectEntries, selectEntryValueSqlFn) +
+        (orderBy != null ? ` order by ${orderBy}` : '') +
         ` returning clob), to_clob('[]')) as json)`
     );
   }
 
   getAggregatedColumnValuesExpression
     (
-      selectEntry: SelectEntry,
-      orderBy: Nullable<string>,
-      srcAlias: string
+      valueExpression: string,
+      orderBy: Nullable<string>
     )
     : string
   {
-    const columnName = selectEntry.projectedName;
-
     return (
-      `treat(coalesce(json_arrayagg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
+      `treat(coalesce(json_arrayagg(${valueExpression}` +
+        (orderBy != null ? ` order by ${orderBy}` : '') +
         ` returning clob), to_clob('[]')) as json)`
     );
   }
@@ -76,17 +65,132 @@ export class OracleDialect implements SqlDialect
       return name;
     if ( !simpleIdentifierRegex.test(name) ||
          !this.uppercaseNameRegex.test(name) ||
-         sqlKeywordsLowercase.has(name.toLowerCase()) )
+         generalSqlKeywordsLowercase.has(name.toLowerCase()) )
       return `"${name}"`;
     return name;
   }
 
-  quoteColumnNameIfNeeded(nameExact: string): string
+  quoteColumnNameIfNeeded(name: string): string
   {
-    if ( this.quotedStringRegex.test(nameExact) )
-      return nameExact;
-    if ( !simpleIdentifierRegex.test(nameExact) || !this.uppercaseNameRegex.test(nameExact) )
-      return `"${nameExact}"`;
-    return nameExact;
+    if ( this.quotedStringRegex.test(name) )
+      return name;
+    if ( !simpleIdentifierRegex.test(name) ||
+         !this.uppercaseNameRegex.test(name) ||
+         avoidColumnNamesLowercase.has(name.toLowerCase()) )
+      return `"${name}"`;
+    return name;
   }
 }
+
+const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
+
+const avoidColumnNamesLowercase = new Set([
+ 'access',
+ 'add',
+ 'all',
+ 'alter',
+ 'and',
+ 'any',
+ 'as',
+ 'asc',
+ 'audit',
+ 'between',
+ 'by',
+ 'char',
+ 'check',
+ 'cluster',
+ 'column',
+ 'comment',
+ 'compress',
+ 'connect',
+ 'create',
+ 'current',
+ 'date',
+ 'decimal',
+ 'default',
+ 'delete',
+ 'desc',
+ 'distinct',
+ 'drop',
+ 'else',
+ 'exclusive',
+ 'exists',
+ 'file',
+ 'float',
+ 'for',
+ 'from',
+ 'grant',
+ 'group',
+ 'having',
+ 'identified',
+ 'immediate',
+ 'in',
+ 'increment',
+ 'index',
+ 'initial',
+ 'insert',
+ 'integer',
+ 'intersect',
+ 'into',
+ 'is',
+ 'level',
+ 'like',
+ 'lock',
+ 'long',
+ 'maxextents',
+ 'minus',
+ 'mlslabel',
+ 'mode',
+ 'modify',
+ 'noaudit',
+ 'nocompress',
+ 'not',
+ 'nowait',
+ 'null',
+ 'number',
+ 'of',
+ 'offline',
+ 'on',
+ 'online',
+ 'option',
+ 'or',
+ 'order',
+ 'pctfree',
+ 'prior',
+ 'public',
+ 'raw',
+ 'rename',
+ 'resource',
+ 'revoke',
+ 'row',
+ 'rowid',
+ 'rownum',
+ 'rows',
+ 'select',
+ 'session',
+ 'set',
+ 'share',
+ 'size',
+ 'smallint',
+ 'start',
+ 'successful',
+ 'synonym',
+ 'sysdate',
+ 'table',
+ 'then',
+ 'to',
+ 'trigger',
+ 'uid',
+ 'union',
+ 'unique',
+ 'update',
+ 'user',
+ 'validate',
+ 'values',
+ 'varchar',
+ 'varchar2',
+ 'view',
+ 'whenever',
+ 'where',
+ 'with',
+]);

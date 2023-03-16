@@ -1,13 +1,7 @@
 import {Nullable} from '../../util/nullable';
 import {indentLines} from '../../util/strings';
 import {SqlDialect} from './sql-dialect';
-import {SelectEntry} from "../sql-specs";
-
-const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
-
-const sqlKeywordsLowercase = new Set([
-  'select', 'from', 'where', 'user', 'order', 'group', 'by', 'over', 'is'
-]);
+import {generalSqlKeywordsLowercase, SelectEntry} from "../sql-specs";
 
 export class PostgresDialect implements SqlDialect
 {
@@ -19,15 +13,13 @@ export class PostgresDialect implements SqlDialect
   getRowObjectExpression
     (
       selectEntries: SelectEntry[],
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string
     )
     : string
   {
-    const columnNames = selectEntries.map(e => e.projectedName);
-
     const objectFieldDecls =
-      columnNames
-      .map(colName => `'${colName}', ${srcAlias}.${this.quoteColumnNameIfNeeded(colName)}`)
+      selectEntries
+      .map(se => `'${se.projectedName}', ${selectEntryValueSqlFn(se)}`)
       .join(',\n');
 
     return (
@@ -40,32 +32,29 @@ export class PostgresDialect implements SqlDialect
   getAggregatedRowObjectsExpression
     (
       selectEntries: SelectEntry[],
-      orderBy: Nullable<string>,
-      srcAlias: string
+      selectEntryValueSqlFn: (selectEntry: SelectEntry) => string,
+      orderBy: Nullable<string>
     )
     : string
   {
     return (
       'coalesce(jsonb_agg(' +
-        this.getRowObjectExpression(selectEntries, srcAlias) +
-        (orderBy != null ? ` order by ${orderBy.replace(/\$\$/g, srcAlias)}` : '') +
+        this.getRowObjectExpression(selectEntries, selectEntryValueSqlFn) +
+        (orderBy != null ? ` order by ${orderBy}` : '') +
       `),'[]'::jsonb)`
     );
   }
 
   getAggregatedColumnValuesExpression
     (
-      selectEntry: SelectEntry,
-      orderBy: Nullable<string>,
-      srcAlias: string
+      valueExpression: string,
+      orderBy: Nullable<string>
     )
     : string
   {
-    const columnName = selectEntry.projectedName;
-
     return (
-      `coalesce(jsonb_agg(${srcAlias}.${this.quoteColumnNameIfNeeded(columnName)}` +
-        (orderBy != null ? ' order by ' + orderBy.replace(/\$\$/g, srcAlias) : '') +
+      `coalesce(jsonb_agg(${valueExpression}` +
+        (orderBy != null ? ' order by ' + orderBy : '') +
       '))'
     );
   }
@@ -76,7 +65,7 @@ export class PostgresDialect implements SqlDialect
       return name;
     if ( !simpleIdentifierRegex.test(name) ||
          !this.lowercaseNameRegex.test(name) ||
-         sqlKeywordsLowercase.has(name) )
+         generalSqlKeywordsLowercase.has(name.toLowerCase()) )
       return `"${name}"`;
     return name;
   }
@@ -85,8 +74,108 @@ export class PostgresDialect implements SqlDialect
   {
     if ( this.quotedStringRegex.test(name) )
       return name;
-    if ( !simpleIdentifierRegex.test(name) || !this.lowercaseNameRegex.test(name) )
+    if ( !simpleIdentifierRegex.test(name) ||
+         !this.lowercaseNameRegex.test(name) ||
+         avoidColumnNamesLowercase.has(name.toLowerCase()) )
       return `"${name}"`;
     return name;
   }
 }
+
+const simpleIdentifierRegex = new RegExp(/^[A-Za-z][A-Za-z0-9_]+$/);
+
+const avoidColumnNamesLowercase = new Set([
+  'all',
+  'analyze',
+  'and',
+  'any',
+  'array',
+  'as',
+  'asymmetric',
+  'authorization',
+  'binary',
+  'both',
+  'case',
+  'cast',
+  'check',
+  'collate',
+  'collation',
+  'column',
+  'constraint',
+  'create',
+  'cross',
+  'current_date',
+  'current_role',
+  'current_time',
+  'current_timestamp',
+  'current_user',
+  'default',
+  'deferrable',
+  'desc',
+  'distinct',
+  'do',
+  'else',
+  'end',
+  'except',
+  'false',
+  'fetch',
+  'for',
+  'foreign',
+  'freeze',
+  'from',
+  'full',
+  'grant',
+  'group',
+  'having',
+  'ilike',
+  'in',
+  'initially',
+  'inner',
+  'intersect',
+  'interval',
+  'into',
+  'is',
+  'isnull',
+  'join',
+  'lateral',
+  'leading',
+  'left',
+  'like',
+  'limit',
+  'localtime',
+  'localtimestamp',
+  'natural',
+  'not',
+  'notnull',
+  'null',
+  'offset',
+  'on',
+  'only',
+  'or',
+  'order',
+  'outer',
+  'overlaps',
+  'placing',
+  'primary',
+  'references',
+  'right',
+  'select',
+  'session_user',
+  'similar',
+  'some',
+  'symmetric',
+  'table',
+  'tablesample',
+  'then',
+  'to',
+  'trailing',
+  'true',
+  'union',
+  'unique',
+  'user',
+  'using',
+  'verbose',
+  'when',
+  'where',
+  'with'
+]);

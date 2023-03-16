@@ -207,7 +207,7 @@ function getItemIndexMap<T>(ts: T[])
   return m;
 }
 
-export function isNonEmpty<T>(ts: T[] | null | undefined): ts is NonNullable<T[]>
+export function nonEmpty<T>(ts: T[] | null | undefined): ts is NonNullable<T[]>
 {
   return (ts != null && ts.length > 0);
 }
