@@ -151,129 +151,91 @@ Given the inputs above, SQL/JSON-Query produces the following outputs:
  specification above the following SQL is produced:
 
 ```sql
+-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]
+-- JSON_OBJECT_ROWS results representation for drug advisories references query
 select
-  -- row object for table 'drug'
   jsonb_build_object(
-    'drugName', q."drugName",
-    'categoryCode', q."categoryCode",
-    'primaryCompound', q."primaryCompound",
-    'advisories', q.advisories,
-    'prioritizedReferences', q."prioritizedReferences"
-  ) json
-from (
-  -- base query for table 'drug'
-  select
-    d.name "drugName",
-    d.category_code "categoryCode",
-    -- parent table 'compound' referenced as 'primaryCompound'
-    (
+    'drugName', d.name,
+    'categoryCode', d.category_code,
+    'primaryCompound', (
       select
-        -- row object for table 'compound'
         jsonb_build_object(
-          'compoundId', q."compoundId",
-          'compoundDisplayName', q."compoundDisplayName",
-          'enteredByAnalyst', q."enteredByAnalyst"
+          'compoundId', c.id,
+          'compoundDisplayName', c.display_name,
+          'enteredByAnalyst', a."enteredByAnalyst"
         ) json
-      from (
-        -- base query for table 'compound'
-        select
-          c.id "compoundId",
-          c.display_name "compoundDisplayName",
-          -- field(s) inlined from parent table 'analyst'
-          q."enteredByAnalyst" "enteredByAnalyst"
-        from
-          compound c
-          -- parent table 'analyst', joined for inlined fields
-          left join (
-            select
-              a.id "_id",
-              a.short_name "enteredByAnalyst"
-            from
-              analyst a
-          ) q on c.entered_by = q."_id"
-        where (
-          d.compound_id = c.id
-        )
-      ) q
-    ) "primaryCompound",
-    -- records from child table 'advisory' as collection 'advisories'
-    (
+      from
+        compound c
+        -- parent table 'analyst', joined for inlined fields
+        left join (
+          select
+            a.id as "_id",
+            a.short_name "enteredByAnalyst"
+          from
+            analyst a
+        ) a on c.entered_by = a."_id"
+      where (
+        d.compound_id = c.id
+      )
+    ),
+    'advisories', (
       select
-        -- aggregated row objects for table 'advisory'
         coalesce(jsonb_agg(jsonb_build_object(
-          'advisoryTypeId', q."advisoryTypeId",
-          'advisoryText', q."advisoryText",
-          'advisoryTypeName', q."advisoryTypeName",
-          'advisoryTypeAuthorityName', q."advisoryTypeAuthorityName"
+          'advisoryTypeId', a.advisory_type_id,
+          'advisoryText', a.text,
+          'advisoryTypeName', at_."advisoryTypeName",
+          'advisoryTypeAuthorityName', at_."advisoryTypeAuthorityName"
         )),'[]'::jsonb) json
-      from (
-        -- base query for table 'advisory'
-        select
-          a.advisory_type_id "advisoryTypeId",
-          a.text "advisoryText",
-          -- field(s) inlined from parent table 'advisory_type'
-          q."advisoryTypeName" "advisoryTypeName",
-          q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
-        from
-          advisory a
-          -- parent table 'advisory_type', joined for inlined fields
-          left join (
-            select
-              at.id "_id",
-              at.name "advisoryTypeName",
-              -- field(s) inlined from parent table 'authority'
-              q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
-            from
-              advisory_type at
-              -- parent table 'authority', joined for inlined fields
-              left join (
-                select
-                  a.id "_id",
-                  a.name "advisoryTypeAuthorityName"
-                from
-                  authority a
-              ) q on at.authority_id = q."_id"
-          ) q on a.advisory_type_id = q."_id"
-        where (
-          a.drug_id = d.id
-        )
-      ) q
-    ) as advisories,
-    -- records from child table 'drug_reference' as collection 'prioritizedReferences'
-    (
+      from
+        advisory a
+        -- parent table 'advisory_type', joined for inlined fields
+        left join (
+          select
+            at_.id as "_id",
+            at_.name "advisoryTypeName",
+            -- field(s) inlined from parent table 'authority'
+            a."advisoryTypeAuthorityName"
+          from
+            advisory_type at_
+            -- parent table 'authority', joined for inlined fields
+            left join (
+              select
+                a.id as "_id",
+                a.name "advisoryTypeAuthorityName"
+              from
+                authority a
+            ) a on at_.authority_id = a."_id"
+        ) at_ on a.advisory_type_id = at_."_id"
+      where (
+        a.drug_id = d.id
+      )
+    ),
+    'prioritizedReferences', (
       select
-        -- aggregated row objects for table 'drug_reference'
         coalesce(jsonb_agg(jsonb_build_object(
-          'priority', q.priority,
-          'publication', q.publication
+          'priority', dr.priority,
+          'publication', r.publication
         ) order by priority asc),'[]'::jsonb) json
-      from (
-        -- base query for table 'drug_reference'
-        select
-          dr.priority as priority,
-          -- field(s) inlined from parent table 'reference'
-          q.publication as publication
-        from
-          drug_reference dr
-          -- parent table 'reference', joined for inlined fields
-          left join (
-            select
-              r.id "_id",
-              r.publication as publication
-            from
-              reference r
-          ) q on dr.reference_id = q."_id"
-        where (
-          dr.drug_id = d.id
-        )
-      ) q
-    ) "prioritizedReferences"
-  from
-    drug d
-  where (
-    (category_code = :catCode)
-  )
-) q
+      from
+        drug_reference dr
+        -- parent table 'reference', joined for inlined fields
+        left join (
+          select
+            r.id as "_id",
+            r.publication as publication
+          from
+            reference r
+        ) r on dr.reference_id = r."_id"
+      where (
+        dr.drug_id = d.id
+      )
+    )
+  ) json
+from
+  drug d
+where (
+  (category_code = :catCode)
+)
 ```
 
 2) <img align="right" src="img/result-types-oval.dot.svg" alt="result types"> A TypeScript or Java source
@@ -283,10 +245,8 @@ from (
  the following TypeScript source file is generated (Java source would be similar).
 
 ```typescript
-// The types defined in this file correspond to results of the following generated SQL queries.
 export const sqlResource = "drug-advisories-references-query.sql";
 
-// Below are types representing the result data for the generated query, with top-level type first.
 export interface Drug
 {
   drugName: string;

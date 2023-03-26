@@ -4,14 +4,14 @@
 
 ### Prerequisites
 
-- [NodeJS 14+](https://nodejs.org/en/)
+- [NodeJS 16+](https://nodejs.org/en/)
 - [Git](https://git-scm.com/)
 
 ### Project Directory Setup
 
 Install the query generator by cloning the "sqljson-query-dropin" repository:
 
-```console
+```sh
 git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
 ```
 
@@ -20,14 +20,14 @@ generating query-related source files and for fetching the database metadata nee
 generator. From here on, we'll execute our commands from within the `query-gen` directory unless
 otherwise noted.
 
-```console
+```sh
 cd query-gen
 ```
 
 Next initialize the dependencies and compile the query generation script:
 
-```console
-npm i && tsc
+```sh
+npm i && npx tsc
 ```
 
 ### Database Setup
@@ -44,7 +44,7 @@ via the following command:
 
 For Postgres:
 
-```console
+```sh
 npx gen-dbmd --connProps db/conn.props --db pg --outputDir .
 ```
 
@@ -53,7 +53,7 @@ For MySQL, substitute `--db mysql` instead.
 An npm script that does the same thing is configured in `package.json`, which we can run with
 the simpler command:
 
-```console
+```sh
 npm run gen-dbmd
 ```
 
@@ -202,14 +202,14 @@ describing contributions from related parent and child tables to the JSON output
 So that describes our first query on the `drug` table. Now we can generate the SQL and TypeScript
 sources from our query specification as follows:
 
-```console
+```sh
 tsc && node gen-queries.js --dbmd dbmd.json --sqlDir sql --tsDir ts
 ```
 
 A shorter form of the above is provided by a preconfigured npm script in `package.json`, which can be
 executed via
 
-```
+```sh
 npm run gen-queries
 ```
 
@@ -222,24 +222,16 @@ If you open the generated SQL file at `sql/drugs-query-1.sql`, you should see so
 
 ```sql
 select
-  -- row object for table 'drug'
   jsonb_build_object(
-    'drugName', q."drugName",
-    'categoryCode', q."categoryCode",
-    'cidPlus1000', q."cidPlus1000"
+    'drugName', d.name,
+    'categoryCode', d.category_code,
+    'cidPlus1000', d.cid + 1000
   ) json
-from (
-  -- base query for table 'drug'
-  select
-    d.name "drugName",
-    d.category_code "categoryCode",
-    d.cid + 1000 "cidPlus1000"
-  from
-    drug d
-  where (
-    (category_code = :catCode)
-  )
-) q
+from
+  drug d
+where (
+  (category_code = :catCode)
+)
 ```
 
 The SQL shown here is for a Postgres example database, for a MySQL database it will differ slightly. The
@@ -247,9 +239,10 @@ generated SQL is database-specific generally, with the database type having been
 from the database metadata that was generated above at `dbmd.json`.
 
 Now open your preferred SQL execution tool for your database, and try executing the above SQL with 'A' for
-the `catCode` parameter. You should see output like the following:
+the `catCode` parameter (in psql, you can use `\set catCode '''A'''` before executing the sql).
+You should see output like the following:
 
-```console
+```sh
 (row 1) {"drugName": "Test Drug 2", "cidPlus1000": 1198, "categoryCode": "A"}
 (row 2) {"drugName": "Test Drug 4", "cidPlus1000": 1396, "categoryCode": "A"}
 ```
@@ -346,8 +339,8 @@ The only new property here is `referenceName`, which gives a name for the proper
 object that references the parent `compound` object. The `referenceName` property is *optional*. If it
 were omitted for `compound`, then the fields from `compound` would be included as properties *inlined*
 among the fields/expressions coming directly from the child table `drug` - i.e. without a wrapping object
-property. The registering analyst information is inlined here, because its entry does not specify a
-`referenceName`.
+property. In fact this is the case for the registering analyst information here: because the analyst entry
+does not specify a `referenceName`, its fields are inlined among those of the drug table itself.
 
 Don't forget to add `drugsQuery2` to the query group representing the queries to be generated:
 
@@ -363,14 +356,15 @@ export const queryGroupSpec: QueryGroupSpec = {
 
 Now let's again generate the SQL and TypeScript sources with the same command as before:
 
-```console
+```sh
 npm run gen-queries
 ```
 
 You can examine the generated SQL for our new query at `sql/drugs-query-2.sql`. Basically it has added
 a new subquery projecting a `json_build_object()` expression from within the `SELECT` clause of what was
-our original drugs query. You will also find the additional `Compound` results structure defined in the
-corresponding result types definition module at `ts/drugs-query-2.ts`:
+our original drugs query, as well as a new FROM clause subquery for the inlined analyst field. You will also
+find the additional `Compound` results structure defined in the corresponding result types definition module at
+`ts/drugs-query-2.ts`:
 
 ```typescript
 export interface Compound
@@ -417,7 +411,7 @@ analyst information. We'll assume that we want information for both analysts whe
 (though including just one or the other would be fine as well, but would need the same
 disambiguation to be provided).
 
-Add a new query based on the previous one, adding a *nested* `parentTables` property within the
+Add a new query based on the previous one, adding a nested `parentTables` property within the
 `primaryCompound` entry:
 
 ```typescript
@@ -480,7 +474,7 @@ inline among the fields from `compound` itself.
 Add the new query to the exported `queryGroupSpec` as always, and regenerate the query SQL and sources
 as before:
 
-```console
+```sh
 npm run gen-queries
 ```
 
@@ -606,7 +600,7 @@ const drugsQuery4: QuerySpec = {
 
 Add `drugsQuery4` to `queryGroupSpec` and run the sources generator with our usual command:
 
-```console
+```sh
 npm run gen-queries
 ```
 
@@ -739,7 +733,7 @@ const drugsQuery5: QuerySpec = {
 Add the new `drugsQuery5` query to the exported `queryGroupSpec`, and regenerate the query SQL and
 sources again:
 
-```console
+```sh
 npm run gen-queries
 ```
 
@@ -883,7 +877,7 @@ would generally have to perform multiple queries to get the same data.
 Add the `drugsQuery6` query to the exported `queryGroupSpec`, and regenerate the query SQL and sources
 as before:
 
-```console
+```sh
 npm run gen-queries
 ```
 
@@ -1005,7 +999,7 @@ imported as well to check a table name against database metadata in a similar wa
 
 That completes our final query specification. Add it to the query group spec and generate sources:
 
-```console
+```sh
 npm run gen-queries
 ```
 
@@ -1013,7 +1007,7 @@ npm run gen-queries
 
 Let's review what's been accomplished with the [final query specification](#final-query) above.
 
-The query includes data from each of the following related tables using all of the foreign keys shown:
+The query includes data from each of the following related tables using all the foreign keys shown:
 
 <img src="img/drug-all.svg" alt="all tables" style="width: 860px; height: 460px; margin-left:30px;">
 
@@ -1021,151 +1015,109 @@ From the query specification above, a SQL query is generated at `sql/drugs-query
 data from all of the above tables:
 
 ```sql
+-- [ THIS QUERY WAS AUTO-GENERATED, ANY CHANGES MADE HERE MAY BE LOST. ]
+-- JSON_OBJECT_ROWS results representation for drugs query 7
 select
-  -- row object for table 'drug'
   jsonb_build_object(
-    'drugName', q."drugName",
-    'categoryCode', q."categoryCode",
-    'registeredByAnalyst', q."registeredByAnalyst",
-    'primaryCompound', q."primaryCompound",
-    'advisories', q.advisories,
-    'prioritizedReferences', q."prioritizedReferences"
-  ) json
-from (
-  -- base query for table 'drug'
-  select
-    d.name "drugName",
-    d.category_code "categoryCode",
-    -- field(s) inlined from parent table 'analyst'
-    q."registeredByAnalyst" "registeredByAnalyst",
-    -- parent table 'compound' referenced as 'primaryCompound'
-    (
+    'drugName', d.name,
+    'categoryCode', d.category_code,
+    'registeredByAnalyst', a."registeredByAnalyst",
+    'primaryCompound', (
       select
-        -- row object for table 'compound'
         jsonb_build_object(
-          'compoundId', q."compoundId",
-          'compoundDisplayName', q."compoundDisplayName",
-          'enteredByAnalyst', q."enteredByAnalyst",
-          'approvedByAnalyst', q."approvedByAnalyst"
+          'compoundId', c.id,
+          'compoundDisplayName', c.display_name,
+          'enteredByAnalyst', a."enteredByAnalyst",
+          'approvedByAnalyst', a1."approvedByAnalyst"
         ) json
-      from (
-        -- base query for table 'compound'
-        select
-          c.id "compoundId",
-          c.display_name "compoundDisplayName",
-          -- field(s) inlined from parent table 'analyst'
-          q."enteredByAnalyst" "enteredByAnalyst",
-          -- field(s) inlined from parent table 'analyst'
-          q1."approvedByAnalyst" "approvedByAnalyst"
-        from
-          compound c
-          -- parent table 'analyst', joined for inlined fields
-          left join (
-            select
-              a.id "_id",
-              a.short_name "enteredByAnalyst"
-            from
-              analyst a
-          ) q on c.entered_by = q."_id"
-          -- parent table 'analyst', joined for inlined fields
-          left join (
-            select
-              a.id "_id",
-              a.short_name "approvedByAnalyst"
-            from
-              analyst a
-          ) q1 on c.approved_by = q1."_id"
-        where (
-          d.compound_id = c.id
-        )
-      ) q
-    ) "primaryCompound",
-    -- records from child table 'advisory' as collection 'advisories'
-    (
-      select
-        -- aggregated row objects for table 'advisory'
-        coalesce(jsonb_agg(jsonb_build_object(
-          'advisoryTypeId', q."advisoryTypeId",
-          'advisoryText', q."advisoryText",
-          'advisoryTypeName', q."advisoryTypeName",
-          'advisoryTypeAuthorityName', q."advisoryTypeAuthorityName"
-        )),'[]'::jsonb) json
-      from (
-        -- base query for table 'advisory'
-        select
-          a.advisory_type_id "advisoryTypeId",
-          a.text "advisoryText",
-          -- field(s) inlined from parent table 'advisory_type'
-          q."advisoryTypeName" "advisoryTypeName",
-          q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
-        from
-          advisory a
-          -- parent table 'advisory_type', joined for inlined fields
-          left join (
-            select
-              at.id "_id",
-              at.name "advisoryTypeName",
-              -- field(s) inlined from parent table 'authority'
-              q."advisoryTypeAuthorityName" "advisoryTypeAuthorityName"
-            from
-              advisory_type at
-              -- parent table 'authority', joined for inlined fields
-              left join (
-                select
-                  a.id "_id",
-                  a.name "advisoryTypeAuthorityName"
-                from
-                  authority a
-              ) q on at.authority_id = q."_id"
-          ) q on a.advisory_type_id = q."_id"
-        where (
-          a.drug_id = d.id
-        )
-      ) q
-    ) as advisories,
-    -- records from child table 'drug_reference' as collection 'prioritizedReferences'
-    (
-      select
-        -- aggregated row objects for table 'drug_reference'
-        coalesce(jsonb_agg(jsonb_build_object(
-          'priority', q.priority,
-          'publication', q.publication
-        ) order by priority asc),'[]'::jsonb) json
-      from (
-        -- base query for table 'drug_reference'
-        select
-          dr.priority as priority,
-          -- field(s) inlined from parent table 'reference'
-          q.publication as publication
-        from
-          drug_reference dr
-          -- parent table 'reference', joined for inlined fields
-          left join (
-            select
-              r.id "_id",
-              r.publication as publication
-            from
-              reference r
-          ) q on dr.reference_id = q."_id"
-        where (
-          dr.drug_id = d.id
-        )
-      ) q
-    ) "prioritizedReferences"
-  from
-    drug d
-    -- parent table 'analyst', joined for inlined fields
-    left join (
-      select
-        a.id "_id",
-        a.short_name "registeredByAnalyst"
       from
-        analyst a
-    ) q on d.registered_by = q."_id"
-  where (
-    (category_code = :catCode)
-  )
-) q
+        compound c
+        -- parent table 'analyst', joined for inlined fields
+        left join (
+          select
+            a.id as "_id",
+            a.short_name "enteredByAnalyst"
+          from
+            analyst a
+        ) a on c.entered_by = a."_id"
+        -- parent table 'analyst', joined for inlined fields
+        left join (
+          select
+            a.id as "_id",
+            a.short_name "approvedByAnalyst"
+          from
+            analyst a
+        ) a1 on c.approved_by = a1."_id"
+      where (
+        d.compound_id = c.id
+      )
+    ),
+    'advisories', (
+      select
+        coalesce(jsonb_agg(jsonb_build_object(
+          'advisoryTypeId', a.advisory_type_id,
+          'advisoryText', a.text,
+          'advisoryTypeName', at_."advisoryTypeName",
+          'advisoryTypeAuthorityName', at_."advisoryTypeAuthorityName"
+        )),'[]'::jsonb) json
+      from
+        advisory a
+        -- parent table 'advisory_type', joined for inlined fields
+        left join (
+          select
+            at_.id as "_id",
+            at_.name "advisoryTypeName",
+            -- field(s) inlined from parent table 'authority'
+            a."advisoryTypeAuthorityName"
+          from
+            advisory_type at_
+            -- parent table 'authority', joined for inlined fields
+            left join (
+              select
+                a.id as "_id",
+                a.name "advisoryTypeAuthorityName"
+              from
+                authority a
+            ) a on at_.authority_id = a."_id"
+        ) at_ on a.advisory_type_id = at_."_id"
+      where (
+        a.drug_id = d.id
+      )
+    ),
+    'prioritizedReferences', (
+      select
+        coalesce(jsonb_agg(jsonb_build_object(
+          'priority', dr.priority,
+          'publication', r.publication
+        ) order by priority asc),'[]'::jsonb) json
+      from
+        drug_reference dr
+        -- parent table 'reference', joined for inlined fields
+        left join (
+          select
+            r.id as "_id",
+            r.publication as publication
+          from
+            reference r
+        ) r on dr.reference_id = r."_id"
+      where (
+        dr.drug_id = d.id
+      )
+    )
+  ) json
+from
+  drug d
+  -- parent table 'analyst', joined for inlined fields
+  left join (
+    select
+      a.id as "_id",
+      a.short_name "registeredByAnalyst"
+    from
+      analyst a
+  ) a on d.registered_by = a."_id"
+where (
+  (category_code = :catCode)
+)
 ```
 
 Also generated is a TypeScript result types module `ts/drugs-query-7.ts`, to represent the types in
