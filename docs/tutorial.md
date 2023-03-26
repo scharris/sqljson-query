@@ -87,7 +87,7 @@ generateQueriesWithArgvOptions(queryGroupSpec, process.argv)
 EOF
 ```
 
-Now we can initialize install the project dependencies and compile the query generation script:
+Now we can install the project dependencies and compile the query generation script:
 
 ```sh
 npm i && npx tsc
@@ -99,8 +99,8 @@ We're not ready to generate queries though, because we haven't created our examp
 
 Follow the directions in [database setup](tutorial-database-setup.md), to set up a local Postgres or
 MySQL database for use in this tutorial. After you've completed the database setup, the database
-should be listening for connections with the connection information properties provided in file
-`db/conn.props`.
+should be listening for connections as reflected in the connection information properties provided in
+file `db/conn.props`.
 
 ### Generate Database Metadata
 
@@ -108,27 +108,18 @@ Now that the database is created and SQL/JSON-Query is installed, we can generat
 via the following command:
 
 For Postgres:
-
-```sh
-npx gen-dbmd --connProps db/conn.props --db pg --outputDir .
-```
-
-For MySQL, substitute `--db mysql` instead.
-
-An npm script that does the same thing is configured in `package.json`, which we can run with
-the simpler command:
-
 ```sh
 npm run gen-dbmd
 ```
 
-For either variant of the command, two metadata files should have been generated in the same directory,
-`dbmd.json` and `relations-metadata.ts`.
+For MySQL, substitute `--db mysql` in place of `--db pg` in the run script.
+
+Two metadata files should have been generated in the same directory, `dbmd.json` and `relations-metadata.ts`.
 
 ## Query Generation
 
-Now with the database metadata generated, we're ready to write our query specifications and
-to generate the SQL and result types sources. We'll start with a simple query of a single table.
+Now with the database created and its metadata generated, we're ready to write our query specifications
+and to generate the SQL and result types sources. We'll start with a simple query of a single table.
 
 ### Single-Table Query
 
