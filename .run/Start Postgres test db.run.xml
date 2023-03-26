@@ -11,7 +11,7 @@
             </DockerPortBindingImpl>
           </list>
         </option>
-        <option name="commandLineOptions" value="--rm" />
+        <option name="commandLineOptions" value="--rm -d" />
         <option name="sourceFilePath" value="src/__tests__/db/pg/Dockerfile" />
       </settings>
     </deployment>
