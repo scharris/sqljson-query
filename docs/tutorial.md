@@ -9,32 +9,97 @@
 
 ### Project Directory Setup
 
-Install the query generator by cloning the "sqljson-query-dropin" repository:
+Here we make a small node/npm project to run the query generator and the auxiliary database metadata generator.
+We would typically place this within a larger project for which queries are to be generated. In this case our
+project will be standalone.
 
+Make the query generator project directory.
 ```sh
-git clone https://github.com/scharris/sqljson-query-dropin.git query-gen
-```
-
-This folder defines a small NodeJS project to facilitate query generation. It defines commands for
-generating query-related source files and for fetching the database metadata needed by the query
-generator. From here on, we'll execute our commands from within the `query-gen` directory unless
-otherwise noted.
-
-```sh
+mkdir query-gen
 cd query-gen
 ```
 
-Next initialize the dependencies and compile the query generation script:
+We first create a `package.json` file to define our run scripts and dependencies:
+```sh
+cat > package.json <<EOF
+{
+  "scripts": {
+    "gen-dbmd": "gen-dbmd --connProps ./db/conn.props --db pg --outputDir .",
+    "pregen-queries": "tsc -b .",
+    "gen-queries": "node gen-queries.js --dbmd dbmd.json --sqlDir sql --tsDir ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.10",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "sqljson-query": "1.9.3"
+  }
+}
+EOF
+```
+
+Note: In the `gen-queries` run script for a real project, we would probably generate SQL and TypeScript files in
+locations outside the query generator directory itself, for example with something like:
+`--sqlDir ../src/generated/sql --tsDir ../src/generated/ts/result-types`.
+
+Next create a minimal `tsconfig.json`:
+```sh
+cat > tsconfig.json <<EOF
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "lib": ["ES2018"],
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "typeRoots" : ["./node_modules/@types"],
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+EOF
+```
+
+Finally, create the file that will contain our query specifications. We'll be editing this file in the remainder
+of the tutorial:
+```sh
+cat > gen-queries.ts <<EOF
+import { QueryGroupSpec, QuerySpec, RecordCondition, generateQueriesWithArgvOptions } from 'sqljson-query';
+
+export const queryGroupSpec: QueryGroupSpec = {
+  defaultSchema: 'drugs',
+  generateUnqualifiedNamesForSchemas: [ 'drugs' ],
+  propertyNameDefault: 'CAMELCASE',
+  querySpecs: [
+    // TODO
+  ]
+};
+
+// Run the query generator with options specified in arguments to this script.
+
+generateQueriesWithArgvOptions(queryGroupSpec, process.argv)
+  .then(() => { console.log("Query generation completed."); })
+  .catch((e) => {
+    console.error(e);
+    console.error("Query generation failed due to error - see error detail above.");
+    process.exit(1);
+  });
+EOF
+```
+
+Now we can initialize install the project dependencies and compile the query generation script:
 
 ```sh
 npm i && npx tsc
 ```
 
+We're not ready to generate queries though, because we haven't created our example database yet.
+
 ### Database Setup
 
-Follow the directions in [database setup](tutorial-database-setup.md), to setup a local Postgres or
+Follow the directions in [database setup](tutorial-database-setup.md), to set up a local Postgres or
 MySQL database for use in this tutorial. After you've completed the database setup, the database
-should be listening for connections with the connection information properties as provided in file
+should be listening for connections with the connection information properties provided in file
 `db/conn.props`.
 
 ### Generate Database Metadata
@@ -76,6 +141,7 @@ you edit or view this file. Edit the file `gen-queries.ts` now to contain the fo
 // query-gen/gen-queries.ts
 import { QueryGroupSpec, QuerySpec, RecordCondition, generateQueriesWithArgvOptions } from 'sqljson-query';
 
+// (Added) -->
 const drugsQuery1: QuerySpec = {
   queryName: 'drugs query 1',
   tableJson: {
@@ -90,13 +156,16 @@ const drugsQuery1: QuerySpec = {
     ],
   }
 };
+// <-- (Added)
 
 export const queryGroupSpec: QueryGroupSpec = {
   defaultSchema: 'drugs',
   generateUnqualifiedNamesForSchemas: [ 'drugs' ],
   propertyNameDefault: 'CAMELCASE',
   querySpecs: [
+    // (Added) -->
     drugsQuery1,
+    // <-- (Added)
   ]
 };
 
