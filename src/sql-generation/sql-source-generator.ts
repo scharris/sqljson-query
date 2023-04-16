@@ -2,7 +2,15 @@ import {indentLines, replaceAll} from "../util/strings";
 import {mapSet, nonEmpty, sorted} from "../util/collections";
 import {exactUnquotedName} from "../util/database-names";
 import {CaseSensitivity, RelId} from "../dbmd";
-import {FromEntry, getPropertySelectEntries, ParentChildCondition, SelectEntry, SqlSpec, WhereEntry} from "./sql-specs";
+import {
+  DistinctSpec,
+  FromEntry,
+  getPropertySelectEntries,
+  ParentChildCondition,
+  SelectEntry,
+  SqlSpec,
+  WhereEntry
+} from "./sql-specs";
 import {SqlDialect} from "./sql-dialects";
 
 export class SqlSourceGenerator
@@ -53,15 +61,18 @@ export class SqlSourceGenerator
       `where (\n${this.indent(spec.whereEntries.map(e => this.whereEntrySql(e)).join(' and\n'))}\n)\n`
       : '';
 
-    const orderByClause = spec.orderBy ?
+    const orderBy = spec.orderBy ?
       'order by ' + spec.orderBy.orderBy.replace(/\$\$/g, spec.orderBy.tableAlias) + '\n'
       : '';
 
+    const distinct = spec.distinct ? ' ' + this.distinctSql(spec.distinct) : '';
+
     return (
-      'select\n' + this.indent(selectComment + selectEntries) +
+      `select${distinct}\n` +
+      this.indent(selectComment + selectEntries) +
       'from\n' + this.indent(fromComment + fromEntries) +
       whereClause +
-      orderByClause
+      orderBy
     );
   }
 
@@ -216,6 +227,21 @@ export class SqlSourceGenerator
       `${parentAlias}.${this.sqlDialect.quoteColumnNameIfNeeded(mf.primaryKeyFieldName)}`
     ).join(' and ');
   }
+
+  private distinctSql(distinct: DistinctSpec): string
+  {
+    if (!distinct.distinct)
+      return '';
+
+    const onExpr = distinct.on ?
+      ' on(' +
+        distinct.on.map(e => distinct.tableAlias ? e.replace(/\$\$/g, distinct.tableAlias) : e ).join(',') +
+      ')'
+      : '';
+
+    return `distinct${onExpr}`;
+  }
+
 
   private minimalRelIdentifier(relId: RelId): string
   {
