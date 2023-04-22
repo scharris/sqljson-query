@@ -8,7 +8,6 @@ export interface SqlSpec
   selectEntries: SelectEntry[];
   fromEntries: FromEntry[];
   whereEntries?: Nullable<WhereEntry[]>;
-  distinct?: Nullable<DistinctSpec>;
   orderBy?: Nullable<OrderBy>;
   forUpdate?: Nullable<boolean>;
   objectWrapProperties?: Nullable<boolean>;
@@ -92,8 +91,6 @@ export interface HiddenPrimaryKeySelectEntry
 
 export type AdditionalOutputSelectEntry = FieldSelectEntry | ExpressionSelectEntry;
 
-export type DistinctSpec = { distinct: true; on: Nullable<string[]>, tableAlias: Nullable<string> } | { distinct: false; };
-
 export type FromEntry =
   TableFromEntry |
   QueryFromEntry;
@@ -168,7 +165,6 @@ export class SqlParts
     private selectEntries: SelectEntry[] = [],
     private fromEntries: FromEntry[] = [],
     private whereEntries: WhereEntry[] = [],
-    private distinct: Nullable<DistinctSpec> = null,
     private orderBy: Nullable<OrderBy> = null,
     private resultTypeName: Nullable<string> = null
   )
@@ -207,11 +203,6 @@ export class SqlParts
 
   addAliasesToScope(aliases: Set<string>) { aliases.forEach(a => this.aliases.add(a)); }
 
-  setDistinct(distinct: Nullable<DistinctSpec>)
-  {
-    this.distinct = distinct;
-  }
-
   setOrderBy(orderBy: OrderBy)
   {
     this.orderBy = orderBy;
@@ -228,7 +219,6 @@ export class SqlParts
     this.fromEntries.push(...otherParts.fromEntries);
     this.whereEntries.push(...otherParts.whereEntries);
     this.addAliasesToScope(otherParts.aliases);
-    if (otherParts.distinct) throw new Error('Cannot add sql parts containing distinct.');
     if (otherParts.orderBy) throw new Error('Cannot add sql parts containing orderBy.');
     if (otherParts.resultTypeName) throw new Error('Cannot add sql parts containing resultTypeName.');
   }
@@ -252,7 +242,6 @@ export class SqlParts
       selectEntries: displayOrderedSelectEntries,
       fromEntries: this.fromEntries,
       whereEntries: this.whereEntries,
-      distinct: this.distinct,
       orderBy: this.orderBy,
       resultTypeName: this.resultTypeName,
     };
@@ -261,7 +250,6 @@ export class SqlParts
     this.selectEntries = [];
     this.fromEntries = [];
     this.whereEntries = [];
-    this.distinct = null;
     this.orderBy = null;
     this.resultTypeName = null;
     this.aliases = new Set();

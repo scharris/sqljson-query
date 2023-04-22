@@ -20,7 +20,6 @@ export interface QuerySpec
   additionalOutputColumns?: Nullable<AdditionalOutputColumn[]>; // for JSON_OBJECT_ROWS only
   generateResultTypes?: Nullable<boolean>;
   generateSource?: Nullable<boolean>;
-  distinct?: Nullable<boolean | { on: string[] }>;
   orderBy?: Nullable<string>;
   forUpdate?: Nullable<boolean>;
   typesFileHeader?: Nullable<QueryTypesFileHeader>;
@@ -90,7 +89,6 @@ export interface ChildSpec extends TableJsonSpec
   customMatchCondition?: Nullable<CustomMatchCondition>;
   filter?: Nullable<string>;
   unwrap?: Nullable<boolean>;
-  distinct?: Nullable<boolean | { on: string[]; orderBy?: Nullable<string[]>; }>;
   orderBy?: Nullable<string>;
   displayOrder?: Nullable<number>;
 }

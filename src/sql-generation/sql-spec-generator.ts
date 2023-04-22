@@ -67,13 +67,13 @@ export class SqlSpecGenerator
     switch ( resultRepr )
     {
       case 'MULTI_COLUMN_ROWS':
-        const baseSql = this.baseSql(query.tableJson, null, query.distinct, query.orderBy, specLoc);
+        const baseSql = this.baseSql(query.tableJson, null, query.orderBy, specLoc);
         return query.forUpdate ? { ...baseSql, forUpdate: true }: baseSql;
       case 'JSON_OBJECT_ROWS':
         const addCols = query.additionalOutputColumns ?? [];
-        return this.jsonObjectRowsSql(query.tableJson, addCols, null, query.distinct, query.orderBy, specLoc);
+        return this.jsonObjectRowsSql(query.tableJson, addCols, null, query.orderBy, specLoc);
       case 'JSON_ARRAY_ROW':
-        return this.jsonArrayRowSql(query.tableJson, null, false, query.distinct, query.orderBy, specLoc);
+        return this.jsonArrayRowSql(query.tableJson, null, false, query.orderBy, specLoc);
       default:
         throw specError(query, 'resultRepresentations', 'Result representation is not valid.');
     }
@@ -83,7 +83,6 @@ export class SqlSpecGenerator
     (
       tjs: TableJsonSpec,
       parentChildCond: Nullable<ParentPrimaryKeyCondition | ChildForeignKeyCondition>,
-      distinct: Nullable<boolean | { on: Nullable<string[]> }>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation,
       exportPkFieldsHidden?: 'export-pk-fields-hidden'
@@ -127,9 +126,6 @@ export class SqlSpecGenerator
         tableAlias: alias
       });
 
-    if (distinct)
-      sqlb.setDistinct({ distinct: true, on: distinct === true ? null : distinct.on, tableAlias: alias });
-
     if (orderBy != null)
       sqlb.setOrderBy({ orderBy, tableAlias: alias });
 
@@ -152,13 +148,12 @@ export class SqlSpecGenerator
       tjs: TableJsonSpec,
       addOutputColumns: AdditionalOutputColumn[],
       pkCond: Nullable<ParentPrimaryKeyCondition>,
-      distinct: Nullable<boolean | { on: string[] }>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation
     )
     : SqlSpec
   {
-    const baseSql = this.baseSql(tjs, pkCond, distinct, orderBy, specLoc);
+    const baseSql = this.baseSql(tjs, pkCond, orderBy, specLoc);
 
     verifyTableFieldExpressionsValid(addOutputColumns, tjs.table, this.defaultSchema, this.dbmd, specLoc);
 
@@ -177,14 +172,12 @@ export class SqlSpecGenerator
       tjs: TableJsonSpec,
       childFkCond: Nullable<ChildForeignKeyCondition>,
       unwrap: boolean,
-      distinct: Nullable<boolean | { on: string[]; orderBy?: Nullable<string[]>; }>,
       orderBy: Nullable<string>,
       specLoc: SpecLocation
     )
     : SqlSpec
   {
-    const distinctOrderBy = !distinct || distinct === true ? null : distinct.orderBy;
-    const baseSql = this.baseSql(tjs, childFkCond, distinct, distinctOrderBy?.join(','), specLoc);
+    const baseSql = this.baseSql(tjs, childFkCond, null, specLoc);
 
     if (unwrap && getPropertySelectEntries(baseSql).length != 1)
       throw new SpecError(specLoc, 'Unwrapped collections cannot have multiple properties.');
@@ -303,7 +296,7 @@ export class SqlSpecGenerator
     const fromEntryAlias = parentSpec.fromEntryAlias || createTableAlias(parentSpec.table, avoidAliases);
     sqlParts.addAlias(fromEntryAlias);
 
-    const parentPropsSql = this.baseSql(parentSpec, null, null, null, specLoc, 'export-pk-fields-hidden');
+    const parentPropsSql = this.baseSql(parentSpec, null, null, specLoc, 'export-pk-fields-hidden');
 
     const matchedFields =
       this.getParentPrimaryKeyCondition(parentSpec, childRelId, childAlias, specLoc)
@@ -410,7 +403,7 @@ export class SqlSpecGenerator
       const parLoc = addLocPart(specLoc, `parent table '${parentSpec.table}' via "${parentSpec.referenceName}"`);
       const parentPkCond = this.getParentPrimaryKeyCondition(parentSpec, relId, alias, parLoc);
 
-      const parentRowObjectSql = this.jsonObjectRowsSql(parentSpec, [], parentPkCond, null, null, parLoc);
+      const parentRowObjectSql = this.jsonObjectRowsSql(parentSpec, [], parentPkCond, null, parLoc);
 
       sqlParts.addSelectEntry({
         entryType: 'se-parent-ref',
@@ -448,7 +441,7 @@ export class SqlSpecGenerator
       if ( unwrap && jsonPropertiesCount(childSpec) > 1 )
         throw new SpecError(childLoc, 'Unwrapped child collection cannot have multiple field expressions.');
 
-      const collectionSql = this.jsonArrayRowSql(childSpec, childFkCond, unwrap, childSpec.distinct, childSpec.orderBy, childLoc);
+      const collectionSql = this.jsonArrayRowSql(childSpec, childFkCond, unwrap, childSpec.orderBy, childLoc);
 
       return {
         entryType: 'se-child-coll',
@@ -602,6 +595,7 @@ export class SqlSpecGenerator
   }
 
 } // QuerySQLSpecGenerator
+
 
 function jsonPropertiesCount(tjs: TableJsonSpec): number
 {

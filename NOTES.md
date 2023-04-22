@@ -1,9 +1,5 @@
 # NOTES
 
-Add tests for distinct/on.
-
-(Bug) When custom match condition is specified for parent, hidden pk's are not projected from parent query, causing error.
-
 Sqlite support (WIP)
   Fks seem to not be available. Provided in JDBC DatabaseMetaData?
   Use functions json_object(), json_group_array().
