@@ -1,11 +1,15 @@
-import { upperCamelCase, indentLines, Nullable } from '../../util/mod';
-import { QueryTypesFileHeader, ResultRepr } from '../../query-specs';
+import {indentLines, Nullable, upperCamelCase} from '../../util/mod';
+import {QueryTypesFileHeader, ResultRepr} from '../../query-specs';
 import {
-  ChildCollectionResultTypeProperty, TableFieldResultTypeProperty, TableExpressionResultTypeProperty,
-  ParentReferenceResultTypeProperty, NamedResultTypeSpec, requireNamedResultType,
+  ChildCollectionResultTypeProperty,
+  NamedResultTypeSpec,
+  ParentReferenceResultTypeProperty,
+  requireNamedResultType,
+  TableExpressionResultTypeProperty,
+  TableFieldResultTypeProperty,
 } from '../result-type-specs';
-import { SourceGenerationOptions } from '../../source-generation-options';
-import { ResultTypesSource } from "../result-types-source";
+import {SourceGenerationOptions} from '../../source-generation-options';
+import {ResultTypesSource} from "../result-types-source";
 
 export default function makeSource
   (
@@ -185,13 +189,17 @@ function tableFieldType
     case 'longvarchar':
     case 'char':
     case 'clob':
-    case 'date':
-    case 'time':
-    case 'timestamp':
+    case 'uuid':
+      return refTableFieldPropertyType(tfp, "String");
     case 'timestamp with time zone':
     case 'timestamptz':
-    case 'uuid':
-      return textTableFieldPropertyType(tfp);
+      return refTableFieldPropertyType(tfp, "Instant");
+    case 'timestamp':
+      return refTableFieldPropertyType(tfp, "LocalDateTime");
+    case 'date':
+      return refTableFieldPropertyType(tfp, "LocalDate");
+    case 'time':
+      return refTableFieldPropertyType(tfp, "LocalTime");
     case 'bit':
     case 'boolean':
     case 'bool':
@@ -201,7 +209,7 @@ function tableFieldType
       return jsonTableFieldPropertyType(tfp);
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
-        return textTableFieldPropertyType(tfp);
+        return refTableFieldPropertyType(tfp, "String");
       else throw new Error(`unsupported type for field '${tfp.databaseFieldName}' of type '${tfp.databaseType}'`);
   }
 }
@@ -308,6 +316,11 @@ function floatingNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty)
 function textTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
 {
   return withNullability(fp.nullable, "String");
+}
+
+function refTableFieldPropertyType(fp: TableFieldResultTypeProperty, refType: string): string
+{
+  return withNullability(fp.nullable, refType);
 }
 
 function booleanTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
