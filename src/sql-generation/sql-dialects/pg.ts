@@ -8,7 +8,7 @@ export class PostgresDialect implements SqlDialect
   readonly quotedStringRegex = /^".*"$/;
   readonly lowercaseNameRegex = /^[a-z_]+$/;
 
-  constructor(readonly indentSpaces: number) {}
+  constructor(readonly indentSpaces: number, jsonVariant: 'json' | 'jsonb' = 'jsonb') {}
 
   getRowObjectExpression
     (
@@ -55,7 +55,7 @@ export class PostgresDialect implements SqlDialect
     return (
       `coalesce(jsonb_agg(${valueExpression}` +
         (orderBy != null ? ' order by ' + orderBy : '') +
-      '))'
+      `),'[]'::jsonb)`
     );
   }
 

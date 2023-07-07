@@ -55,9 +55,9 @@ export class HSQLDialect implements SqlDialect
     : string
   {
     return (
-      `coalesce(jsonb_agg(${valueExpression}` +
+      `coalesce(json_arrayagg(${valueExpression}` +
         (orderBy != null ? ' order by ' + orderBy : '') +
-      '))'
+      `), '[]')`
     );
   }
 
