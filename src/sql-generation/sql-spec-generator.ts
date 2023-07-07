@@ -91,18 +91,18 @@ export class SqlSpecGenerator
   {
     const sqlb = new SqlParts();
 
-    const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, specLoc);
-
-    const alias = tjs.alias || sqlb.createTableAlias(relId.name);
-
-    sqlb.addFromEntry({ entryType: 'table', table: { ...relId }, alias });
-
     // If we have a condition from a related table, register other table's alias to avoid shadowing it.
     if (parentChildCond)
       sqlb.addAlias(parentChildCond.condType === 'pcc-on-fk'
         ? parentChildCond.parentAlias
         : parentChildCond.childAlias
       );
+
+    const relId = identifyTable(tjs.table, this.defaultSchema, this.dbmd, specLoc);
+
+    const alias = tjs.alias || sqlb.createTableAlias(relId.name);
+
+    sqlb.addFromEntry({ entryType: 'table', table: { ...relId }, alias });
 
     if (exportPkFieldsHidden)
       sqlb.addSelectEntries(this.hiddenPrimaryKeySelectEntries(relId, alias));
