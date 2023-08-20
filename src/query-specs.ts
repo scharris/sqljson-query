@@ -66,6 +66,7 @@ export interface TableExpr
 export interface ParentSpec extends TableJsonSpec
 {
   referenceName?: Nullable<string>;
+  displayOrder?: Nullable<number>;
   customMatchCondition?: Nullable<CustomMatchCondition>;
   viaForeignKeyFields?: Nullable<string[]>;
 }

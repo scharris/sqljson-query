@@ -1,5 +1,4 @@
 import {Field, ForeignKeyComponent, RelId} from "../dbmd";
-import {sorted} from "../util/collections";
 import {Nullable} from "../util/mod";
 import {lowerCaseInitials, makeNameNotInSet} from "../util/strings";
 
@@ -85,7 +84,7 @@ export interface HiddenPrimaryKeySelectEntry
   readonly pkFieldName: string;
   readonly projectedName: string;
   readonly tableAlias: string;
-  readonly displayOrder?: undefined;
+  readonly displayOrder?: Nullable<number>;
   readonly comment?: Nullable<string>;
 }
 
@@ -232,14 +231,8 @@ export class SqlParts
 
   toSqlSpec(): SqlSpec
   {
-    const displayOrderedSelectEntries =
-      sorted(
-        this.selectEntries.map((se, ix) => ({ ...se, dislayOrder: se.displayOrder ?? ix + 1 })),
-        (se1, se2) => (se1.displayOrder ?? 0) - (se2.displayOrder ?? 0)
-      );
-
     const sqlSpec = {
-      selectEntries: displayOrderedSelectEntries,
+      selectEntries: this.selectEntries,
       fromEntries: this.fromEntries,
       whereEntries: this.whereEntries,
       orderBy: this.orderBy,

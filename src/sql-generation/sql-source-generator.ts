@@ -71,7 +71,7 @@ export class SqlSourceGenerator
     const selectEntries: SelectEntry[] =
       specSelectEntries.map((entry, ix) => ({
         ...entry,
-        dislayOrder: entry.displayOrder ?? ix + 1
+        displayOrder: entry.displayOrder ?? ix + 1
       }));
 
     const sortedSelectEntries =

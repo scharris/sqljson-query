@@ -3,7 +3,7 @@ import {QuerySpec} from '../query-specs';
 import {DatabaseMetadata} from '../dbmd';
 import {propertyNameDefaultFunction} from '../util/mod';
 import {readTextFileSync} from '../util/files';
-import {SqlSpecGenerator} from '../sql-generation/sql-spec-generator';
+import {SqlSpecGenerator} from '../sql-generation';
 import {
   ChildCollectionSelectEntry,
   InlineParentSelectEntry,
@@ -331,6 +331,69 @@ test('table field properties from an inlined parent and its own inlined parent s
   expect(sqlSpec.selectEntries.map(e => e.projectedName)).toEqual(
     ['id', 'name', 'compoundId', 'compoundDisplayName', 'compoundApprovedByAnalystShortName']
   );
+});
+
+test('field display orders from mixture of base table and parent and child tables should be as expected', () => {
+  const sqlSpecGen = new SqlSpecGenerator(dbmd, 'drugs', ccPropNameFn);
+  const querySpec: QuerySpec = {
+    queryName: 'test query',
+    resultRepresentations: ['JSON_OBJECT_ROWS'],
+    tableJson: {
+      table: 'drug',
+      fieldExpressions:
+        [
+          'id',
+          { field: 'name', displayOrder: 3 }
+        ],
+      parentTables: [
+        {
+          table: 'analyst',
+          referenceName: 'analyst',
+          displayOrder: 5,
+          fieldExpressions: [{ field: 'short_name', displayOrder: 5 }]
+        },
+        {
+          // No 'referenceName' property, so compound is an inlined parent table here.
+          table: 'compound',
+          fieldExpressions: [
+            { field: 'id', jsonProperty: 'compoundId', displayOrder: 2 },
+            { field: 'display_name', jsonProperty: 'compoundDisplayName' }
+          ],
+          parentTables: [
+            {
+              // No 'referenceName' property so analyst is an inlined parent within the inlined compound parent.
+              table: 'analyst',
+              fieldExpressions: [
+                { field: 'short_name', jsonProperty: 'approvedBy', displayOrder: 1 }
+              ],
+              viaForeignKeyFields: ['approved_by']
+            }
+          ]
+        }
+      ],
+      childTables: [
+        {
+          collectionName: 'drugReferences',
+          displayOrder: 4,
+          table: 'drug_reference',
+          fieldExpressions: ['reference_id', 'priority'],
+        }
+      ]
+    }
+  };
+
+  const sqlSpec = sqlSpecGen.generateSqlSpecs(querySpec).get('JSON_OBJECT_ROWS')!;
+
+  expect(sqlSpec.selectEntries.map(e => [e.projectedName,e.displayOrder]).sort())
+  .toEqual([
+    ['analyst', 5],
+    ['approvedBy', 1],
+    ['compoundDisplayName', undefined],
+    ['compoundId', 2],
+    ['drugReferences', 4],
+    ['id', undefined],
+    ['name', 3],
+  ]);
 });
 
 test('a referenced parent table property from an inlined parent should be included properly', () => {
