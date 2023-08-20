@@ -32,7 +32,7 @@ npx npm-check-updates
 
 Add "-u" to write latest versions into `package.json`:
 ```sh
-npx -u npm-check-updates
+npx npm-check-updates -u
 ```
 
 ## TODO
