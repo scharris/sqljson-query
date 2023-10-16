@@ -182,7 +182,7 @@ function tableFieldType
     case 'real':
     case 'double':
     case 'double precision':
-      return floatingNumericTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, "double");
     case 'varchar':
     case 'varchar2':
     case 'text':
@@ -203,10 +203,10 @@ function tableFieldType
     case 'bit':
     case 'boolean':
     case 'bool':
-      return booleanTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, "boolean");
     case 'json':
     case 'jsonb':
-      return jsonTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, 'JsonNode');
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
         return refTableFieldPropertyType(tfp, "String");
@@ -308,29 +308,9 @@ function generalNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty):
   }
 }
 
-function floatingNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, "double");
-}
-
-function textTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, "String");
-}
-
 function refTableFieldPropertyType(fp: TableFieldResultTypeProperty, refType: string): string
 {
   return withNullability(fp.nullable, refType);
-}
-
-function booleanTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, "boolean");
-}
-
-function jsonTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, 'JsonNode');
 }
 
 function withNullability

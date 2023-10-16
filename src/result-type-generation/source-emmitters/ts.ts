@@ -144,12 +144,11 @@ function tableFieldType
     case 'serial':
     case 'smallserial':
     case 'bigserial':
-      return withNullability(tfp.nullable, 'number');
     case 'float':
     case 'real':
     case 'double':
     case 'double precision':
-      return floatingNumericTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, 'number');
     case 'varchar':
     case 'varchar2':
     case 'text':
@@ -162,17 +161,17 @@ function tableFieldType
     case 'timestamp with time zone':
     case 'timestamptz':
     case 'uuid':
-      return textTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, 'string');;
     case 'bit':
     case 'boolean':
     case 'bool':
-      return booleanTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, 'boolean');
     case 'json':
     case 'jsonb':
-      return jsonTableFieldPropertyType(tfp);
+      return withNullability(tfp.nullable, 'any');
     default:
       if ( lcDbFieldType.startsWith('timestamp') )
-        return textTableFieldPropertyType(tfp);
+        return withNullability(tfp.nullable, 'string');
       else
         throw new Error(`unsupported type for field '${tfp.databaseFieldName}' of type '${tfp.databaseType}'`);
   }
@@ -259,26 +258,6 @@ function getSolePropertyType
     default:
       throw new Error(`Unhandled field category when unwrapping ${JSON.stringify(resType)}.`);
   }
-}
-
-function floatingNumericTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, 'number');
-}
-
-function textTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, 'string');
-}
-
-function booleanTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, 'boolean');
-}
-
-function jsonTableFieldPropertyType(fp: TableFieldResultTypeProperty): string
-{
-  return withNullability(fp.nullable, 'any');
 }
 
 function withNullability
