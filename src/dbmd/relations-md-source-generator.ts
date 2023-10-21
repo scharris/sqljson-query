@@ -1,5 +1,5 @@
 import * as path from 'path';
-import {indentLines, makeArrayValuesMap, missingCase, Nullable} from '../util/mod';
+import {escapeDoubleQuotes, indentLines, makeArrayValuesMap, missingCase, Nullable} from '../util/mod';
 import {readTextFile, writeTextFile} from '../util/files';
 import {CaseSensitivity, DatabaseMetadata, RelMetadata} from './database-metadata';
 import {SourceLanguage} from '../source-generation-options';
@@ -97,7 +97,9 @@ function relationsJavaSource
 
   for ( const [schema, relMds] of schemaToRelMdsMap.entries() )
   {
-    parts.push(`  public static class Schema_${ident(schema, dbmd.caseSensitivity, preferLowercaseNames)}`);
+    const schemaIdent = ident(schema, dbmd.caseSensitivity, preferLowercaseNames);
+
+    parts.push(`  public static class Schema_${schemaIdent}`);
     parts.push('  {');
 
     for (const relMd of relMds)
@@ -108,7 +110,17 @@ function relationsJavaSource
       ));
     }
 
-    parts.push("  }"); // schema class
+    parts.push("\n\n    public static class TableNames {");
+    for (const relMd of relMds)
+    {
+      const relName = ident(relMd.relationId.name, dbmd.caseSensitivity, preferLowercaseNames);
+      parts.push(
+        `      public static final String ${relNameJavaIdentifier(relName)} = "${escapeDoubleQuotes(relName)};"`,
+      );
+    }
+    parts.push("    }\n\n");
+
+    parts.push(`  } // ends schema ${schemaIdent}`);
   }
 
   parts.push(indentLines(fieldStructSource(), 2));
@@ -242,6 +254,11 @@ function ident
 function lit(s: string)
 {
   return "\"" + s.replace(/"/g, '\\"') + "\"";
+}
+
+function relNameJavaIdentifier(relName: string): string
+{
+  return relJavaClassName(relName);
 }
 
 function relJavaClassName(relName: string)

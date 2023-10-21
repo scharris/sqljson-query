@@ -147,6 +147,11 @@ export function unDoubleQuote(s: string): string
   return s;
 }
 
+export function escapeDoubleQuotes(s: string): string
+{
+  return s.replaceAll(/"/g, '\\"');
+}
+
 export function hashString(s: string): number
 {
   let hash = 0;
