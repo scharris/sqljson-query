@@ -110,12 +110,13 @@ function relationsJavaSource
       ));
     }
 
-    parts.push("\n\n    public static class TableNames {");
+    parts.push("\n    //////////////// Table names ////////////////");
+    parts.push("    public static class TableNames {");
     for (const relMd of relMds)
     {
       const relName = ident(relMd.relationId.name, dbmd.caseSensitivity, preferLowercaseNames);
       parts.push(
-        `      public static final String ${relNameJavaIdentifier(relName)} = "${escapeDoubleQuotes(relName)};"`,
+        `      public static final String ${relNameJavaIdentifier(relName)} = "${escapeDoubleQuotes(relName)}";`,
       );
     }
     parts.push("    }\n\n");
