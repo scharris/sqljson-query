@@ -4,9 +4,9 @@ import { propertyNameDefaultFunction } from '../util/mod';
 import { readTextFileSync } from '../util/files';
 import { QuerySpec } from '../mod';
 import { DatabaseMetadata } from '../dbmd';
-import { SqlSpecGenerator } from '../sql-generation/sql-spec-generator';
-import { SqlSourceGenerator } from '../sql-generation/sql-source-generator';
-import { getSqlDialect } from '../sql-generation';
+import { SqlSpecGenerator } from '../sql-gen/sql-spec-generator';
+import { SqlSourceGenerator } from '../sql-gen/sql-source-generator';
+import { getSqlDialect } from '../sql-gen';
 
 const dbmdPath = path.join(__dirname, 'db', 'mysql', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));

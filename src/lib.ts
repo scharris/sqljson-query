@@ -6,18 +6,18 @@ import {
 } from './query-specs';
 import {
   makeNamedResultTypeSpecs, makeResultTypesSource, ResultTypeSpec, ResultTypesSource
-} from './result-type-generation';
-import { SqlSourceGenerator } from './sql-generation/sql-source-generator';
-import { SqlSpecGenerator } from './sql-generation/sql-spec-generator';
-import { SqlSpec } from './sql-generation/sql-specs';
-import { getSqlDialect } from './sql-generation';
-import { QueryPropertiesMetadata, makeQueryPropertiesMetadata } from './query-properties-metadata-generation';
+} from './result-type-gen';
+import { SqlSourceGenerator } from './sql-gen/sql-source-generator';
+import { SqlSpecGenerator } from './sql-gen/sql-spec-generator';
+import { SqlSpec } from './sql-gen/sql-specs';
+import { getSqlDialect } from './sql-gen';
+import { QueryPropertiesMetadata, makeQueryPropertiesMetadata } from './query-props-md-gen';
 import { DatabaseMetadata } from './dbmd/database-metadata';
 import { SourceGenerationOptions, SourceLanguage } from './source-generation-options';
 
 export * from './source-generation-options';
 export * from './query-specs';
-export * from './result-type-generation';
+export * from './result-type-gen';
 export * from './dbmd/database-metadata';
 
 export interface QuerySources

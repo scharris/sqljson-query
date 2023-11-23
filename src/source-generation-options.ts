@@ -1,4 +1,4 @@
-import { ResultTypeSpec, TableFieldResultTypeProperty } from './result-type-generation';
+import { ResultTypeSpec, TableFieldResultTypeProperty } from './result-type-gen';
 import { Nullable } from './util/mod';
 
 export type SourceLanguage = 'TS' | 'Java';

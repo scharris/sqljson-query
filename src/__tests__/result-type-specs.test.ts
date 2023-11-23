@@ -1,4 +1,4 @@
-import {ResultTypeSpec, resultTypeSpecsEqual} from '../result-type-generation';
+import {ResultTypeSpec, resultTypeSpecsEqual} from '../result-type-gen';
 
 const table = { name: 'table' };
 

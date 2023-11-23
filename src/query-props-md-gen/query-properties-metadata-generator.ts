@@ -4,7 +4,7 @@ import {
   QueryFromEntry,
   SelectEntry,
   SqlSpec
-} from "../sql-generation/sql-specs";
+} from "../sql-gen/sql-specs";
 import {ParentStep, QueryPropertiesMetadata, QueryPropertyMetadata} from "./query-properties-metadata";
 
 export function makeQueryPropertiesMetadata

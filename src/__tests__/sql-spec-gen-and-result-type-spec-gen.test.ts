@@ -1,8 +1,8 @@
 import path from 'path';
 import { DatabaseMetadata } from '../dbmd';
 import { QuerySpec } from '../query-specs';
-import { makeNamedResultTypeSpecs } from '../result-type-generation';
-import { SqlSpecGenerator } from '../sql-generation';
+import { makeNamedResultTypeSpecs } from '../result-type-gen';
+import { SqlSpecGenerator } from '../sql-gen';
 import { readTextFileSync } from '../util/files';
 import { propertyNameDefaultFunction } from '../util/property-names';
 

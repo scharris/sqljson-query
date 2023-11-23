@@ -10,7 +10,7 @@ import {
   QueryFromEntry,
   SelectEntry,
   SqlSpec
-} from "../sql-generation/sql-specs";
+} from "../sql-gen/sql-specs";
 import {dedupedWithAssignedNames} from "./result-type-names-assignment";
 import {NamedResultTypeSpec, ResultTypeProperty, ResultTypeSpec} from "./result-type-specs";
 

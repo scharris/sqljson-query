@@ -3,12 +3,12 @@ import {QuerySpec} from '../query-specs';
 import {DatabaseMetadata} from '../dbmd';
 import {propertyNameDefaultFunction} from '../util/mod';
 import {readTextFileSync} from '../util/files';
-import {SqlSpecGenerator} from '../sql-generation';
+import {SqlSpecGenerator} from '../sql-gen';
 import {
   ChildCollectionSelectEntry,
   InlineParentSelectEntry,
   ParentReferenceSelectEntry
-} from '../sql-generation/sql-specs';
+} from '../sql-gen/sql-specs';
 
 const dbmdPath = path.join(__dirname, 'db', 'pg', 'dbmd.json');
 const dbmdStoredProps = JSON.parse(readTextFileSync(dbmdPath));

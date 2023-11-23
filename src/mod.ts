@@ -5,7 +5,7 @@ import {parseArgs, parseBoolOption} from './util/args';
 import {Nullable, replaceAll} from './util/mod';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
-import {QueryPropertiesMetadata} from './query-properties-metadata-generation';
+import {QueryPropertiesMetadata} from './query-props-md-gen';
 import {
   DatabaseMetadata,
   GeneratedResultTypes,
