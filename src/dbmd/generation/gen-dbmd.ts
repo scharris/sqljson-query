@@ -2,19 +2,19 @@
 import {parseArgs} from './utils';
 import {DbmdGenerationOptions, generateDatabaseMetadata} from './gen-dbmd-lib';
 
-const requiredParams = [
+const requiredNamedArgs = [
   'connProps', // connection properties file
   'db',        // database type: pg | mysql | hsql | ora
   'outputDir', // database metadata output directory
 ]
-const optionNames = [
+const optionalNamedArgs = [
   'include',   // table include pattern regular expression, defaulting to '.*'
   'exclude',   // table exclude pattern regular expression, defaulting to '^$'
   'outputFileName',
   'preferJdbc'
 ];
 
-const parsedArgs = parseArgs(process.argv, requiredParams, optionNames, 0);
+const parsedArgs = parseArgs(process.argv, requiredNamedArgs, optionalNamedArgs, 0);
 
 if (typeof parsedArgs === 'string') // arg parsing error
 {

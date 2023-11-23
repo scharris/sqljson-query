@@ -37,18 +37,18 @@ export async function generateQueriesWithArgvOptions
     args: string[],
   )
 {
-  const requiredOptions = [
+  const requiredNamedArgs = [
     'dbmd', // database metadata json file path
     'sqlDir'
   ];
-  const optionalOptions = [
+  const optionalNamedArgs = [
     'sqlSpecDir',
     'propsMdDir',
     'tsDir', 'tsTypesHeader',
     'javaBaseDir', 'javaPackage', 'javaTypesHeader', 'javaEmitRecords'
   ];
 
-  const parsedArgs = parseArgs(args, requiredOptions, optionalOptions, 0);
+  const parsedArgs = parseArgs(args, requiredNamedArgs, optionalNamedArgs, 0);
   if ( typeof parsedArgs === 'string' ) // arg parsing error
     throw new Error(parsedArgs);
 
