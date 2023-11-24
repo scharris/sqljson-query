@@ -6,15 +6,11 @@ import {Nullable, replaceAll} from './util/mod';
 import {QueryGroupSpec, ResultRepr, SpecError} from './query-specs';
 import {SourceGenerationOptions, SourceLanguage} from './source-generation-options';
 import {QueryPropertiesMetadata} from './query-props-md-gen';
-import {
-  DatabaseMetadata,
-  GeneratedResultTypes,
-  GeneratedSql,
-  generateQueryGroupSources,
-  parseStoredDatabaseMetadata
-} from './lib';
+import {DatabaseMetadata, GeneratedResultTypes, GeneratedSql, generateQueryGroupSources, parseStoredDatabaseMetadata} from './lib';
 
 export * from './lib';
+export * from './dbmd/gen/gen-dbmd-lib';
+export * from './dbmd/gen/gen-relsmd-lib';
 export * from './dbmd/relations-md-source-generator';
 
 export interface QueryGenerationOptions
