@@ -1,6 +1,6 @@
 {
   "name": "sqljson-query",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "description": "Command line tool to generate SQL/JSON SQL queries and result types for Typescript or Java.",
   "keywords": [
     "SQL",
@@ -17,8 +17,8 @@
   "main": "./lib/mod.js",
   "browser": "./lib/lib.js",
   "bin": {
-    "gen-dbmd": "./lib/dbmd/generation/gen-dbmd.js",
-    "gen-relsmd": "./lib/dbmd/generation/gen-relsmd.js"
+    "gen-dbmd": "./lib/dbmd/gen/gen-dbmd.js",
+    "gen-relsmd": "./lib/dbmd/gen/gen-relsmd.js"
   },
   "scripts": {
     "build-pg": "docker build -t drugs-pg src/__tests__/db/pg",
@@ -30,7 +30,7 @@
     "rm-test-dbs": "docker rm -vf drugs-mysql drugs-pg",
     "start-test-dbs": "npm run start-pg && npm run start-mysql",
     "typecheck": "tsc --noEmit # (compile without emitting outputs)",
-    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/generation/pom.xml src/dbmd/generation/src/**/*.* src/dbmd/generation/gen-*  lib/dbmd/",
+    "build": "npm run clean && tsc && copyfiles -u 2 src/dbmd/gen/pom.xml src/dbmd/gen/src/**/*.* src/dbmd/gen/gen-*  lib/dbmd/",
     "test": "jest",
     "clean": "rimraf lib pack",
     "gen-doc-diagrams": "dot -O -Tsvg docs/img/*.dot"
