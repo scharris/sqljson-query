@@ -81,7 +81,7 @@ export async function generateQueriesWithArgvOptions
   catch (e)
   {
     if (e instanceof SpecError)
-      return new Error(
+      throw new Error(
         "Error in query specification.\n" +
         "-----------------------------\n" +
         "In query: " + e.specLocation.queryName + "\n" +
