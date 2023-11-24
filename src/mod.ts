@@ -130,10 +130,9 @@ export async function generateQueries
   console.log(
     `Wrote sources for ${querySourcess.length} queries to the following directories: \n` +
     `  SQL sources => ${opts.sqlOutputDir}\n` +
-    '  Result type sources: \n' +
-    `${typesOutputDirs.Java ? `    Java => ${typesOutputDirs.Java}\n` : ''}` +
-    `${typesOutputDirs.TS ? `    TypeScript => ${typesOutputDirs.TS}\n` : ''}` +
-    (opts.sqlSpecOutputDir ? `  SQL Specs => ${opts.sqlSpecOutputDir}\n` : '') +
+    `${typesOutputDirs.Java ? `  Java sources => ${typesOutputDirs.Java}\n` : ''}` +
+    `${typesOutputDirs.TS   ? `  TypeScript sources => ${typesOutputDirs.TS}\n` : ''}` +
+    (opts.sqlSpecOutputDir  ? `  SQL specs => ${opts.sqlSpecOutputDir}\n` : '') +
     (opts.queryPropsMdOutputDir ? `  Query properties metadata => ${opts.queryPropsMdOutputDir}\n` : '')
   );
 }
