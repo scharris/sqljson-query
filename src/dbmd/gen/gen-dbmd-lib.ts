@@ -17,6 +17,8 @@ export interface DbmdGenerationOptions
   generatorPomFile?: string | null;
   dbmdOutputDir: string;
   dbmdOutputFileName?: string | null;
+  writeRelsmd?: boolean | null,
+  relsmdOutputFileName?: string | null;
   preferJdbc?: boolean | null
 }
 
@@ -26,6 +28,7 @@ export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
   const include = opts.includeRegex || '.*';
   const exclude = opts.excludeRegex || '^$';
   const preferJdbc = !!opts.preferJdbc;
+  const writeRelsmd = !!opts.writeRelsmd;
 
   try { await fs.stat(opts.connPropsFile); }
   catch { throw new Error(`Connection properties file was not found at '${opts.connPropsFile}'.`); }
@@ -46,7 +49,8 @@ export async function generateDatabaseMetadata(opts: DbmdGenerationOptions)
     queryViaMaven(pomFile, opts.connPropsFile, include, exclude, opts.dbType, dbmdFile);
   }
 
-  await generateRelationsMetadata({ dbmdFile, tsOutputDir: opts.dbmdOutputDir });
+  if (writeRelsmd)
+    await generateRelationsMetadata({ dbmdFile, tsOutputDir: opts.dbmdOutputDir, tsFileName: opts.relsmdOutputFileName });
 }
 
 async function queryViaPgClient
