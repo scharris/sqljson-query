@@ -14,7 +14,7 @@
     <jackson.version>2.14.1</jackson.version>
     <slf4j.version>2.0.6</slf4j.version>
     <pg.jdbc.version>42.5.5</pg.jdbc.version>
-    <mysql.jdbc.version>8.0.32</mysql.jdbc.version>
+    <mysql.jdbc.version>8.2.0</mysql.jdbc.version>
     <hsql.version>2.7.1</hsql.version>
     <ora.jdbc.version>21.8.0.0</ora.jdbc.version>
     <dbmd.file>${project.basedir}/dbmd.json</dbmd.file>
