@@ -252,8 +252,9 @@ function ident
     return name;
 }
 
-function lit(s: string)
+function lit(s: string|null|undefined)
 {
+  if (!s) return '""';
   return "\"" + s.replace(/"/g, '\\"') + "\"";
 }
 
